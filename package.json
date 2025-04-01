@@ -1,0 +1,60 @@
+{
+  "name": "Category-Product",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "*",
+    "@emotion/styled": "*",
+    "@mui/icons-material": "^5.11.11",
+    "@mui/lab": "^5.0.0-alpha.150",
+    "@mui/material": "^5.11.13",
+    "@react-navigation/bottom-tabs": "^6.5.7",
+    "axios": "^1.3.4",
+    "firebase": "^11.0.1",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.8.0",
+    "moment": "^2.30.1",
+    "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-datepicker": "^8.0.0",
+    "react-dom": "^18.2.0",
+    "react-intl": "^6.6.8",
+    "react-loading": "^2.0.3",
+    "react-qr-code": "^2.0.15",
+    "react-redux": "^8.1.2",
+    "react-refresh": "^0.14.2",
+    "react-responsive-list": "^0.0.4",
+    "react-router-dom": "^6.8.1",
+    "react-scripts": "5.0.1",
+    "react-tabs": "^6.0.0",
+    "react-toastify": "^11.0.5",
+    "reactjs-popup": "^2.0.6",
+    "redux": "^4.2.1",
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
