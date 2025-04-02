@@ -1237,7 +1237,7 @@ function FoodDescription() {
                   value={searchQuery}
                 />
               </div>
-              <input
+              {/* <input
                 type="button"
                 value="Search"
                 style={{
@@ -1249,8 +1249,8 @@ function FoodDescription() {
                   backgroundColor: "#000",
                   color: "#fff",
                 }}
-                // onClick={}
-              />
+                onClick={handleSearch}
+              /> */}
             </div>
 
             <div
