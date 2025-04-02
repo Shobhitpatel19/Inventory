@@ -20,6 +20,14 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "react-responsive-list";
 import "react-responsive-list/assets/index.css";
 import Box from "@mui/material/Box";
 import { FormControlLabel } from "@mui/material";
+import {
+  Card,
+  CardContent,
+  Typography,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+} from "@mui/material";
 import Gallery from "./Gallery";
 import Currencies from "../root/currency";
 function FoodDescription() {
@@ -33,7 +41,9 @@ function FoodDescription() {
   const [calorie, setCalorie] = useState(0);
   const [inStock, setInstock] = useState(true);
   const [description, setDescription] = useState("");
-  const [imageURL, setImageURL] = useState("https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg");
+  const [imageURL, setImageURL] = useState(
+    "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg"
+  );
   const [categoryType, setCategoryType] = useState("");
   const [variety, setVariety] = useState(false);
   const [option, setOption] = useState([]);
@@ -65,6 +75,8 @@ function FoodDescription() {
   const [isPriceEditable, setEditablePrice] = useState(false);
   const [invenOpen, setInvenOpen] = useState(false);
   const [inventoryData, setInventoryData] = useState([]);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState(null);
 
   console.log(pricevalues);
   //add by sk
@@ -144,13 +156,13 @@ function FoodDescription() {
   // let cur = merchantData ? merchantData.currency : "";
   // let SelectCurrency = cur.toUpperCase() === "INR" ? "₹" : "$";
   let currency = Currencies.filter(
-      (curen) => curen.abbreviation == merchantData.currency
-    );
+    (curen) => curen.abbreviation == merchantData.currency
+  );
   let SelectCurrency = currency && currency[0] ? currency[0].symbol : "";
   console.log(SelectCurrency);
-   const selectedCurrency = (
-      <span dangerouslySetInnerHTML={{ __html: SelectCurrency }} />
-    );
+  const selectedCurrency = (
+    <span dangerouslySetInnerHTML={{ __html: SelectCurrency }} />
+  );
   console.log(selectedCurrency);
 
   const userId = userData ? userData.sub : " ";
@@ -297,7 +309,7 @@ function FoodDescription() {
       fname[1].style.borderColor = "red";
     } else if (selectProductId) {
       console.log(cooktags.length ? cooktags.join(",") : "");
-      console.log("image",imageURL);
+      console.log("image", imageURL);
       console.log("kitchen", selectedKitchen);
       axios
         .put(
@@ -456,9 +468,25 @@ function FoodDescription() {
   };
   const handleDelete = (id) => {
     console.log(id);
-    axios.delete(baseURL + "/api/products/" + id).then((response) => {
-      getProductsList();
-    });
+    setDeleteItemId(id);
+    setOpenDeleteDialog(true);
+    // axios.delete(baseURL + "/api/products/" + id).then((response) => {
+    //   getProductsList();
+    // });
+  };
+
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteItemId) {
+      axios.delete(`${baseURL}/api/products/${deleteItemId}`).then(() => {
+        getProductsList();
+        handleDeleteClose();
+      });
+    }
   };
 
   const handleEdit = (
@@ -594,7 +622,7 @@ function FoodDescription() {
   };
 
   const handleInventory = async () => {
-    console.log("user",userToken);
+    console.log("user", userToken);
     try {
       const response = await axios.get(
         `${baseURL}/api/inventories?merchantCode=${merchCode}`,
@@ -606,8 +634,6 @@ function FoodDescription() {
     } catch (error) {
       console.error("Error fetching inventory data:", error);
     }
-    
-    
   };
 
   const handleInvenClose = () => {
@@ -1184,7 +1210,7 @@ function FoodDescription() {
                     color="error"
                     style={{ margin: "20px" }}
                     className="close-btn"
-                    onClick={handleClose}
+                    onClick={handleDeleteClose}
                   >
                     Close
                   </Button>
@@ -1195,6 +1221,34 @@ function FoodDescription() {
             )}
           </div>
         </Dialog>
+
+        {openDeleteDialog === true ? (
+          <Dialog
+            open={openDeleteDialog}
+            onClose={handleDeleteClose}
+            BackdropProps={{
+              style: { backgroundColor: "rgba(0, 0, 0, 0.2)" }, // Adjust transparency
+            }}
+          >
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Are you sure you want to delete this item? This action cannot be
+                undone.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleDeleteClose} color="primary">
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmDelete} color="error" autoFocus>
+                Delete
+              </Button>
+            </DialogActions>
+          </Dialog>
+        ) : (
+          <div />
+        )}
 
         <Dialog
           onClose={() => setShowGallery(false)}
@@ -1297,7 +1351,9 @@ function FoodDescription() {
         </Dialog>
 
         <Dialog open={invenOpen} onClose={handleInvenClose}>
-          <DialogTitle style={{textAlign:"center", fontWeight:"700"}}>Inventory List</DialogTitle>
+          <DialogTitle style={{ textAlign: "center", fontWeight: "700" }}>
+            Inventory List
+          </DialogTitle>
           <Table style={{ width: "100%", borderCollapse: "collapse" }}>
             <Thead>
               <Tr>
@@ -1317,7 +1373,7 @@ function FoodDescription() {
                       {item.name}
                     </Td>
                     <Td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                      {item.availableQnty }
+                      {item.availableQnty}
                     </Td>
                   </Tr>
                 ))
