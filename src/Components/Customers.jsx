@@ -11,6 +11,7 @@ import moment from "moment";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import { Box, TextField, Button } from "@mui/material";
+import DeleteDiaologue from "./Delete";
 const Customers = () => {
   const [customerData, setCustomerData] = useState([]);
   const [editedData, setEditedData] = useState([]);
@@ -23,6 +24,8 @@ const Customers = () => {
   const [rowsPerPage, setRowsPerPage] = React.useState(7);
   const [filterPro, setFilterPro] = useState([]);
   const [isSearch, setIsSearch] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState(null);
 
   let domain =
     window.location.href.indexOf("localhost") > 0
@@ -47,44 +50,60 @@ const Customers = () => {
     : "";
   console.log(userToken);
   const getCustomerList = () => {
-    
     axios({
-        method: "get",
-        url: `${authApi}/customer?merchantCode=${merchCode}`,
-        headers: {
-          Authorization: `Bearer ${userToken}`,
-        },
-      }).then((res) => {
-        console.log(res.data);
-        setCustomerData(res.data);
-      });
-  }
+      method: "get",
+      url: `${authApi}/customer?merchantCode=${merchCode}`,
+      headers: {
+        Authorization: `Bearer ${userToken}`,
+      },
+    }).then((res) => {
+      console.log(res.data);
+      setCustomerData(res.data);
+    });
+  };
   useEffect(() => {
     if (!customerData.length) {
-        getCustomerList();
+      getCustomerList();
     }
   });
   const handleSubmit = () => {
-    console.log(mobileNo)
-      axios
-        .put(`https://authapi.digitallive24.com/customer/${editedData.id}`, {
-          phone: mobileNo || editedData.phone,
-          firstName: name || editedData.firstName,
-          address: address || editedData.address,
-          email: email || editedData.email,
-        })
-        .then((res) => {
-          console.log(res.data);
-          setEdit(false);
-          getCustomerList()
-        });
-    
+    console.log(mobileNo);
+    axios
+      .put(`https://authapi.digitallive24.com/customer/${editedData.id}`, {
+        phone: mobileNo || editedData.phone,
+        firstName: name || editedData.firstName,
+        address: address || editedData.address,
+        email: email || editedData.email,
+      })
+      .then((res) => {
+        console.log(res.data);
+        setEdit(false);
+        getCustomerList();
+      });
   };
   const handleDelete = (id) => {
-    console.log(id);
-    axios.delete(`https://authapi.digitallive24.com/customer/${id}`).then((response) => {
-        getCustomerList();
-    });
+    // console.log(id);
+    // axios.delete(`https://authapi.digitallive24.com/customer/${deleteItemId}`).then((response) => {
+    //     getCustomerList();
+    // });
+    setDeleteItemId(id);
+    setOpenDeleteDialog(true);
+  };
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteItemId) {
+      axios
+        .delete(`https://authapi.digitallive24.com/customer/${deleteItemId}`)
+        .then((response) => {
+          getCustomerList();
+        });
+    }
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
   };
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(+event.target.value);
@@ -107,15 +126,19 @@ const Customers = () => {
     }
   };
   const filterCustomers = (e) => {
-    console.log(customerData)
+    console.log(customerData);
     let val = e.target.value;
     let fltData = customerData.filter(
-      (pro) => (pro.firstName.toLowerCase().indexOf(val.toLowerCase()) !== -1 || pro.phone.indexOf(val.toLowerCase()) !== -1 || pro.email.indexOf(val.toLowerCase()) !== -1 || pro.address.indexOf(val.toLowerCase()) !== -1)
+      (pro) =>
+        pro.firstName.toLowerCase().indexOf(val.toLowerCase()) !== -1 ||
+        pro.phone.indexOf(val.toLowerCase()) !== -1 ||
+        pro.email.indexOf(val.toLowerCase()) !== -1 ||
+        pro.address.indexOf(val.toLowerCase()) !== -1
     );
     setFilterPro(fltData);
     setIsSearch(val ? true : false);
-  }; 
-  
+  };
+
   const handleName = (e) => {
     setName(e.target.value);
   };
@@ -141,7 +164,7 @@ const Customers = () => {
           <SearchIcon />
           <input
             type="text"
-          onChange={filterCustomers}
+            onChange={filterCustomers}
             placeholder="Enter Customer Details"
             style={{
               border: "none",
@@ -203,7 +226,7 @@ const Customers = () => {
                               aria-label="delete"
                               size="large"
                               color="error"
-                                onClick={() => handleDelete(customer.id)}
+                              onClick={() => handleDelete(customer.id)}
                             >
                               <DeleteIcon />
                             </IconButton>
@@ -227,7 +250,16 @@ const Customers = () => {
           />
         )}
       </div>
-      <Dialog open={edit} maxWidth="md" >
+      {openDeleteDialog === true ? (
+        <DeleteDiaologue
+          open={openDeleteDialog}
+          onClose={handleDeleteClose}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : (
+        <div />
+      )}
+      <Dialog open={edit} maxWidth="md">
         <div className="dialogTitle">
           <DialogTitle style={{ textAlign: "center", fontWeight: "bold" }}>
             {"Edit Customer Data"}
@@ -244,7 +276,7 @@ const Customers = () => {
               }}
             >
               <div className="row">
-                <div >
+                <div>
                   <Box
                     sx={{
                       width: 500,
@@ -266,7 +298,7 @@ const Customers = () => {
                 <div>
                   <Box
                     sx={{
-                      width:300,
+                      width: 300,
                       maxWidth: "100%",
                     }}
                     noValidate
@@ -287,7 +319,7 @@ const Customers = () => {
                 </div>
               </div>{" "}
               <div className="row">
-                <div >
+                <div>
                   <Box
                     sx={{
                       width: 500,
@@ -335,7 +367,7 @@ const Customers = () => {
                 className="save-btn"
                 variant="contained"
                 color="success"
-                style={{ margin: "20px",background: "#f7c919" }}
+                style={{ margin: "20px", background: "#f7c919" }}
                 onClick={handleSubmit}
               >
                 Save

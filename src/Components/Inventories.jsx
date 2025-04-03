@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 
 import configs from "../Constants";
+import DeleteDiaologue from "./Delete";
 
 const Inventories = () => {
   const [products, setProducts] = useState([]);
@@ -27,6 +28,8 @@ const Inventories = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState(null);
 
   const [newProduct, setNewProduct] = useState({
     id: "",
@@ -91,17 +94,47 @@ const Inventories = () => {
     setIsEditing(true);
     setOpen(true);
   };
-  
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
+    // try {
+    //   await axios.delete(`${baseURL}/api/inventories/${id}?merchantCode=${merchCode}`, {
+    //     headers: { Authorization: `Bearer ${userToken}` },
+    //   });
+    //   // Remove the deleted product from local state
+    //   setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
+    // } catch (error) {
+    //   console.error("Error deleting product", error);
+    // }
+
+    setDeleteItemId(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteItemId) {
+      return;
+    }
     try {
-      await axios.delete(`${baseURL}/api/inventories/${id}?merchantCode=${merchCode}`, {
-        headers: { Authorization: `Bearer ${userToken}` },
-      });
+      await axios.delete(
+        `${baseURL}/api/inventories/${deleteItemId}?merchantCode=${merchCode}`,
+        {
+          headers: { Authorization: `Bearer ${userToken}` },
+        }
+      );
       // Remove the deleted product from local state
-      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
+      setProducts((prevProducts) =>
+        prevProducts.filter((p) => p.id !== deleteItemId)
+      );
     } catch (error) {
       console.error("Error deleting product", error);
+    } finally {
+      setOpenDeleteDialog(false);
+      setDeleteItemId(null);
     }
   };
 
@@ -151,9 +184,13 @@ const Inventories = () => {
   // 8. Update an existing product
   const handleUpdate = async () => {
     try {
-      await axios.put(`${baseURL}/api/inventories/${newProduct.id}`, newProduct, {
-        headers: { Authorization: `Bearer ${userToken}` },
-      });
+      await axios.put(
+        `${baseURL}/api/inventories/${newProduct.id}`,
+        newProduct,
+        {
+          headers: { Authorization: `Bearer ${userToken}` },
+        }
+      );
       // After updating, re-fetch the latest data so date is properly displayed
       fetchInventories();
       setIsEditing(false);
@@ -279,6 +316,16 @@ const Inventories = () => {
         </DialogActions>
       </Dialog>
 
+      {openDeleteDialog === true ? (
+        <DeleteDiaologue
+          open={openDeleteDialog}
+          onClose={handleDeleteClose}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : (
+        <div />
+      )}
+
       {/* Displaying the inventory list */}
       <div className="product-list">
         <Table width="100%" cellPadding="4px">
@@ -299,7 +346,10 @@ const Inventories = () => {
               ? products
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((p) => (
-                    <Tr key={p.id} style={{ borderBottom: "1px solid #f0eeee" }}>
+                    <Tr
+                      key={p.id}
+                      style={{ borderBottom: "1px solid #f0eeee" }}
+                    >
                       <Td>{p.name}</Td>
                       <Td>{p.unitType}</Td>
                       <Td>{p.availableQnty}</Td>
@@ -317,7 +367,10 @@ const Inventories = () => {
                         <IconButton color="info" onClick={() => handleEdit(p)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(p.id)}>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(p.id)}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Td>

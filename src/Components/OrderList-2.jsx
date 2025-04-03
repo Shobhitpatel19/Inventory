@@ -30,10 +30,11 @@ import SwapVertIcon from "@mui/icons-material/SwapVert";
 import PrintIcon from "@mui/icons-material/Print";
 import BillPrint from "./BillPrint";
 import TokenIcon from "@mui/icons-material/Token";
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { amber, purple } from '@mui/material/colors';
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { amber, purple } from "@mui/material/colors";
 import { useIntl } from "react-intl";
 import PaymentOptions from "./sub_comp/PaymentOptions";
+import DeleteDiaologue from "./Delete";
 
 const OrderList = (props) => {
   const orderListPath = `/orderList`;
@@ -73,17 +74,19 @@ const OrderList = (props) => {
   const { formatMessage: t, locale, setLocale } = useIntl();
   const [payModeSelectDialog, setPayModeSelectDialog] = useState(false);
   const [payModeIndx, setPayModeIndx] = useState(-1);
-  const [selectedOrder,setSelectedOrder] = useState(null);
-
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState(null);
+  const [orderStatus, setOrderStatus] = useState("");
 
   let baseURL = configs.baseURL;
   let authApi = configs.authapi;
   const theme = createTheme({
-  palette: {
-    info: amber,
-    secondary: purple,
-  },
-});
+    palette: {
+      info: amber,
+      secondary: purple,
+    },
+  });
   const handleOrder = () => {
     setShowProducts(false);
   };
@@ -143,7 +146,6 @@ const OrderList = (props) => {
     setToken(order.number);
     setIsOpen(true);
 
-
     const SelectedorderItem = orderList.length
       ? orderList.filter((order) => order.id === orderId)
       : [];
@@ -186,16 +188,19 @@ const OrderList = (props) => {
     setCustomerOrderPop(false);
   };
 
-  const handleOrderStatus = (orderStatus, order_id, order_payment,order) => {
+  const handleOrderStatus = (order_Status, order_id, order_payment, order) => {
     console.log(order_id, order_payment);
-    // const orderStatus = event.target.value;
+    // const order_Status = event.target.value;
 
-    if (orderStatus.toLowerCase() === "ready" || orderStatus.toLowerCase() === "deliver") {
+    if (
+      order_Status.toLowerCase() === "ready" ||
+      order_Status.toLowerCase() === "deliver"
+    ) {
       if (order_payment) {
         console.log(order_payment);
         axios
           .put(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
-            action: orderStatus,
+            action: order_Status,
           })
           .then((response) => {
             console.log(response.data);
@@ -205,9 +210,9 @@ const OrderList = (props) => {
               //setTotalOrders(response.data);
               setOrderList(response.data);
             });
-            if(order && orderStatus.toLowerCase() === "ready"){
-            HandleReady([order]);
-            }else if(order && orderStatus === "deliver"){
+            if (order && order_Status.toLowerCase() === "ready") {
+              HandleReady([order]);
+            } else if (order && order_Status === "deliver") {
               HandleServed([order]);
             }
           });
@@ -215,8 +220,38 @@ const OrderList = (props) => {
         setAlertOpen(true);
       }
     } else {
-      axios
-        .delete(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
+      // axios
+      //   .delete(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
+      //     action: orderStatus,
+      //   })
+      //   .then((response) => {
+      //     console.log(response.data);
+      //     let today = new Date();
+      //     console.log(moment(today).format("DD/MMM/YYYY"));
+      //     axios.get(getOrderList).then((response) => {
+      //       //setTotalOrders(response.data);
+      //       setOrderList(response.data);
+      //     });
+      //   });
+      // console.log(orderStatus);
+      setDeleteItemId(order_id);
+      setOrderStatus(order_Status);
+      setOpenDeleteDialog(true);
+    }
+  };
+
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteItemId) {
+      return;
+    }
+
+    axios
+        .delete(`${baseURL}/api/orders/${deleteItemId}?merchantCode=${merchCode}`, {
           action: orderStatus,
         })
         .then((response) => {
@@ -229,7 +264,9 @@ const OrderList = (props) => {
           });
         });
       console.log(orderStatus);
-    }
+
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
   };
 
   const handleCancel = (order_id, order_cancel) => {
@@ -246,14 +283,16 @@ const OrderList = (props) => {
     }
   };
   const handlePayment = (mode) => {
-    
     if (selectedOrder && selectedOrder.id) {
       axios
-        .put(`${baseURL}/api/orders/${selectedOrder.id}?merchantCode=${merchCode}`, {
-          paymentState: "PAID",
-          isPaid: true,
-          payVia: mode
-        })
+        .put(
+          `${baseURL}/api/orders/${selectedOrder.id}?merchantCode=${merchCode}`,
+          {
+            paymentState: "PAID",
+            isPaid: true,
+            payVia: mode,
+          }
+        )
         .then((response) => {
           console.log(response.data);
           let today = new Date();
@@ -264,9 +303,11 @@ const OrderList = (props) => {
           });
         });
     }
-    
-    const tabData = tableData.filter((tab) => tab.number == selectedOrder.number);
-    
+
+    const tabData = tableData.filter(
+      (tab) => tab.number == selectedOrder.number
+    );
+
     if (tabData.length > 0) {
       tabData[0].isAvailable = "true";
       axios
@@ -376,16 +417,16 @@ const OrderList = (props) => {
   };
 
   const fetchOrdersAndNoti = () => {
-      let today = new Date();
-      console.log(moment(today).format("DD/MMM/YYYY"));
-      axios.get(getOrderList).then((response) => {
-        //setTotalOrders(response.data);
-        setOrderList(response.data);
-      });
+    let today = new Date();
+    console.log(moment(today).format("DD/MMM/YYYY"));
+    axios.get(getOrderList).then((response) => {
+      //setTotalOrders(response.data);
+      setOrderList(response.data);
+    });
 
-      // axios.get(notificationURL).then((response)=>{
-      //     setNotifiData(response.data);
-      // });
+    // axios.get(notificationURL).then((response)=>{
+    //     setNotifiData(response.data);
+    // });
     console.log(props.refesh);
 
     axios.get(getTabByUser).then((response) => {
@@ -478,8 +519,6 @@ const OrderList = (props) => {
       setBillPrint(true);
       localStorage.setItem("isPrintCall", "N");
     }
-
-    
   };
 
   const handleNumberSearch = (e) => {
@@ -551,40 +590,40 @@ const OrderList = (props) => {
       )}
       <div className="header">
         <h4>{t({ id: "orders" })}</h4>
-         <div className="search">
-            <SearchIcon />
-            <input
-              type="text"
-              className="search_input"
-              onChange={handleNumberSearch}
-              placeholder="Search"
-            />
-          </div>
-           <ThemeProvider theme={theme}>
-        <Button onClick={handleSort} color="info" variant="outlined">
-          <SwapVertIcon />
-          Sort
-        </Button>
+        <div className="search">
+          <SearchIcon />
+          <input
+            type="text"
+            className="search_input"
+            onChange={handleNumberSearch}
+            placeholder="Search"
+          />
+        </div>
+        <ThemeProvider theme={theme}>
+          <Button onClick={handleSort} color="info" variant="outlined">
+            <SwapVertIcon />
+            Sort
+          </Button>
         </ThemeProvider>
         <div id="group">
-            {false &&<label>Group By: </label>}
-            <select
-              onChange={handleTypeOrder}
-              style={{
-                outline: "none",
-                borderRadius: "5px",
-                background: "transparent",
-              }}
-            >
-              <option value="">ALL</option>
-              <option value="Self Order">Self Orders</option>
-              <option value="EPOS">EPOS Orders</option>
-              <option value="Online Order">Online Orders</option>
-              <option value="Table Order">Table Orders</option>
-            </select>
-          </div>
+          {false && <label>Group By: </label>}
+          <select
+            onChange={handleTypeOrder}
+            style={{
+              outline: "none",
+              borderRadius: "5px",
+              background: "transparent",
+            }}
+          >
+            <option value="">ALL</option>
+            <option value="Self Order">Self Orders</option>
+            <option value="EPOS">EPOS Orders</option>
+            <option value="Online Order">Online Orders</option>
+            <option value="Table Order">Table Orders</option>
+          </select>
+        </div>
         <Button onClick={handleWaiterToken} variant="outlined" color="success">
-        {t({ id: "ready_to_serve" })} 
+          {t({ id: "ready_to_serve" })}
         </Button>
         <div
           id="head"
@@ -595,21 +634,20 @@ const OrderList = (props) => {
             width: "auto",
           }}
         >
-         
-
-          
-          {false && <div id="group">
-            <label htmlFor="">Date: </label>
-            <input
-              type="date"
-              onChange={handleDate}
-              style={{
-                outline: "none",
-                borderRadius: "5px",
-                background: "transparent",
-              }}
-            />
-          </div>}
+          {false && (
+            <div id="group">
+              <label htmlFor="">Date: </label>
+              <input
+                type="date"
+                onChange={handleDate}
+                style={{
+                  outline: "none",
+                  borderRadius: "5px",
+                  background: "transparent",
+                }}
+              />
+            </div>
+          )}
           {false && (
             <span id="table_group">
               Table orders &nbsp;&nbsp;
@@ -629,7 +667,9 @@ const OrderList = (props) => {
           </IconButton>
         </div>
       </div>
-      {billPrint && <BillPrint orderDetails={orderData} setBillPrint={setBillPrint}/>}
+      {billPrint && (
+        <BillPrint orderDetails={orderData} setBillPrint={setBillPrint} />
+      )}
       <Dialog open={alertOpen} maxWidth="xs" fullWidth={true}>
         <div className="alert-dialog">
           <h3 className="">{"Payment Pending"}</h3>
@@ -647,6 +687,16 @@ const OrderList = (props) => {
           </button>
         </div>
       </Dialog>
+
+      {openDeleteDialog === true ? (
+        <DeleteDiaologue
+          open={openDeleteDialog}
+          onClose={handleDeleteClose}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : (
+        <div />
+      )}
 
       <Dialog
         open={openNotifi || props.notification}
@@ -794,51 +844,56 @@ const OrderList = (props) => {
                               color: "#4d4a4a",
                             }}
                           >
-
-                            {orderLists.orderType.toLowerCase() === "eat in" && 
+                            {orderLists.orderType.toLowerCase() ===
+                              "eat in" && (
                               <img
                                 height="20px"
                                 alt=""
                                 width="20px"
                                 src="./images/eat_in.png"
                               />
-                            }
-                            {orderLists.orderType.toLowerCase() === "take away" && 
+                            )}
+                            {orderLists.orderType.toLowerCase() ===
+                              "take away" && (
                               <img
                                 height="20px"
                                 width="20px"
                                 alt=""
                                 src="./images/take-out-2.png"
                               />
-                            } 
-                            {orderLists.orderType.toLowerCase() === "delivery" && 
+                            )}
+                            {orderLists.orderType.toLowerCase() ===
+                              "delivery" && (
                               <DeliveryDiningIcon
                                 style={{ height: "30px", width: "30px" }}
                               />
-                            }
+                            )}
 
-                            {orderLists.orderType.toLowerCase() === "pick up" && 
-                               <img
+                            {orderLists.orderType.toLowerCase() ===
+                              "pick up" && (
+                              <img
                                 height="30px"
                                 width="30px"
                                 alt=""
                                 src="./images/pickup.png"
                               />
-                            }
+                            )}
 
                             {orderLists.number}
-                            <br/>
+                            <br />
                             {tableCall && (
                               <span
                                 className="blinking-dot"
                                 style={{
                                   color: "red",
                                   animation: "blinking 1s infinite",
-                                  fontSize:"9px",
-                                  fontWeight:'bold',
-                                  left:'35px'
+                                  fontSize: "9px",
+                                  fontWeight: "bold",
+                                  left: "35px",
                                 }}
-                              >Calling</span>
+                              >
+                                Calling
+                              </span>
                             )}
                           </Td>
                           <Td>
@@ -851,8 +906,7 @@ const OrderList = (props) => {
                                   ? "warning"
                                   : orderLists.orderSource === "Table Order"
                                   ? "secondary"
-                                  :
-                                  orderLists.orderSource === "Online Order"
+                                  : orderLists.orderSource === "Online Order"
                                   ? "error"
                                   : "default"
                               }
@@ -862,9 +916,11 @@ const OrderList = (props) => {
                                 fontWeight: "bold",
                               }}
                             />
-                            <div style={{ fontSize: "12px" }}>{moment(orderLists.createdAt).format(
-                              "DD-MMM h:mm a"
-                            )}</div>
+                            <div style={{ fontSize: "12px" }}>
+                              {moment(orderLists.createdAt).format(
+                                "DD-MMM h:mm a"
+                              )}
+                            </div>
                           </Td>
 
                           <Td>
@@ -879,174 +935,168 @@ const OrderList = (props) => {
                                     orderLists.discountAmount) /
                                     100
                               : orderLists.totalPrice}
-                              {!orderLists.isPaid? (
-                                <Chip
-                                  label="PENDING"
-                                  style={{
-                                
-                                    fontSize: "x-small",
-                                    fontWeight: "bold",
-                                    background:"#fdd564",
-                                    color:"#6f650e"
-                                  }}
-                                />
-                              ):(
-                                <Chip
-                                  label="&#x2714; PAID"
-                                  color="success"
-                                  style={{
-                                  
-                                    fontSize: "x-small",
-                                    fontWeight: "bold",
-                                  }}
-                                />
-                              )}
+                            {!orderLists.isPaid ? (
+                              <Chip
+                                label="PENDING"
+                                style={{
+                                  fontSize: "x-small",
+                                  fontWeight: "bold",
+                                  background: "#fdd564",
+                                  color: "#6f650e",
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                label="&#x2714; PAID"
+                                color="success"
+                                style={{
+                                  fontSize: "x-small",
+                                  fontWeight: "bold",
+                                }}
+                              />
+                            )}
                           </Td>
                           <Td style={{ fontSize: "12px" }}>
                             <button
-                                className="btn-icon"
-                                onClick={() =>
-                                  orderListHandler(
-                                    orderLists.id,
-                                    orderLists.customerId,
-                                    orderLists
-                                  )
-                                }
-                              >
-                                <ReceiptLongOutlinedIcon />
-                              </button>
+                              className="btn-icon"
+                              onClick={() =>
+                                orderListHandler(
+                                  orderLists.id,
+                                  orderLists.customerId,
+                                  orderLists
+                                )
+                              }
+                            >
+                              <ReceiptLongOutlinedIcon />
+                            </button>
                           </Td>
-                         
-                          <Td >
-                            <div className="actions-container">
-                              
-                              {orderLists.isPaid ? (orderLists.isDelivered ? (
-                              <>
-                                <Chip
-                                  label="&#x2714; DELIVERED"
-                                  color="success"
-                                  style={{
-                                    marginLeft: "10px",
-                                    fontSize: "x-small",
-                                    fontWeight: "bold",
-                                     cursor:"pointer"
-                                  }}
-                                />
-                                
-                              </>
-                            ) : (
-                              <>
-                                {orderLists.isReady &&
-                                orderLists.isCanceled === false ? (
-                                  <Button
-                                    variant="contained"
-                                    color="info"
-                                    onClick={() =>
-                                      handleOrderStatus(
-                                        "deliver",
-                                        orderLists.id,
-                                        orderLists.isPaid,
-                                        orderLists
-                                      )
-                                    }
-                                  >
-                                    {t({ id: "deliver" })}
-                                  </Button>
-                                ) : orderLists.isCanceled === true ? (
-                                  ""
-                                ) : (
-                                  <Button
-                                    variant="contained"
-                                    color="success"
-                                    onClick={() =>
-                                      handleOrderStatus(
-                                        "ready",
-                                        orderLists.id,
-                                        orderLists.isPaid,
-                                        orderLists
-                                      )
-                                    }
-                                  >
-                                    {t({ id: "ready" })}
-                                  </Button>
-                                )}
 
-                                
-                              </>
-                            )) : (
+                          <Td>
+                            <div className="actions-container">
+                              {orderLists.isPaid ? (
+                                orderLists.isDelivered ? (
+                                  <>
+                                    <Chip
+                                      label="&#x2714; DELIVERED"
+                                      color="success"
+                                      style={{
+                                        marginLeft: "10px",
+                                        fontSize: "x-small",
+                                        fontWeight: "bold",
+                                        cursor: "pointer",
+                                      }}
+                                    />
+                                  </>
+                                ) : (
+                                  <>
+                                    {orderLists.isReady &&
+                                    orderLists.isCanceled === false ? (
+                                      <Button
+                                        variant="contained"
+                                        color="info"
+                                        onClick={() =>
+                                          handleOrderStatus(
+                                            "deliver",
+                                            orderLists.id,
+                                            orderLists.isPaid,
+                                            orderLists
+                                          )
+                                        }
+                                      >
+                                        {t({ id: "deliver" })}
+                                      </Button>
+                                    ) : orderLists.isCanceled === true ? (
+                                      ""
+                                    ) : (
+                                      <Button
+                                        variant="contained"
+                                        color="success"
+                                        onClick={() =>
+                                          handleOrderStatus(
+                                            "ready",
+                                            orderLists.id,
+                                            orderLists.isPaid,
+                                            orderLists
+                                          )
+                                        }
+                                      >
+                                        {t({ id: "ready" })}
+                                      </Button>
+                                    )}
+                                  </>
+                                )
+                              ) : (
                                 <Button
                                   variant="contained"
                                   color="error"
-                                  onClick={(e) =>
-                                   (setPayModeSelectDialog(true),
-                                   setSelectedOrder(orderLists))
-                                  }
+                                  onClick={(e) => (
+                                    setPayModeSelectDialog(true),
+                                    setSelectedOrder(orderLists)
+                                  )}
                                   style={{
                                     display: orderLists.isPaid
                                       ? "none"
                                       : "block",
-                                      cursor:"pointer"
+                                    cursor: "pointer",
                                   }}
                                 >
                                   {t({ id: "pay_now" })}
                                 </Button>
                               )}
                               <PrintIcon
-                                    color="success"
-                                    onClick={() => handlePrint(orderLists)}
+                                color="success"
+                                onClick={() => handlePrint(orderLists)}
+                                style={{
+                                  marginLeft: "45px",
+                                  cursor: "pointer",
+                                }}
+                              />
+
+                              {orderLists.isPaid ? (
+                                orderLists.isCanceled === true ? (
+                                  <Chip
+                                    label="CANCELLED"
+                                    color="error"
                                     style={{
-                                      marginLeft: "45px",
+                                      marginLeft: "10px",
+                                      fontSize: "x-small",
+                                      fontWeight: "bold",
                                       cursor: "pointer",
                                     }}
                                   />
-
-                            {orderLists.isPaid ? (
-                                  orderLists.isCanceled === true ? (
-                                    <Chip
-                                      label="CANCELLED"
-                                      color="error"
-                                      style={{
-                                        marginLeft: "10px",
-                                        fontSize: "x-small",
-                                        fontWeight: "bold",
-                                         cursor:"pointer"
-                                      }}
-                                    />
-                                  ) :(
-                                    <Button
-                                      variant="text"
-                                      style={{ marginLeft: "15px" }}
-                                      color="error"
-                                      onClick={() =>
-                                        handleCancel(
-                                          orderLists.id,
-                                          orderLists.isCanceled
-                                        )
-                                      }
-                                    >
-                                      <CancelIcon />
-                                    </Button>
-                                  )
                                 ) : (
                                   <Button
                                     variant="text"
                                     style={{ marginLeft: "15px" }}
                                     color="error"
                                     onClick={() =>
-                                      handleOrderStatus(
-                                        "cancel",
+                                      handleCancel(
                                         orderLists.id,
-                                        orderLists.isPaid
+                                        orderLists.isCanceled
                                       )
                                     }
                                   >
-                                    <DeleteIcon />
-                                   
+                                    <CancelIcon />
                                   </Button>
-                                )}
+                                )
+                              ) : (
+                                <Button
+                                  variant="text"
+                                  style={{ marginLeft: "15px" }}
+                                  color="error"
+                                  onClick={() =>
+                                    handleOrderStatus(
+                                      "cancel",
+                                      orderLists.id,
+                                      orderLists.isPaid
+                                    )
+                                  }
+                                >
+                                  <DeleteIcon />
+                                </Button>
+                              )}
                             </div>
                           </Td>
-                            
                         </Tr>
                       );
                     }
@@ -1068,7 +1118,9 @@ const OrderList = (props) => {
                       }}
                     >
                       <h2>#{tab.number}</h2>
-                      <h6>{t({ id: "capacity" })}:{tab.capacity}</h6>
+                      <h6>
+                        {t({ id: "capacity" })}:{tab.capacity}
+                      </h6>
                       {tab.isAvailable === false ? (
                         <h6>Serving By:DL 24</h6>
                       ) : (
@@ -1089,7 +1141,7 @@ const OrderList = (props) => {
       >
         <div style={{ padding: "10px" }} className="order-tab">
           <h4 style={{ margin: "5px" }} align="center">
-          {t({ id: "order_summary_token" })}: #
+            {t({ id: "order_summary_token" })}: #
             <span style={{ fontSize: "35px" }}>{token}</span>
           </h4>
           <div
@@ -1098,13 +1150,13 @@ const OrderList = (props) => {
             }
           >
             <h5>
-            {t({ id: "name" })}: <span>{customerData.firstName}</span>
+              {t({ id: "name" })}: <span>{customerData.firstName}</span>
             </h5>
             <h5>
-            {t({ id: "mobile_no" })}: <span>{customerData.phone}</span>
+              {t({ id: "mobile_no" })}: <span>{customerData.phone}</span>
             </h5>
             <h5>
-            {t({ id: "address" })}: <span>{customerData.address}</span>
+              {t({ id: "address" })}: <span>{customerData.address}</span>
             </h5>
           </div>
           <Table breakPoint={700} style={{ width: "100%", textAlign: "left" }}>
@@ -1128,12 +1180,16 @@ const OrderList = (props) => {
                       ? subProArray.addons.map((subPro) => subPro.name)
                       : [];
                     const subProVariety =
-                        subProArray && subProArray.variety &&Object.keys(subProArray.variety).length
-                          ? Object.keys(subProArray.variety)[0]
-                          : "";
+                      subProArray &&
+                      subProArray.variety &&
+                      Object.keys(subProArray.variety).length
+                        ? Object.keys(subProArray.variety)[0]
+                        : "";
                     console.log(subProVariety);
                     const subProInstruction =
-                      subProArray && subProArray.cookInstructions && subProArray.cookInstructions instanceof Array
+                      subProArray &&
+                      subProArray.cookInstructions &&
+                      subProArray.cookInstructions instanceof Array
                         ? subProArray.cookInstructions
                         : [];
 
@@ -1156,30 +1212,24 @@ const OrderList = (props) => {
                           ) : (
                             subProNames
                           )}
-                         
-                            <Chip
-                              label={
-                                subProInstruction.join(', ').toUpperCase()
-                              }
-                              color="primary"
-                              style={{
-                                marginLeft: "10px",
-                                fontSize: "8px",
-                                fontWeight: "bold",
-                              }}
-                            />
-                         
-                            <Chip
-                              label={
-                               subProVariety.toUpperCase()
-                              }
-                              color="primary"
-                              style={{
-                                marginLeft: "10px",
-                                fontSize: "10px",
-                                fontWeight: "bold",
-                              }}
-                            />
+                          <Chip
+                            label={subProInstruction.join(", ").toUpperCase()}
+                            color="primary"
+                            style={{
+                              marginLeft: "10px",
+                              fontSize: "8px",
+                              fontWeight: "bold",
+                            }}
+                          />
+                          <Chip
+                            label={subProVariety.toUpperCase()}
+                            color="primary"
+                            style={{
+                              marginLeft: "10px",
+                              fontSize: "10px",
+                              fontWeight: "bold",
+                            }}
+                          />
                         </Td>
                         <Td>{orderItem.quantity}</Td>
                         <Td>
@@ -1191,7 +1241,7 @@ const OrderList = (props) => {
                                 fontWeight: "bold",
                               }}
                             >
-                             {t({ id: "completed" })}
+                              {t({ id: "completed" })}
                             </span>
                           ) : orderItem.status === "ready" ? (
                             <Button
@@ -1202,7 +1252,7 @@ const OrderList = (props) => {
                                 HandleServed(selectedOrd, orderItem._id)
                               }
                             >
-                             {t({ id: "serve" })}
+                              {t({ id: "serve" })}
                             </Button>
                           ) : (
                             <Button
@@ -1249,7 +1299,7 @@ const OrderList = (props) => {
           />
 
           <button type="submit" className="btn btn-success m-2 save-btn">
-          {t({ id: "save" })}
+            {t({ id: "save" })}
           </button>
 
           <button
@@ -1257,25 +1307,39 @@ const OrderList = (props) => {
             className="btn btn-danger btn-xs m-2 "
             variant="outlined"
           >
-           {t({ id: "close" })}
+            {t({ id: "close" })}
           </button>
         </form>
       </Dialog>
-     <Dialog open={payModeSelectDialog} maxWidth="xs" className="pd-2" onClose={() => setPayModeSelectDialog(false)} >
-      <DialogTitle className="text-center  fw-bold"> {t({ id: "pay_mode" })}</DialogTitle>
-      <div style={{padding:"20px"}}>
-      <PaymentOptions handlePaymentClick={setPayModeSelectDialog} handlePayMode={handlePayment} paymentIndex={payModeIndx} order={selectedOrder} closeParentDialog={()=>setPayModeSelectDialog(false)}/>
- <Button
+      <Dialog
+        open={payModeSelectDialog}
+        maxWidth="xs"
+        className="pd-2"
+        onClose={() => setPayModeSelectDialog(false)}
+      >
+        <DialogTitle className="text-center  fw-bold">
+          {" "}
+          {t({ id: "pay_mode" })}
+        </DialogTitle>
+        <div style={{ padding: "20px" }}>
+          <PaymentOptions
+            handlePaymentClick={setPayModeSelectDialog}
+            handlePayMode={handlePayment}
+            paymentIndex={payModeIndx}
+            order={selectedOrder}
+            closeParentDialog={() => setPayModeSelectDialog(false)}
+          />
+          <Button
             variant="outlined"
             color="error"
             style={{ float: "right", marginTop: "8px" }}
             className="btn btn-danger m-2 btn-small"
-            onClick={()=>setPayModeSelectDialog(false)}
+            onClick={() => setPayModeSelectDialog(false)}
           >
             {t({ id: "close" })}
           </Button>
-      </div>
-     </Dialog>
+        </div>
+      </Dialog>
     </div>
   );
 };

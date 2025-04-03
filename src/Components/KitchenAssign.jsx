@@ -15,6 +15,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Table, Thead, Tbody, Tr, Th, Td } from "react-responsive-list";
 import configs from "../Constants";
+import DeleteDiaologue from "./Delete";
 
 const KitchenAssign = () => {
   let baseURL = configs.baseURL;
@@ -34,7 +35,8 @@ const KitchenAssign = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({ name: "", notes: "" });
   const [editId, setEditId] = useState(null);
-
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItem, setDeleteItem] = useState(null);
 
   useEffect(() => {
     fetchKitchens();
@@ -42,17 +44,19 @@ const KitchenAssign = () => {
 
   const fetchKitchens = async () => {
     try {
-      const res = await axios.get(`${baseURL}/api/kitchens?merchantCode=${merchCode}`, {
-        headers: { Authorization: `Bearer ${userToken}` },
-      });
-      console.log("getting" , res.data);
+      const res = await axios.get(
+        `${baseURL}/api/kitchens?merchantCode=${merchCode}`,
+        {
+          headers: { Authorization: `Bearer ${userToken}` },
+        }
+      );
+      console.log("getting", res.data);
       setKitchens(res.data);
     } catch (err) {
       console.error("Error fetching kitchens:", err);
     }
   };
 
-  
   const handleOpenPopup = (kitchen = null) => {
     if (kitchen) {
       setFormData({ name: kitchen.name, notes: kitchen.notes });
@@ -65,13 +69,11 @@ const KitchenAssign = () => {
     }
     setOpenPopup(true);
   };
-  
-  
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  
   const handleSave = async () => {
     try {
       if (editMode) {
@@ -79,9 +81,13 @@ const KitchenAssign = () => {
           headers: { Authorization: `Bearer ${userToken}` },
         });
       } else {
-        await axios.post(`${baseURL}/api/kitchen`, { ...formData, userId }, {
-          headers: { Authorization: `Bearer ${userToken}` },
-        });
+        await axios.post(
+          `${baseURL}/api/kitchen`,
+          { ...formData, userId },
+          {
+            headers: { Authorization: `Bearer ${userToken}` },
+          }
+        );
       }
       fetchKitchens();
       setOpenPopup(false);
@@ -90,17 +96,41 @@ const KitchenAssign = () => {
     }
   };
 
-  
   const handleDelete = async (kitchen) => {
-    console.log("for id" ,kitchen.id);
+    // console.log("for id" ,kitchen.id);
+    // try {
+    //     await axios.delete(`${baseURL}/api/kitchen/${kitchen.id}`, {
+    //       headers: { Authorization: `Bearer ${userToken}` },
+    //     });
+    //     fetchKitchens();
+    //   } catch (err) {
+    //     console.error("Error deleting kitchen:", err);
+    //   }
+    setDeleteItem(kitchen);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItem(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteItem) {
+      return;
+    }
+
     try {
-        await axios.delete(`${baseURL}/api/kitchen/${kitchen.id}`, {
-          headers: { Authorization: `Bearer ${userToken}` },
-        });
-        fetchKitchens();
-      } catch (err) {
-        console.error("Error deleting kitchen:", err);
-      }
+      await axios.delete(`${baseURL}/api/kitchen/${deleteItem.id}`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      fetchKitchens();
+    } catch (err) {
+      console.error("Error deleting kitchen:", err);
+    } finally {
+      setOpenDeleteDialog(false);
+      setDeleteItem(null);
+    }
   };
 
   return (
@@ -166,7 +196,9 @@ const KitchenAssign = () => {
 
       {/* Popup Dialog */}
       <Dialog open={openPopup} onClose={() => setOpenPopup(false)}>
-        <DialogTitle>{editMode ? "Edit Kitchen" : "Add New Kitchen"}</DialogTitle>
+        <DialogTitle>
+          {editMode ? "Edit Kitchen" : "Add New Kitchen"}
+        </DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -194,6 +226,16 @@ const KitchenAssign = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {openDeleteDialog === true ? (
+        <DeleteDiaologue
+          open={openDeleteDialog}
+          onClose={handleDeleteClose}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : (
+        <div />
+      )}
     </div>
   );
 };

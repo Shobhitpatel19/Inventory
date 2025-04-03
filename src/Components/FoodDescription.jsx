@@ -30,6 +30,7 @@ import {
 } from "@mui/material";
 import Gallery from "./Gallery";
 import Currencies from "../root/currency";
+import DeleteDiaologue from "./Delete";
 function FoodDescription() {
   const [addonsGroup, setAddonsGroup] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -1210,7 +1211,7 @@ function FoodDescription() {
                     color="error"
                     style={{ margin: "20px" }}
                     className="close-btn"
-                    onClick={handleDeleteClose}
+                    onClick={handleClose}
                   >
                     Close
                   </Button>
@@ -1223,29 +1224,11 @@ function FoodDescription() {
         </Dialog>
 
         {openDeleteDialog === true ? (
-          <Dialog
+          <DeleteDiaologue
             open={openDeleteDialog}
             onClose={handleDeleteClose}
-            BackdropProps={{
-              style: { backgroundColor: "rgba(0, 0, 0, 0.2)" }, // Adjust transparency
-            }}
-          >
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Are you sure you want to delete this item? This action cannot be
-                undone.
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleDeleteClose} color="primary">
-                Cancel
-              </Button>
-              <Button onClick={handleConfirmDelete} color="error" autoFocus>
-                Delete
-              </Button>
-            </DialogActions>
-          </Dialog>
+            onConfirm={handleConfirmDelete}
+          />
         ) : (
           <div />
         )}

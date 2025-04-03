@@ -20,6 +20,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import List from "@mui/material/List"; // Import List
 import ListItem from "@mui/material/ListItem"; // Import ListItem
 import Typography from "@mui/material/Typography"; // Import Typography
+import DeleteDiaologue from "./Delete";
 
 //Added by Mojahid
 import DragHandleIcon from "@mui/icons-material/DragHandle";
@@ -54,6 +55,8 @@ function Category(props) {
   const [orderableAlone, setOrderableAlone] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [onlyAtPos, setOnlyAtPos] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState(null);
 
   Array.prototype.move = function (from, to) {
     this.splice(to, 0, this.splice(from, 1)[0]);
@@ -115,7 +118,7 @@ function Category(props) {
           {
             name: foodName,
             // image: imageURL ? imageURL : selectedImage.image,
-            image: selectedImage ? selectedImage.image : (imageURL || ''),
+            image: selectedImage ? selectedImage.image : imageURL || "",
             tags: tags.length ? tags.join("~") : "",
             isAddOn: addOn,
             serialNumber: catIndex ? catIndex : 1,
@@ -123,7 +126,7 @@ function Category(props) {
             minAddOnAllowed: parseInt(minNoAddOn),
             userId: userData.sub,
             isOrderableAlone: orderableAlone,
-            onlyAtPos: onlyAtPos
+            onlyAtPos: onlyAtPos,
           }
         )
         .then((response) => {
@@ -134,7 +137,7 @@ function Category(props) {
         .post(`${baseURL}/api/categories?merchantCode=${merchCode}`, {
           name: foodName,
           // image: imageURL ? imageURL : selectedImage.image,
-          image: selectedImage ? selectedImage.image : (imageURL || ''),
+          image: selectedImage ? selectedImage.image : imageURL || "",
           tags: tags.length ? tags.join("~") : "",
           isAddOn: addOn,
           serialNumber: catIndex ? catIndex : 1,
@@ -142,7 +145,7 @@ function Category(props) {
           minAddOnAllowed: parseInt(minNoAddOn),
           isOrderableAlone: orderableAlone,
           userId: userData.sub,
-          onlyAtPos: onlyAtPos
+          onlyAtPos: onlyAtPos,
         })
         .then((response) => {
           fetchCatData();
@@ -153,9 +156,26 @@ function Category(props) {
 
   const handleDelete = (id) => {
     // console.log(id);
-    axios.delete(baseURL + "/api/categories/" + id).then((response) => {
-      fetchCatData();
-    });
+    // axios.delete(baseURL + "/api/categories/" + id).then((response) => {
+    //   fetchCatData();
+    // });
+    setDeleteItemId(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteItemId) {
+      axios.delete(baseURL + "/api/categories/" + deleteItemId).then((response) => {
+        fetchCatData();
+      });
+    }
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
   };
 
   const fetchCatData = () => {
@@ -222,7 +242,6 @@ function Category(props) {
   };
   const handleSearch1 = (event) => {
     setSearchQuery(event.target.value);
-
   };
 
   // Added by sk
@@ -487,8 +506,18 @@ function Category(props) {
                 onChange={(e) => setNoAddOn(e.target.value)}
               />
             )}
+
+            {openDeleteDialog === true ? (
+              <DeleteDiaologue
+                open={openDeleteDialog}
+                onClose={handleDeleteClose}
+                onConfirm={handleConfirmDelete}
+              />
+            ) : (
+              <div />
+            )}
           </div>
-          <br/>
+          <br />
           <div className={"dialog-row"}>
             <span>Only At PoS:</span>
             <input
@@ -501,24 +530,27 @@ function Category(props) {
                 accentColor: "#3622cc",
               }}
               checked={onlyAtPos}
-              onChange={()=>setOnlyAtPos(!onlyAtPos)}
+              onChange={() => setOnlyAtPos(!onlyAtPos)}
             />
-            </div>
+          </div>
+
+          
 
           <div style={{ marginTop: "30px" }}>
             <label>Tags</label>
             <div className="tags-input">
               <ul id="tags">
-                  {tags.length &&
-                  tags.filter(t=>t.length).map((tag, index) => (
-                    <li key={index} className="tag">
-                      <span className="tag-title">{tag}</span>
-                      <span className="btn" onClick={() => removeTags(index)}>
-                        x
-                      </span>
-                    </li>
-                  ))
-                } 
+                {tags.length &&
+                  tags
+                    .filter((t) => t.length)
+                    .map((tag, index) => (
+                      <li key={index} className="tag">
+                        <span className="tag-title">{tag}</span>
+                        <span className="btn" onClick={() => removeTags(index)}>
+                          x
+                        </span>
+                      </li>
+                    ))}
               </ul>
               <input
                 className="input_cls"
@@ -565,6 +597,16 @@ function Category(props) {
         </DialogActions>
       </Dialog>
 
+      {openDeleteDialog === true ? (
+              <DeleteDiaologue
+                open={openDeleteDialog}
+                onClose={handleDeleteClose}
+                onConfirm={handleConfirmDelete}
+              />
+            ) : (
+              <div />
+            )}
+
       <Dialog
         onClose={() => setShowGallery(false)}
         open={showGallery}
@@ -584,7 +626,7 @@ function Category(props) {
               top: "0",
               backgroundColor: "#fff",
               zIndex: "1",
-              justifyContent:"space-evenly"
+              justifyContent: "space-evenly",
             }}
           >
             <div
@@ -602,26 +644,24 @@ function Category(props) {
                   backgroundColor: "transparent",
                   marginLeft: "8px",
                 }}
-                
                 onChange={handleSearch1}
                 value={searchQuery}
               />
             </div>
-            <input 
+            <input
               type="button"
               value="Search"
               style={{
-                border:"1px solid black",
-                borderRadius:"15px",
-                marginLeft:"5px",
-                padding:"5px 15px",
-                cursor:"pointer",
-                backgroundColor:"#000",
-                color:"#fff"
+                border: "1px solid black",
+                borderRadius: "15px",
+                marginLeft: "5px",
+                padding: "5px 15px",
+                cursor: "pointer",
+                backgroundColor: "#000",
+                color: "#fff",
               }}
               // onClick={}
-              />
-
+            />
           </div>
 
           <div
@@ -650,7 +690,7 @@ function Category(props) {
             }}
           >
             <Button
-               variant="outlined"
+              variant="outlined"
               onClick={() => setShowGallery(false)}
               color="warning"
             >
@@ -722,7 +762,10 @@ function Category(props) {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                             >
-                              <td style={{ fontWeight: "bold",width: "25%" }} align="start">
+                              <td
+                                style={{ fontWeight: "bold", width: "25%" }}
+                                align="start"
+                              >
                                 {category.name}
                                 {category.isAddOn ? (
                                   <span
@@ -738,7 +781,7 @@ function Category(props) {
                                   ""
                                 )}
                               </td>
-                              <Td style={{width: "10%"}}>
+                              <Td style={{ width: "10%" }}>
                                 <img
                                   alt="cat"
                                   src={
@@ -755,20 +798,19 @@ function Category(props) {
                                 />
                               </Td>
 
-                              <Td style={{width: "20%"}}>{category.tags}</Td>
+                              <Td style={{ width: "20%" }}>{category.tags}</Td>
                               {!merchCode.activeProviderId ? (
                                 <Td
                                   style={{
                                     display: "flex",
                                     alignItems: "center",
-                                    width: "35%"
+                                    width: "35%",
                                   }}
                                 >
                                   <Button
                                     aria-label="show"
                                     size="small"
                                     variant="outlined"
-                             
                                     onClick={() => handleShow(category)}
                                     style={{
                                       fontWeight: "bold",
@@ -780,8 +822,7 @@ function Category(props) {
                                       whiteSpace: "nowrap", // Prevents text wrapping
                                       textOverflow: "ellipsis", // Adds an ellipsis if the text is too long to fit
                                       width: "100px", // Adjusts width to content, ensure enough space in container
-                                      minWidth:"100px"
-                                    
+                                      minWidth: "100px",
                                     }}
                                   >
                                     Show Items
@@ -791,7 +832,7 @@ function Category(props) {
                                     aria-label="edit"
                                     size="large"
                                     color="info"
-                                    style={{marginLeft:"10px"}}
+                                    style={{ marginLeft: "10px" }}
                                     onClick={() => handleEdit(category)}
                                   >
                                     <EditIcon />
@@ -799,7 +840,7 @@ function Category(props) {
                                   <IconButton
                                     aria-label="delete"
                                     size="large"
-                                     style={{marginLeft:"10px"}}
+                                    style={{ marginLeft: "10px" }}
                                     color="error"
                                     onClick={() => handleDelete(category.id)}
                                   >
@@ -872,7 +913,7 @@ function Category(props) {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClosePopup} color="primary"  variant="outlined">
+          <Button onClick={handleClosePopup} color="primary" variant="outlined">
             Close
           </Button>
         </DialogActions>

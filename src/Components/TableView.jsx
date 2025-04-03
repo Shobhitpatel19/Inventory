@@ -21,10 +21,11 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useIntl } from "react-intl";
+import DeleteDiaologue from "./Delete";
 //import { db } from "./../root/util";
 //import { onValue, ref } from "firebase/database";
 //import Switch from "@mui/material/Switch";
-import './QRCodes.css'
+import "./QRCodes.css";
 
 function TableView(props) {
   const [tabNum, setTabNum] = useState("");
@@ -32,6 +33,8 @@ function TableView(props) {
   const [selectedOption, setSelectedOption] = useState("");
   const [isTableView, setIsTableView] = useState(false);
   const [logo, setLogo] = useState("");
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState(null);
   const { formatMessage: t, locale, setLocale } = useIntl();
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
@@ -48,23 +51,22 @@ function TableView(props) {
   useEffect(() => {
     fetchTableData();
 
-     //fb listener for tables request
-               // const tbquery = ref(db, "tables/"+merchCode);
-               //   return onValue(tbquery, (snapshot) => {
-               //  const data = snapshot.val();
-               
-               //   var promise2 = document.querySelector('#tbl_call_sound').play();
-               //  if (promise2 !== undefined) {
-               //    promise2.then(_ => {
-               //      // Autoplay started!
-               //    }).catch(error => {
-               //      // Autoplay was prevented.
-               //      // Show a "Play" button so that user can start playback.
-               //    });
-               //  }
-              
-               //    });
+    //fb listener for tables request
+    // const tbquery = ref(db, "tables/"+merchCode);
+    //   return onValue(tbquery, (snapshot) => {
+    //  const data = snapshot.val();
 
+    //   var promise2 = document.querySelector('#tbl_call_sound').play();
+    //  if (promise2 !== undefined) {
+    //    promise2.then(_ => {
+    //      // Autoplay started!
+    //    }).catch(error => {
+    //      // Autoplay was prevented.
+    //      // Show a "Play" button so that user can start playback.
+    //    });
+    //  }
+
+    //    });
   }, []);
 
   const fetchTableData = async () => {
@@ -79,22 +81,25 @@ function TableView(props) {
       // Find the table to update
       const tableToUpdate = tableData.find((table) => table.id === tableId);
       if (!tableToUpdate) return;
-  
+
       const newAvailability = !tableToUpdate.isAvailable;
 
       console.log("isAvailable", newAvailability);
-  
+
       // Call backend API
-      await axios.put(`${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`, {
-        ...tableToUpdate,
-        isAvailable: newAvailability,
-      });
-  
+      await axios.put(
+        `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`,
+        {
+          ...tableToUpdate,
+          isAvailable: newAvailability,
+        }
+      );
+
       // Update state only after API call succeeds
       setTableData((prevData) =>
         prevData.map((table) =>
           table.id === tableId
-            ? { ...table, isAvailable: newAvailability, }
+            ? { ...table, isAvailable: newAvailability }
             : table
         )
       );
@@ -104,8 +109,7 @@ function TableView(props) {
   };
 
   const getTabByUser = `${baseURL}/api/tables?merchantCode=${merchCode}`;
- let companyLogo = "/images/logo.png";
-
+  let companyLogo = "/images/logo.png";
 
   function base64Converter(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -113,18 +117,18 @@ function TableView(props) {
       var reader = new FileReader();
       reader.onloadend = function () {
         callback(reader.result);
-      }
+      };
       reader.readAsDataURL(xhr.response);
     };
-    xhr.open('GET', url);
-    xhr.responseType = 'blob';
+    xhr.open("GET", url);
+    xhr.responseType = "blob";
     xhr.send();
   }
 
   base64Converter(merchantData ? merchantData.logoImg : "", function (dataUrl) {
     //console.log('RESULT:', dataUrl)
     setLogo(dataUrl);
-  })
+  });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabCapcity, setTabCapcity] = useState([]);
@@ -219,10 +223,38 @@ function TableView(props) {
   };
 
   const handleDelete = (id) => {
-    console.log(id);
+    // console.log(id);
+    // axios
+    //   .delete(
+    //     `${baseURL}/api/tables/${id}?merchantCode=${
+    //       merchantData.length ? merchantData[0].merchantCode : " "
+    //     }`
+    //   )
+    //   .then((response) => {
+    //     console.log(response.data);
+    //     axios.get(getTabByUser).then((response) => {
+    //       console.log(response.data);
+    //       setTableData(response.data);
+    //     });
+    //   });
+
+    setDeleteItemId(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteItemId) {
+      return;
+    }
+    console.log(deleteItemId);
     axios
       .delete(
-        `${baseURL}/api/tables/${id}?merchantCode=${
+        `${baseURL}/api/tables/${deleteItemId}?merchantCode=${
           merchantData.length ? merchantData[0].merchantCode : " "
         }`
       )
@@ -233,6 +265,8 @@ function TableView(props) {
           setTableData(response.data);
         });
       });
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
   };
 
   const getData = async () => {
@@ -376,13 +410,16 @@ function TableView(props) {
 
       // Update the API
       axios
-        .put(`${baseURL}/api/tables/${tableInfo.id}?merchantCode=${merchCode}`, {
-          number: tableInfo.number,
-          capacity: tableInfo.capacity,
-          isAvailable: newAvailability,
-          userId: merchCode,
-          notes: tableInfo.notes,
-        })
+        .put(
+          `${baseURL}/api/tables/${tableInfo.id}?merchantCode=${merchCode}`,
+          {
+            number: tableInfo.number,
+            capacity: tableInfo.capacity,
+            isAvailable: newAvailability,
+            userId: merchCode,
+            notes: tableInfo.notes,
+          }
+        )
         .then((response) => {
           console.log(response.data);
 
@@ -392,7 +429,7 @@ function TableView(props) {
           layoutCards();
         })
         .catch((error) => {
-          console.error('Error updating table availability:', error);
+          console.error("Error updating table availability:", error);
         });
     }
 
@@ -499,9 +536,7 @@ function TableView(props) {
     }
   }
 
-
-
-  console.log(isTableView)
+  console.log(isTableView);
   return (
     <div>
       <Dialog open={dialogOpen} maxWidth="mb" fullWidth={true}>
@@ -592,48 +627,63 @@ function TableView(props) {
         </div>
       </Dialog>
 
+      {openDeleteDialog === true ? (
+        <DeleteDiaologue
+          open={openDeleteDialog}
+          onClose={handleDeleteClose}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : (
+        <div />
+      )}
+
       <div className="header">
         <h4>{t({ id: "manage_tables" })}</h4>
         <ButtonGroup aria-label="Basic button group">
-                <Button
-                  variant={!isTableView ? "contained" : "outlined"}
-                  style={{
-                    backgroundColor:!isTableView  ? "#F7C919" : "inherit",
-                    borderColor: !isTableView ? "#F7C919" : "inherit",
-                    color: !isTableView ? "black" : "inherit",
-                    borderColor: "#F7C919",
-                  }}
-                  onClick={() => setIsTableView(!isTableView)}
-                >
-                 {t({ id: "status_view" })}
-                </Button>
-                <Button
-                  variant={!isTableView ? "contained" : "outlined"}
-                  style={{
-                    backgroundColor:
-                      isTableView  ? "#F7C919" : "inherit",
-                    borderColor: isTableView  ? "#F7C919" : "inherit",
-                    color: isTableView  ? "black" : "inherit",
-                    borderColor: "#F7C919",
-                  }}
-                 onClick={() => setIsTableView(!isTableView)}
-                >
-                  {t({ id: "detail_view" })}
-                </Button>
-                </ButtonGroup>
-        
-        {isTableView ? <button
-          className="add_btn"
-          onClick={() => setDialogOpen(true)}
-        >
-          <AddIcon /> Add Table
-        </button>:<span></span>}
+          <Button
+            variant={!isTableView ? "contained" : "outlined"}
+            style={{
+              backgroundColor: !isTableView ? "#F7C919" : "inherit",
+              borderColor: !isTableView ? "#F7C919" : "inherit",
+              color: !isTableView ? "black" : "inherit",
+              borderColor: "#F7C919",
+            }}
+            onClick={() => setIsTableView(!isTableView)}
+          >
+            {t({ id: "status_view" })}
+          </Button>
+          <Button
+            variant={!isTableView ? "contained" : "outlined"}
+            style={{
+              backgroundColor: isTableView ? "#F7C919" : "inherit",
+              borderColor: isTableView ? "#F7C919" : "inherit",
+              color: isTableView ? "black" : "inherit",
+              borderColor: "#F7C919",
+            }}
+            onClick={() => setIsTableView(!isTableView)}
+          >
+            {t({ id: "detail_view" })}
+          </Button>
+        </ButtonGroup>
+
+        {isTableView ? (
+          <button className="add_btn" onClick={() => setDialogOpen(true)}>
+            <AddIcon /> Add Table
+          </button>
+        ) : (
+          <span></span>
+        )}
       </div>
       {/* Edited By Sk */}
       {isTableView ? (
         <div className="category-list" style={{ padding: "20px" }}>
-          <table style={{ width: "100%",    borderCollapse: "collapse" }}>
-            <thead style={{ borderBottom: "2px solid rgb(207 205 205)", margin: "5px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead
+              style={{
+                borderBottom: "2px solid rgb(207 205 205)",
+                margin: "5px",
+              }}
+            >
               <tr>
                 <th>Table Number</th>
                 <th>Capacity</th>
@@ -648,7 +698,10 @@ function TableView(props) {
                 tableData.map((tabInfo, k) => (
                   <tr
                     key={tabInfo.id}
-                    style={{ borderBottom: "1px solid rgb(207 205 205)", margin: "5px" }}
+                    style={{
+                      borderBottom: "1px solid rgb(207 205 205)",
+                      margin: "5px",
+                    }}
                   >
                     <td style={{ fontWeight: "bold" }}>{tabInfo.number}</td>
                     <td>{tabInfo.capacity}</td>
@@ -664,32 +717,51 @@ function TableView(props) {
                       )}
                     </td>
                     <td align="center">
-                  <div className="table_QRmain" id={"qr-img~" + k}>
-                      <div className="table_QRsub">
-                        <h1>{"TABLE #" + (k + 1)}</h1>
-                        <div className="tableQRCode">
-                          <p><b>Scan with Mobile Camera</b></p>
-                          <QRCode
-                            id="qrcode"
-                            size={556}
-                            style={{
-                              // height: "280px",
-                              // width: "280px",
-                              height: "326px",
-                              width: "314px"
-                            }}
-                            value={`${configs.ttoUrl}/?merchantCode=${merchCode}&isScan=true&tableNumber=${tabInfo.number}`}
-                          // viewBox={0 0 456 456}
-                          />
-                        </div>
-                        <div className="logos">
-                          <img src={logo && logo} />
-                          <div>
-                            <span style={{ color: "#fff", display: "flex", flexDirection: "column", fontStyle: "italic" }}>Powered by</span>
-                            <h5 style={{ color: "#fff", fontSize: "27px", margin: "0px" }}>{configs.productName}</h5>
+                      <div className="table_QRmain" id={"qr-img~" + k}>
+                        <div className="table_QRsub">
+                          <h1>{"TABLE #" + (k + 1)}</h1>
+                          <div className="tableQRCode">
+                            <p>
+                              <b>Scan with Mobile Camera</b>
+                            </p>
+                            <QRCode
+                              id="qrcode"
+                              size={556}
+                              style={{
+                                // height: "280px",
+                                // width: "280px",
+                                height: "326px",
+                                width: "314px",
+                              }}
+                              value={`${configs.ttoUrl}/?merchantCode=${merchCode}&isScan=true&tableNumber=${tabInfo.number}`}
+                              // viewBox={0 0 456 456}
+                            />
+                          </div>
+                          <div className="logos">
+                            <img src={logo && logo} />
+                            <div>
+                              <span
+                                style={{
+                                  color: "#fff",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  fontStyle: "italic",
+                                }}
+                              >
+                                Powered by
+                              </span>
+                              <h5
+                                style={{
+                                  color: "#fff",
+                                  fontSize: "27px",
+                                  margin: "0px",
+                                }}
+                              >
+                                {configs.productName}
+                              </h5>
+                            </div>
                           </div>
                         </div>
-                      </div>
                       </div>
                       <IconButton
                         aria-label="download"
@@ -745,7 +817,6 @@ function TableView(props) {
           ))}
         </div>
       )}
-      
     </div>
   );
 }

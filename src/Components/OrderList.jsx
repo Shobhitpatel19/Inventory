@@ -40,6 +40,7 @@ import "react-datepicker/dist/react-datepicker.css"; // Import the styles for th
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import BillPopup from "./sub_comp/BillPopup";
 import TempOrder from "./sub_comp/TempOrder";
+import DeleteDiaologue from "./Delete";
 
 const OrderList = (props) => {
   const orderListPath = `/orderList`;
@@ -74,7 +75,7 @@ const OrderList = (props) => {
   const [customerorderpop, setCustomerOrderPop] = useState(false);
   const [isReversed, setIsReversed] = useState(true);
   const [invoiceNo, setInvoiceNo] = useState("");
-  const [printOrder, setPrintOrder] = useState(null); 
+  const [printOrder, setPrintOrder] = useState(null);
   const [billPrint, setBillPrint] = useState(false);
   const [orderData, setOrderData] = useState([]);
   const { formatMessage: t, locale, setLocale } = useIntl();
@@ -85,6 +86,9 @@ const OrderList = (props) => {
   const [billPopupOpen, setBillPopupOpen] = useState(false);
   const [billDetails, setBillDetails] = useState(null);
   const [tempOrderView, setTempOrderView] = useState(1);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState(null);
+  const [orderStatus, setOrderStatus] = useState("");
 
   let baseURL = configs.baseURL;
   let authApi = configs.authapi;
@@ -271,7 +275,7 @@ const OrderList = (props) => {
   //   }
   // };
 
-  const handleOrderStatus = (orderStatus, order_id, order_payment, order) => {
+  const handleOrderStatus = (order_Status, order_id, order_payment, order) => {
     console.log(order_id, order_payment);
 
     const SelectedorderItem = orderList.length
@@ -284,8 +288,8 @@ const OrderList = (props) => {
     const isTableOrder = order?.orderType === "Table Order";
 
     if (
-      orderStatus.toLowerCase() === "ready" ||
-      orderStatus.toLowerCase() === "deliver"
+      order_Status.toLowerCase() === "ready" ||
+      order_Status.toLowerCase() === "deliver"
     ) {
       if (isTableOrder || order_payment) {
         // Skip payment check for Table Orders
@@ -303,16 +307,16 @@ const OrderList = (props) => {
               setOrderList(response.data);
             });
 
-            if (order && orderStatus.toLowerCase() === "ready") {
+            if (order && order_Status.toLowerCase() === "ready") {
               HandleReady([order]);
-            } else if (order && orderStatus.toLowerCase() === "deliver") {
+            } else if (order && order_Status.toLowerCase() === "deliver") {
               HandleServed([order]);
             }
           });
       } else {
         setAlertOpen(true);
       }
-    } else if (orderStatus.toLowerCase() === "new" && isTableOrder) {
+    } else if (order_Status.toLowerCase() === "new" && isTableOrder) {
       // If orderStatus is NEW and orderType is Table Order, proceed to next step
       console.log("Table Order with NEW status, proceeding...");
 
@@ -321,21 +325,57 @@ const OrderList = (props) => {
         setOrderList(response.data);
       });
     } else {
-      axios
-        .delete(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
-          action: orderStatus,
-        })
-        .then((response) => {
-          console.log(response.data);
-          let today = new Date();
-          console.log(moment(today).format("DD/MMM/YYYY"));
-          axios.get(getOrderList).then((response) => {
-            console.log("response for orders", response.data);
-            setOrderList(response.data);
-          });
-        });
-      console.log(orderStatus);
+      // axios
+      //   .delete(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
+      //     action: orderStatus,
+      //   })
+      //   .then((response) => {
+      //     console.log(response.data);
+      //     let today = new Date();
+      //     console.log(moment(today).format("DD/MMM/YYYY"));
+      //     axios.get(getOrderList).then((response) => {
+      //       console.log("response for orders", response.data);
+      //       setOrderList(response.data);
+      //     });
+      //   });
+      // console.log(order_Status);
+
+      setDeleteItemId(order_id);
+      setOrderStatus(order_Status);
+      setOpenDeleteDialog(true);
     }
+  };
+
+  const handleDeleteClose = () => {
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteItemId) {
+      return;
+    }
+
+    axios
+      .delete(
+        `${baseURL}/api/orders/${deleteItemId}?merchantCode=${merchCode}`,
+        {
+          action: orderStatus,
+        }
+      )
+      .then((response) => {
+        console.log(response.data);
+        let today = new Date();
+        console.log(moment(today).format("DD/MMM/YYYY"));
+        axios.get(getOrderList).then((response) => {
+          console.log("response for orders", response.data);
+          setOrderList(response.data);
+        });
+      });
+    console.log(orderStatus);
+
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
   };
 
   const handleCancel = (order_id, order_cancel) => {
@@ -549,12 +589,12 @@ const OrderList = (props) => {
     setIsSearch(val ? true : false);
   };
 
-  
-
   const handlecheckprint = async (order) => {
     console.log("orderr", order);
     try {
-      const response = await axios.get(`${configs.payUrl}/api/invoices/${order.invoiceId}`);
+      const response = await axios.get(
+        `${configs.payUrl}/api/invoices/${order.invoiceId}`
+      );
       console.log("API Response:", response.data);
       setInvoiceNo(response.data.invoicePath);
       setPrintOrder(order); // Set the order too
@@ -562,7 +602,7 @@ const OrderList = (props) => {
       console.error("Error calling order API:", error);
     }
   };
-  
+
   // ⏬ This useEffect will run once invoiceNo is set
   useEffect(() => {
     if (invoiceNo && printOrder) {
@@ -796,6 +836,16 @@ const OrderList = (props) => {
           </button>
         </div>
       </Dialog>
+
+      {openDeleteDialog === true ? (
+        <DeleteDiaologue
+          open={openDeleteDialog}
+          onClose={handleDeleteClose}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : (
+        <div />
+      )}
 
       <Dialog
         open={openNotifi || props.notification}
