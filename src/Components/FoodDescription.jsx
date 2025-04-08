@@ -78,6 +78,84 @@ function FoodDescription() {
   const [inventoryData, setInventoryData] = useState([]);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
+  // const [showRecipeDialog, setShowRecipeDialog] = useState(false);
+  const [recipeName, setRecipeName] = useState("");
+  const [recipeQuantity, setRecipeQuantity] = useState("");
+  const [recipeUnit, setRecipeUnit] = useState("kg");
+  const [recipeItems, setRecipeItems] = useState([]);
+  const [recipePlateType, setRecipePlateType] = useState("Full Plate");
+  const [showRecipeForm, setShowRecipeForm] = useState(false);
+    // Add a new state near your other recipe item states:
+  const [recipeQuantities, setRecipeQuantities] = useState({});
+
+  const handleRecipeItemChange = (index, field, value) => {
+    const updatedItems = [...recipeItems];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setRecipeItems(updatedItems);
+  };
+
+  // Helper to return the variety options based on the selected variety group
+  const getVarietyOptions = () => {
+    const selectedOpt = option.find((opt) => opt.id === select);
+    return selectedOpt ? selectedOpt.items.split(",") : [];
+  };
+
+  // Update the function to add an empty recipe item using the variety options if applicable
+    // Modify handleAddEmptyRecipeItem so that if variety is enabled it
+  // initializes quantity as an object with keys from getVarietyOptions()
+  const handleAddEmptyRecipeItem = () => {
+    if (variety && select) {
+      const variants = getVarietyOptions();
+      let defaultQuantities = {};
+      variants.forEach((variant) => {
+        defaultQuantities[variant] = "";
+      });
+      setRecipeItems([
+        ...recipeItems,
+        {
+          name: "",
+          quantity: defaultQuantities,
+          unit: "",
+          plateType: "Full Plate",
+        },
+      ]);
+    } else {
+      setRecipeItems([
+        ...recipeItems,
+        {
+          name: "",
+          quantity: "",
+          unit: "kg",
+          plateType: "Full Plate",
+        },
+      ]);
+    }
+  };
+
+  const handleDeleteRecipeItem = (index) => {
+    const updatedItems = [...recipeItems];
+    updatedItems.splice(index, 1);
+    setRecipeItems(updatedItems);
+  };
+
+    // Update handleSaveRecipeItem so that it uses recipeQuantities when variety is enabled
+  const handleSaveRecipeItem = () => {
+    if (recipeName && ((variety && select && Object.keys(recipeQuantities).length > 0) || (!variety && recipeQuantity))) {
+      const newItem = {
+        name: recipeName,
+        quantity: variety && select ? recipeQuantities : recipeQuantity,
+        unit: variety && select ? "" : recipeUnit,
+        plateType: recipePlateType,
+      };
+      setRecipeItems([...recipeItems, newItem]);
+      // reset the fields:
+      setRecipeName("");
+      setRecipeQuantity(""); // used for non-variety
+      setRecipeQuantities({});
+      setRecipeUnit("kg");
+      setRecipePlateType("Full Plate");
+    }
+  };
 
   console.log(pricevalues);
   //add by sk
@@ -1193,10 +1271,224 @@ function FoodDescription() {
                         ))}
                       </Select>
                     </FormControl>
-                    <Button variant="contained" onClick={handleInventory}>
-                      Link Inventory
-                    </Button>
                   </div>
+                  <div style={{ marginTop: "30px", padding: "0 16px" }}>
+  {/* Recipe header row with aligned heading and Add Item button */}
+  <div style={{ 
+    display: "flex", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: "16px",
+    borderBottom: "1px solid #eaeaea",
+    paddingBottom: "8px"
+  }}>
+    <h1 style={{ margin: 0, fontWeight: "600" }}>Recipy</h1>
+    <Button 
+      variant="contained" 
+      color="primary" 
+      size="small"
+      startIcon={<AddIcon />}
+      onClick={handleAddEmptyRecipeItem}
+    >
+      Add Item
+    </Button>
+  </div>
+  
+  {/* Recipe input form - shown only when Add Item is clicked */}
+  {showRecipeForm && (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      padding: "12px 16px",
+      background: "#f8f9fa",
+      borderRadius: "8px",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+      gap: "12px",
+      flexWrap: "wrap",
+      marginBottom: "16px"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 2, minWidth: "160px" }}>
+        <TextField
+          size="small"
+          value={recipeName}
+          onChange={(e) => setRecipeName(e.target.value)}
+          placeholder="Item Name"
+          style={{ flexGrow: 1 }}
+        />
+        <FormControl size="small" style={{ minWidth: "120px" }}>
+          <Select
+            value={recipePlateType}
+            onChange={(e) => setRecipePlateType(e.target.value)}
+            displayEmpty
+          >
+            <MenuItem value="Half Plate">Half Plate</MenuItem>
+            <MenuItem value="Full Plate">Full Plate</MenuItem>
+          </Select>
+        </FormControl>
+      </div>
+            {/* // Within your showRecipeForm block replacing the current quantity field: */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 1, minWidth: "220px" }}>
+        {variety && select ? (
+          <div style={{ display: "flex", gap: "8px" }}>
+            {getVarietyOptions().map((variant) => (
+              <TextField
+                key={variant}
+                size="small"
+                type="numbers"
+                placeholder={`${variant} quantity`}
+                value={recipeQuantities[variant] || ""}
+                onChange={(e) =>
+                  setRecipeQuantities((prev) => ({
+                    ...prev,
+                    [variant]: e.target.value,
+                  }))
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <TextField
+            size="small"
+            value={recipeQuantity}
+            onChange={(e) => setRecipeQuantity(e.target.value)}
+            placeholder="Quantity"
+            type="number"
+            style={{ width: "100px" }}
+          />
+        )}
+        {/* if variety is not enabled, allow unit selection */}
+        {!variety && (
+          <FormControl size="small" style={{ minWidth: "100px" }}>
+            <Select
+              value={recipeUnit}
+              onChange={(e) => setRecipeUnit(e.target.value)}
+              displayEmpty
+            >
+              <MenuItem value="kg">kg</MenuItem>
+              <MenuItem value="litre">litre</MenuItem>
+              <MenuItem value="gm">gm</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          size="small"
+          onClick={() => {
+            handleSaveRecipeItem();
+            setShowRecipeForm(false);
+          }}
+        >
+          Save
+        </Button>
+        <Button 
+          variant="outlined" 
+          color="error" 
+          size="small"
+          onClick={() => setShowRecipeForm(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  )}
+  
+  {/* Recipe items display */}
+{recipeItems.length > 0 ? (
+  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    {recipeItems.map((item, index) => (
+      <div
+        key={index}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          padding: "12px 16px",
+          background: "#f8f9fa",
+          borderRadius: "8px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          gap: "12px",
+          flexWrap: "wrap"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 2, minWidth: "160px" }}>
+          <TextField
+            size="small"
+            value={item.name}
+            onChange={(e) => handleRecipeItemChange(index, "name", e.target.value)}
+            placeholder="Item Name"
+            style={{ flexGrow: 1 }}
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 1, minWidth: "220px" }}>
+          {variety && select && typeof item.quantity === "object" ? (
+            Object.keys(item.quantity).map((variant) => (
+              <TextField
+                key={variant}
+                size="small"
+                type="number"
+                placeholder={`${variant} quantity`}
+                value={item.quantity[variant] || ""}
+                onChange={(e) => {
+                  const updatedQuantities = {
+                    ...item.quantity,
+                    [variant]: e.target.value,
+                  };
+                  handleRecipeItemChange(index, "quantity", updatedQuantities);
+                }}
+              />
+            ))
+          ) : (
+            <TextField
+              size="small"
+              value={item.quantity}
+              onChange={(e) => handleRecipeItemChange(index, "quantity", e.target.value)}
+              placeholder="Quantity"
+              type="number"
+              style={{ width: "100px" }}
+            />
+          )}
+          {!variety && (
+            <FormControl size="small" style={{ minWidth: "100px" }}>
+              <Select
+                value={item.unit}
+                onChange={(e) => handleRecipeItemChange(index, "unit", e.target.value)}
+                displayEmpty
+              >
+                <MenuItem value="kg">kg</MenuItem>
+                <MenuItem value="litre">litre</MenuItem>
+                <MenuItem value="gm">gm</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
+          <Button 
+            variant="outlined" 
+            color="error" 
+            size="small"
+            onClick={() => handleDeleteRecipeItem(index)}
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <div style={{ 
+    padding: "20px", 
+    textAlign: "center", 
+    color: "#666",
+    background: "#f8f9fa", 
+    borderRadius: "8px",
+    border: "1px dashed #ccc"
+  }}>
+    Click the Add Item button to add your recipe.
+  </div>
+)}
+</div>
                 </form>
 
                 <div className="fixed-buttons">

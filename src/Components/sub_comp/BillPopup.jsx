@@ -128,73 +128,128 @@ const BillPopup = ({ open, onClose, billDetails }) => {
     setFinalTotal(billDetails.totalPrice + billDetails.taxPrice);
   };
 
-  function summaryPath1(orderDetails) {
-    console.log(orderDetails);
+  const summaryPath1 = (orderDetails, invoicePath) => {
     const fullName = userData ? userData.name : "";
+    const address = userData?.address || merchantData?.address || "";
+    const cgst = merchantData?.taxPerc || 0;
+    const currencyAbbr = currency.length && currency[0].abbreviation;
+  
+    const summaryUrl = `${
+      window.location.origin
+    }/billPrint?serve_url=${baseURL}&orderId=${orderDetails?.id}&merchantCode=${
+      merchCode || ""
+    }&currency=${currencyAbbr}&restaurant=${fullName}&address=${address}&cgst=${cgst}&invoice_no=${invoicePath}`;
+  
+    window.location.href = summaryUrl;
+  };
 
-    if (orderDetails) {
-      window.location.href = `${
-        window.location.origin
-      }/billPrint?serve_url=${baseURL}&orderId=${
-        orderDetails ? orderDetails.id : ""
-      }&merchantCode=${merchCode ? merchCode : ""}&currency=${
-        currency.length && currency[0].abbreviation
-      }&restaurant=${fullName}&address=${
-        userData || merchantData ? merchantData.address || userData.address : ""
-      }&cgst=${merchantData.taxPerc}&invoice_no=${invoiceNo}`;
-    }
-  }
+  // const handleGenerateBill = async () => {
+  //   console.log("Generating Bill");
+  //   console.log(billDetails);
+  //   const currency = "INR";
+  //   const invoiceNo = `INV-${billDetails.id}`;
+
+  //   const orderId = billDetails.id;
+  //   const updatedBill = {
+  //     ...billDetails,
+  //     discountType : discountType,
+  //   };
+
+  //   try {
+  //     const response = await axios.put(
+  //       `${baseURL}/api/orders/${orderId}?merchantCode=${merchCode}`,
+  //       updatedBill
+  //     );
+  //     console.log("Order Updated:", response.data);
+  //   } catch (error) {
+  //     console.error("Error updating order:", error);
+  //     alert("Failed to update order!");
+  //   }
+
+
+  //   setOrderData({
+  //     orderId: billDetails.id,
+  //     merchantCode: merchCode,
+  //     currency: currency,
+  //     restaurant: userData && userData.name ? userData.name : "Restaurant",
+  //     address: userData && userData.address ? userData.address : "",
+  //     cgst: merchantData && merchantData.taxPerc ? merchantData.taxPerc : 0,
+  //     taxPerc: merchantData && merchantData.taxPerc ? merchantData.taxPerc : 0,
+  //     invoice_no: invoiceNo,
+  //     discountAmount: billDetails.discountAmount,
+  //     discountType: billDetails.discountType || "None",
+  //     taxPrice: billDetails.taxPrice,
+  //     totalPrice: billDetails.totalPrice - billDetails.discountAmount,
+      
+  //   });
+
+  //   if (!window.PrintInterface) {
+  //     console.log("PrintInterface not available:", window.PrintInterface);
+  //     sessionStorage.setItem("billing", true);
+  //     summaryPath1(billDetails);
+  //   } else {
+  //     setBillPrint(true);
+  //     localStorage.setItem("isPrintCall", "N");
+  //   }
+  // };
 
   const handleGenerateBill = async () => {
     console.log("Generating Bill");
-    console.log(billDetails);
+  
     const currency = "INR";
-    const invoiceNo = `INV-${billDetails.id}`;
-
     const orderId = billDetails.id;
     const updatedBill = {
       ...billDetails,
-      discountType : discountType,
+      discountType: discountType,
     };
-
+  
     try {
-      const response = await axios.put(
+      // Step 1: Update order with discount info
+      await axios.put(
         `${baseURL}/api/orders/${orderId}?merchantCode=${merchCode}`,
         updatedBill
       );
-      console.log("Order Updated:", response.data);
+  
+      // Step 2: Get invoicePath
+      const invoiceRes = await axios.get(
+        `${configs.payUrl}/api/invoices/${billDetails.invoiceId}`
+      );
+      const invoicePath = invoiceRes.data.invoicePath;
+  
+      // Step 3: Prepare orderData (optional for print)
+      const preparedOrderData = {
+        orderId: billDetails.id,
+        merchantCode: merchCode,
+        currency: currency,
+        restaurant: userData?.name || "Restaurant",
+        address: userData?.address || merchantData?.address || "",
+        cgst: merchantData?.taxPerc || 0,
+        taxPerc: merchantData?.taxPerc || 0,
+        invoice_no: invoicePath,
+        discountAmount: billDetails.discountAmount,
+        discountType: billDetails.discountType || "None",
+        taxPrice: billDetails.taxPrice,
+        totalPrice: billDetails.totalPrice - billDetails.discountAmount,
+      };
+      setOrderData(preparedOrderData);
+      console.log("Prepared Order Data:", preparedOrderData);
+  
+      // Step 4: Trigger print or redirect
+      if (!window.PrintInterface) {
+        sessionStorage.setItem("billing", true);
+        summaryPath1({ ...billDetails, discountType }, invoicePath);
+        setBillPrint(true);
+        localStorage.setItem("isPrintCall", "N");
+      }
+  
     } catch (error) {
-      console.error("Error updating order:", error);
-      alert("Failed to update order!");
-    }
-
-
-    setOrderData({
-      orderId: billDetails.id,
-      merchantCode: merchCode,
-      currency: currency,
-      restaurant: userData && userData.name ? userData.name : "Restaurant",
-      address: userData && userData.address ? userData.address : "",
-      cgst: merchantData && merchantData.taxPerc ? merchantData.taxPerc : 0,
-      taxPerc: merchantData && merchantData.taxPerc ? merchantData.taxPerc : 0,
-      invoice_no: invoiceNo,
-      discountAmount: billDetails.discountAmount,
-      discountType: billDetails.discountType || "None",
-      taxPrice: billDetails.taxPrice,
-      totalPrice: billDetails.totalPrice - billDetails.discountAmount,
-      
-    });
-
-    if (!window.PrintInterface) {
-      console.log("PrintInterface not available:", window.PrintInterface);
-      sessionStorage.setItem("billing", true);
-      summaryPath1(billDetails);
-    } else {
-      setBillPrint(true);
-      localStorage.setItem("isPrintCall", "N");
+      console.error("Error during bill generation:", error);
+      alert("Failed to generate bill!");
     }
   };
-
+  
+ 
+  
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>

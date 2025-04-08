@@ -15,6 +15,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import axios from "axios";
+import CloseIcon from "@mui/icons-material/Close";
 import React, { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import configs from "../Constants";
@@ -118,7 +119,7 @@ const Epos = (props) => {
   );
   const [tableData, setTableData] = useState([]);
   const [customerData, setCustomerData] = useState([]);
-  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedTable, setSelectedTable] = useState(null);
   const [editPriceDialog, setEditPriceDialog] = useState(null);
   const [ordId, setOrdId] = useState("");
 
@@ -133,6 +134,7 @@ const Epos = (props) => {
     let tabId = tableData.filter((tab) => tab.number === tabNum);
     console.log(tabId);
     localStorage.setItem("tableId", tabId[0].id);
+    setTableDetail(false);
   };
 
   const handleDiscountMethodSelect = (event) => {
@@ -248,7 +250,6 @@ const Epos = (props) => {
   );
   console.log(selectedCurrency);
 
-  
   useEffect(() => {
     if (!categories.length) {
       axios.get(getCatByUser).then((response) => {
@@ -316,29 +317,64 @@ const Epos = (props) => {
     setTableDetail(false);
   };
 
+  const nextHandler = () => {
+    selectedProduct.sub_pro = {};
+    // Set price if variety price available
+    let varName = Object.keys(selectedVar);
+    selectedProduct.price = varName.length
+      ? parseFloat(variety[varName[0]])
+      : selectedProduct.price;
+
+    selectedProduct.sub_pro.addons = [...selAdons];
+    selectedProduct.sub_pro.variety = selectedVar;
+    selectedProduct.sub_pro.cookInstructions = cookalignment;
+
+    if (customInstr) {
+      selectedProduct.sub_pro.cookInstructions.push(customInstr);
+    }
+
+    // Add product to the order with addons and variety
+    addPrductToOrder(selectedProduct);
+
+    // Add addons to the order
+    addOnOrders.map((a) => addPrductToOrder(a));
+
+    setIsOpen(false);
+    setAddons([]);
+    setSelAdons([]);
+    setSelectedProduct();
+  };
+
   const addPrductToOrder = (p) => {
     console.log(p);
     console.log(orderItem);
-    
-  
+
     let orders = orderItem && orderItem.length ? [...orderItem] : [];
-    // console.log("sub pro" , subPro);
-  
-    const existingIndex = orders.findIndex(item => item.id === p.id);
-  
+
+    // Check if the product already exists in the order
+    const existingIndex = orders.findIndex(
+      (item) =>
+        item.id === p.id &&
+        JSON.stringify(item.sub_pro.addons) ===
+          JSON.stringify(p.sub_pro.addons) &&
+        JSON.stringify(item.sub_pro.variety) ===
+          JSON.stringify(p.sub_pro.variety)
+    );
+
     if (existingIndex !== -1) {
+      // If the product exists, increase the quantity
       orders[existingIndex].quantity += 1;
     } else {
+      // If the product doesn't exist, create a new item
       const newItem = JSON.parse(JSON.stringify(p));
       newItem.quantity = 1;
       orders.push(newItem);
     }
-  
+
     console.log("final order", orders);
     setOrderItem(orders);
     updateOrderDetails(orders);
   };
-  
 
   const handleProduct = (p) => {
     console.log(p);
@@ -472,94 +508,7 @@ const Epos = (props) => {
     );
   };
 
-  const nextHandler = () => {
-    selectedProduct.sub_pro = {};
-
-    //Set price if variety price availabe
-    let varName = Object.keys(selectedVar);
-    selectedProduct.price = varName.length
-      ? parseFloat(variety[varName[0]])
-      : selectedProduct.price;
-    selectedProduct.sub_pro.addons = [...selAdons];
-    selectedProduct.sub_pro.variety = selectedVar;
-    selectedProduct.sub_pro.cookInstructions = cookalignment;
-    if (customInstr) {
-      selectedProduct.sub_pro.cookInstructions.push(customInstr);
-    }
-    addPrductToOrder(selectedProduct);
-
-    addOnOrders.map((a) => addPrductToOrder(a));
-
-    setIsOpen(false);
-    setAddons([]);
-    setSelAdons([]);
-    setSelectedProduct();
-  };
-
-  const updateOrderDetails = (newOrderItem) => {
-    console.log(newOrderItem);
-    console.log(orderItem);
-    let orderItems = (newOrderItem || orderItem).map((x) => {
-      if (!x.quantity) {
-        x.quantity = 1;
-      }
-      let addonsPrice =
-        x.sub_pro && x.sub_pro.addons
-          ? x.sub_pro.addons.reduce((acc, val) => acc + val.price, 0)
-          : 0;
-      x.totalPrice = (x.price + addonsPrice) * x.quantity;
-      return x;
-    });
-    const itemsCount = orderItems.reduce((a, c) => a + c.quantity, 0);
-    setItemCount(itemsCount);
-    const itemsPrice = orderItems.reduce((a, c) => a + c.totalPrice, 0);
-    let txPerc = merchantData.taxPerc || merchantData.takeAwayTax;
-    let orderType = "Eat In";
-    if (containedIndex == 1) {
-      txPerc = merchantData.dineinTax;
-      orderType = "Take Away";
-    }
-    console.log("----------", txPerc);
-    const taxPrice = txPerc
-      ? parseFloat((((txPerc / 100) * itemsPrice * 100) / 100).toFixed(2))
-      : 0.0;
-
-    let totalPrice = parseFloat(itemsPrice + taxPrice).toFixed(2);
-
-    if (merchantData.isItemInclusiveTax) {
-      totalPrice = parseFloat(itemsPrice).toFixed(2);
-    }
-
-    console.log(taxPrice);
-    const setpro = [addons];
-    console.log(selectedDiscountMethod);
-    console.log(discValue);
-
-    let order = {
-      number: 0,
-      isPaid: false,
-      isReady: false,
-      inProgress: true,
-      isCanceled: false,
-      isDelivered: false,
-      orderType: orderType,
-      customerId: customerID,
-      orderSource: "EPOS",
-      paymentType: "At Counter",
-      payGateOrderId: "",
-      payVia: "UPI",
-      currency: currency[0].abbreviation,
-      set_pro: setpro,
-      orderStatus: "NEW", //ACCEPTED, REJECTED
-      totalPrice: totalPrice,
-      taxPrice: taxPrice,
-      discountType: selectedDiscountMethod,
-      discountAmount: parseFloat(discValue),
-      orderItems: orderItems,
-      userId: merchCode,
-    };
-    setOrder(order);
-  };
+  console.log(merchantData);
 
   useEffect(() => {
     if (orderItem && orderItem.length) {
@@ -639,6 +588,76 @@ const Epos = (props) => {
       setCustomerData(res.data);
     });
   }, []);
+
+  const updateOrderDetails = (newOrderItem) => {
+    console.log(newOrderItem);
+    console.log(orderItem);
+    let orderItems = (newOrderItem || orderItem).map((x) => {
+      if (!x.sub_pro) {
+        x.sub_pro = { addons: [], variety: {}, cookInstructions: [] };
+      }
+      if (!x.quantity) {
+        x.quantity = 1;
+      }
+      let addonsPrice =
+        x.sub_pro && x.sub_pro.addons
+          ? x.sub_pro.addons.reduce((acc, val) => acc + val.price, 0)
+          : 0;
+      x.totalPrice = (x.price + addonsPrice) * x.quantity;
+      return x;
+    });
+    const itemsCount = orderItems.reduce((a, c) => a + c.quantity, 0);
+    setItemCount(itemsCount);
+    const itemsPrice = orderItems.reduce((a, c) => a + c.totalPrice, 0);
+    console.log(merchantData);
+    let txPerc = merchantData.taxPerc || merchantData.takeAwayTax;
+    let orderType = "Eat In";
+    // if (containedIndex == 1) {
+    //   // txPerc = merchantData.dineinTax;
+    //   txPerc = merchantData.taxPerc
+    //   orderType = "Take Away";
+    // }
+    console.log("----------", txPerc);
+    const taxPrice = txPerc
+      ? parseFloat((((txPerc / 100) * itemsPrice * 100) / 100).toFixed(2))
+      : 0.0;
+
+    let totalPrice = parseFloat(itemsPrice + taxPrice).toFixed(2);
+
+    if (merchantData.isItemInclusiveTax) {
+      totalPrice = parseFloat(itemsPrice).toFixed(2);
+    }
+
+    console.log(taxPrice);
+    const setpro = [addons];
+    console.log(selectedDiscountMethod);
+    console.log(discValue);
+
+    let order = {
+      number: 0,
+      isPaid: false,
+      isReady: false,
+      inProgress: true,
+      isCanceled: false,
+      isDelivered: false,
+      orderType: orderType,
+      customerId: customerID,
+      orderSource: "EPOS",
+      paymentType: "At Counter",
+      payGateOrderId: "",
+      payVia: "UPI",
+      currency: currency[0].abbreviation,
+      set_pro: setpro,
+      orderStatus: "NEW", //ACCEPTED, REJECTED
+      totalPrice: totalPrice,
+      taxPrice: taxPrice,
+      discountType: selectedDiscountMethod,
+      discountAmount: parseFloat(discValue),
+      orderItems: orderItems,
+      userId: merchCode,
+    };
+    setOrder(order);
+  };
 
   // const handleSearchCustomer = () => {
 
@@ -800,22 +819,22 @@ const Epos = (props) => {
   };
 
   useEffect(() => {
-      let billData = {};
-      billData.userId = merchantData.merchantCode;
-      billData.appName = "EPOS";
-      billData.payType = "onetime";
-      billData.payStatus = "paid";
-      // billData.purchaseItems = JSON.stringify(order.orderItems);
-  
-      axios.post(`${configs.payUrl}/api/new-order`, billData).then((res) => {
-        // console.log(res.data);
-        // console.log(res.data.invoiceData._id)
-        setInvoiceNo(res.data.invoiceData.invoicePath);
-        setInvoiceId(res.data.invoiceData._id)
-      });
-    }, []);
- 
-  console.log("invoiceNo",invoiceNo);
+    let billData = {};
+    billData.userId = merchantData.merchantCode;
+    billData.appName = "EPOS";
+    billData.payType = "onetime";
+    billData.payStatus = "paid";
+    // billData.purchaseItems = JSON.stringify(order.orderItems);
+
+    axios.post(`${configs.payUrl}/api/new-order`, billData).then((res) => {
+      // console.log(res.data);
+      // console.log(res.data.invoiceData._id)
+      setInvoiceNo(res.data.invoiceData.invoicePath);
+      setInvoiceId(res.data.invoiceData._id);
+    });
+  }, []);
+
+  console.log("invoiceNo", invoiceNo);
   let orderData = {
     orderId: orderDet ? orderDet.id : "",
     merchantCode: merchCode ? merchCode : "",
@@ -845,40 +864,172 @@ const Epos = (props) => {
     }
   }
 
+  // const createOrder = (e, isOrder, isSaveOrder) => {
+  //   if (!order) return;
+  //   if (containedIndex == 1) {
+  //     console.log(containedIndex);
+  //     let tabId = localStorage.getItem("tableId");
+  //     order.orderType = "Table Order";
+  //     order.number = selectedTable;
+  //     order.customerId = customerID;
+  //     // order.isPaid = isSaveOrder ? false : true;
+  //     order.isPaid = false;
+  //     order.isDelivered = order.isPaid;
+  //     order.tableId = tabId;
+  //     order.invoiceId = invoiceId;
+  //     const tabupdate = tableData.filter((tab) => tab.number === selectedTable);
+  //     console.log(tabupdate);
+  //     if (tabupdate.length > 0) {
+  //       tabupdate[0].isAvailable = false;
+  //     }
+  //     if (tabupdate.length > 0 && !isSaveOrder) {
+  //       tabupdate[0].isAvailable = true;
+  //     }
+  //     if (tabupdate.length > 0) {
+  //       axios
+  //         .put(
+  //           `${baseURL}/api/tables/${tabupdate[0].id}?merchantCode=${
+  //             merchantData ? merchantData.merchantCode : " "
+  //           }`,
+  //           tabupdate[0]
+  //         )
+  //         .then((res) => {
+  //           console.log(res.data);
+  //         });
+  //       setMoblileNo("");
+  //       setSelectedTable("");
+  //     }
+  //   } else if (containedIndex === 2) {
+  //     order.orderType = "Delivery";
+  //   } else if (containedIndex === 0) {
+  //     order.orderType = "Take Away";
+  //     order.isPaid = true;
+  //   } else if (containedIndex === 3) {
+  //     order.orderType = "Eat In";
+  //     order.isPaid = true;
+  //   }
+  //   order.orderItems = order.orderItems.map((it) => {
+  //     console.log(it.sub_pro);
+  //     let item = {
+  //       _id: it._id,
+  //       quantity: it.quantity,
+
+  //       price:
+  //         it.price +
+  //         (it.sub_pro && it.sub_pro.addons
+  //           ? it.sub_pro.addons.reduce((acc, val) => acc + val.price, 0)
+  //           : 0),
+  //       name: it.name,
+  //       sub_pro: JSON.stringify(it.sub_pro),
+  //     };
+  //     if (order.isDelivered) {
+  //       item.status = "delivered";
+  //     }
+  //     return item;
+  //   });
+  //   console.log(order);
+  //   order.invoiceId = invoiceId;
+  //   console.log(invoiceId);
+  //   console.log("for checking id",order);
+
+  //   console.log(order.totalPrice);
+  //   if (ordId) {
+  //     console.log(ordId);
+  //     console.log(order.totalPrice);
+  //     const updateOrder = async () => {
+  //       try {
+  //         await axios.put(
+  //           `${baseURL}/api/orders/${ordId}?userId=${
+  //             merchantData ? merchantData.merchantCode : " "
+  //           }`,
+  //           order
+  //         );
+  //         console.log("Order updated successfully.");
+  //       } catch (error) {
+  //         console.error("Error updating order:", error);
+  //       }
+  //     };
+
+  //     updateOrder();
+  //   } else {
+  //     console.log(order);
+  //     order.discountType = selectedDiscountMethod;
+  //     order.discountAmount = parseFloat(discValue);
+  //     axios
+  //       .post(
+  //         `${baseURL}/api/orders?userId=${
+  //           merchantData ? merchantData.merchantCode : " "
+  //         }`,
+  //         order
+  //       )
+  //       .then((res) => {
+  //         setOrdId(res.data.id);
+  //         console.log(res.data);
+  //         setSnackbarOpen(true);
+  //         setOrderItem();
+  //         setOrder();
+  //         const savedOrder = { ...res.data, localOrderId: res.data.id };
+  //         localStorage.setItem("newOrder", JSON.stringify(savedOrder));
+  //         if (order.orderType === "Table Order") {
+  //           let holdOrders = JSON.parse(localStorage.getItem("orderOnHold")) || [];
+  //           holdOrders.push(savedOrder);
+  //           localStorage.setItem("orderOnHold", JSON.stringify(holdOrders));
+  //         }
+  //         if (!isOrder) {
+  //           // if (!PrintInterface) {
+  //           if (!window.PrintInterface) {
+  //             //console.log(window.PrintInterface);
+  //             sessionStorage.setItem("billing", true);
+  //             summaryPath1(res.data);
+  //           } else {
+  //             setBillPrint(true);
+  //             setOrdId("");
+  //             localStorage.setItem("isPrintCall", "N");
+  //           }
+  //         }
+  //       });
+  //   }
+  //   console.log(isOrder);
+  //   setOrderItem();
+  //   setOrder();
+  //   setShowOrders(false);
+  //   setShowProducts(true);
+  //   setItemCount(0);
+  //   setOrdId();
+  //   // sessionStorage.setItem("billing", true);
+  //   // summaryPath1();
+  //   setPrice();
+  //   setPercent();
+  //   setDialogStep(3);
+  // };
+
   const createOrder = (e, isOrder, isSaveOrder) => {
     if (!order) return;
-    if (containedIndex == 1) {
-      console.log(containedIndex);
+
+    const currentOrdId = ordId || localStorage.getItem("ordId");
+
+    // 1️⃣ Set order type and table-specific details
+    if (containedIndex === 1) {
       let tabId = localStorage.getItem("tableId");
       order.orderType = "Table Order";
       order.number = selectedTable;
       order.customerId = customerID;
-      // order.isPaid = isSaveOrder ? false : true;
       order.isPaid = false;
-      order.isDelivered = order.isPaid;
+      order.isDelivered = false;
       order.tableId = tabId;
       order.invoiceId = invoiceId;
-      const tabupdate = tableData.filter((tab) => tab.number === selectedTable);
-      console.log(tabupdate);
-      if (tabupdate.length > 0) {
-        tabupdate[0].isAvailable = false;
-      }
-      if (tabupdate.length > 0 && !isSaveOrder) {
-        tabupdate[0].isAvailable = true;
-      }
-      if (tabupdate.length > 0) {
+
+      const tabupdate = tableData.find((tab) => tab.number === selectedTable);
+      if (tabupdate) {
+        tabupdate.isAvailable = !isSaveOrder;
         axios
           .put(
-            `${baseURL}/api/tables/${tabupdate[0].id}?merchantCode=${
-              merchantData ? merchantData.merchantCode : " "
+            `${baseURL}/api/tables/${tabupdate.id}?merchantCode=${
+              merchantData?.merchantCode || " "
             }`,
-            tabupdate[0]
+            tabupdate
           )
-          .then((res) => {
-            console.log(res.data);
-          });
-        setMoblileNo("");
-        setSelectedTable("");
+          .then((res) => console.log("✅ Table updated:", res.data));
       }
     } else if (containedIndex === 2) {
       order.orderType = "Delivery";
@@ -889,96 +1040,112 @@ const Epos = (props) => {
       order.orderType = "Eat In";
       order.isPaid = true;
     }
-    order.orderItems = order.orderItems.map((it) => {
-      console.log(it.sub_pro);
-      let item = {
-        _id: it._id,
-        quantity: it.quantity,
 
-        price:
-          it.price +
-          (it.sub_pro && it.sub_pro.addons
-            ? it.sub_pro.addons.reduce((acc, val) => acc + val.price, 0)
-            : 0),
-        name: it.name,
-        sub_pro: JSON.stringify(it.sub_pro),
-      };
-      if (order.isDelivered) {
-        item.status = "delivered";
-      }
-      return item;
-    });
-    console.log(order);
+    // 2️⃣ Format order items
+    order.orderItems = order.orderItems.map((it) => ({
+      _id: it._id,
+      quantity: it.quantity,
+      price:
+        it.price +
+        (it.sub_pro?.addons?.reduce((acc, val) => acc + val.price, 0) || 0),
+      name: it.name,
+      status: it.status ? it.status : "inProgress",
+      sub_pro: JSON.stringify(it.sub_pro),
+      ...(order.isDelivered && { status: "delivered" }),
+    }));
+
     order.invoiceId = invoiceId;
-    console.log(invoiceId);
-    console.log("for checking id",order);
+    order.discountType = selectedDiscountMethod;
+    order.discountAmount = parseFloat(discValue);
 
-    console.log(order.totalPrice);
-    if (ordId) {
-      console.log(ordId);
-      console.log(order.totalPrice);
-      const updateOrder = async () => {
-        try {
-          await axios.put(
-            `${baseURL}/api/orders/${ordId}?userId=${
-              merchantData ? merchantData.merchantCode : " "
-            }`,
-            order
-          );
-          console.log("Order updated successfully.");
-        } catch (error) {
-          console.error("Error updating order:", error);
+    // 3️⃣ Update or create order
+    const orderCallback = (resData, isUpdate = false) => {
+      const newId = resData.id;
+      const savedOrder = { ...resData, localOrderId: newId };
+
+      if (order.orderType === "Table Order" && !order.isPaid) {
+        const holdOrders = JSON.parse(
+          localStorage.getItem("orderOnHold") || "[]"
+        );
+
+        // Remove any existing order with same customerId or localOrderId
+        const filtered = holdOrders.filter(
+          (o) => o.customerId !== order.customerId && o.localOrderId !== newId
+        );
+
+        filtered.push({
+          ...order,
+          localOrderId: newId,
+          timestamp: new Date().toLocaleString(),
+        });
+
+        localStorage.setItem("orderOnHold", JSON.stringify(filtered));
+      }
+
+      // ✅ Remove from hold if payment done
+      if (order.isPaid && order.orderType === "Table Order") {
+        const holdOrders = JSON.parse(
+          localStorage.getItem("orderOnHold") || "[]"
+        );
+        const remaining = holdOrders.filter(
+          (o) => o.customerId !== order.customerId
+        );
+        localStorage.setItem("orderOnHold", JSON.stringify(remaining));
+      }
+
+      if (!isOrder) {
+        if (!window.PrintInterface) {
+          sessionStorage.setItem("billing", true);
+          summaryPath1(resData);
+        } else {
+          setBillPrint(true);
+          localStorage.setItem("isPrintCall", "N");
         }
-      };
+      }
 
-      updateOrder();
-    } else {
-      console.log(order);
-      order.discountType = selectedDiscountMethod;
-      order.discountAmount = parseFloat(discValue);
+      // Reset UI
+      setOrderItem([]);
+      setOrder(null);
+      setOrdId("");
+      localStorage.removeItem("ordId");
+      setShowOrders(false);
+      setShowProducts(true);
+      setItemCount(0);
+      setPrice();
+      setPercent();
+      setDialogStep(3);
+    };
+
+    if (currentOrdId) {
+      // Update existing order
       axios
-        .post(
-          `${baseURL}/api/orders?userId=${
-            merchantData ? merchantData.merchantCode : " "
+        .put(
+          `${baseURL}/api/orders/${currentOrdId}?userId=${
+            merchantData?.merchantCode || " "
           }`,
           order
         )
         .then((res) => {
-          setOrdId(res.data.id);
-          console.log(res.data);
-          setSnackbarOpen(true);
-          setOrderItem();
-          setOrder();
-          localStorage.setItem("newOrder", JSON.stringify(res.data));
-          if (!isOrder) {
-            // if (!PrintInterface) {
-            if (!window.PrintInterface) {
-              //console.log(window.PrintInterface);
-              sessionStorage.setItem("billing", true);
-              summaryPath1(res.data);
-            } else {
-              setBillPrint(true);
-              setOrdId("");
-              localStorage.setItem("isPrintCall", "N");
-            }
-          }
-        });
+          console.log("✅ Order updated:", res.data);
+          orderCallback(res.data, true);
+        })
+        .catch((err) => console.error("❌ Order update failed:", err));
+    } else {
+      // Create new order
+      axios
+        .post(
+          `${baseURL}/api/orders?userId=${merchantData?.merchantCode || " "}`,
+          order
+        )
+        .then((res) => {
+          console.log("🆕 Order created:", res.data);
+          orderCallback(res.data, false);
+        })
+        .catch((err) => console.error("❌ Order creation failed:", err));
     }
-    console.log(isOrder);
-    setOrderItem();
-    setOrder();
-    setShowOrders(false);
-    setShowProducts(true);
-    setItemCount(0);
-    setOrdId();
-    // sessionStorage.setItem("billing", true);
-    // summaryPath1();
-    setPrice();
-    setPercent();
-    setDialogStep(3);
   };
 
-  const finishOrder = () => {
+  const finishOrder = async () => {
     if (containedIndex === 1 && mobileNo) {
       let data = {
         email: `${mobileNo}@menulive.in`,
@@ -992,38 +1159,32 @@ const Epos = (props) => {
         referenceDetails: "",
         merchantCode: merchCode,
       };
-      axios
-        .post(`${authApi}/customer/auth-and-register`, {
-          ...data,
-        })
-        .then((res) => {
-          console.log(res.data);
-          setCustId(res.data.user.id);
-        });
+      try {
+        const res = await axios.post(
+          `${authApi}/customer/auth-and-register`,
+          data
+        );
+        console.log(res.data);
+        setCustId(res.data.user.id);
+      } catch (err) {
+        console.error("Registration error:", err);
+      }
     }
-    console.log(order);
 
     if (order) {
-      console.log(order);
-      console.log(discValue);
       order.discountType = selectedDiscountMethod;
       order.discountAmount = parseFloat(discValue);
       order.invoiceId = invoiceId;
-      let orderOnHold = localStorage.getItem("orderOnHold");
       const timestamp = new Date().toLocaleString();
       order.timestamp = timestamp;
-      if (containedIndex === 1 && selectedTable != "") {
-        console.log(tableData);
+
+      if (containedIndex === 1 && selectedTable !== "") {
         tableData.isAvailable = "false";
         let isOrderwithPrint = true;
         createOrder(null, isOrderwithPrint, true);
-      }
-      if (orderOnHold) {
-        orderOnHold = JSON.parse(orderOnHold);
-        orderOnHold.push(order);
-        localStorage.setItem("orderOnHold", JSON.stringify(orderOnHold));
-      } else {
-        localStorage.setItem("orderOnHold", JSON.stringify([order]));
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }
 
       setOrderItem([]);
@@ -1121,18 +1282,50 @@ const Epos = (props) => {
         .get(`${baseURL}/api/tables?merchantCode=${merchCode}`)
         .then((res) => {
           setTableData(res.data.filter((tab) => tab.isAvailable === true));
+          //setTableData(res.data);
         });
     }
   }, [containedIndex === 1]);
 
   console.log("tables available", tableData);
 
+  // const handlepostResume = (customerId, tabNumber) => {
+  //   console.log("just checking",customerId, tabNumber);
+  //   handleClick(1);
+  //   // handleDineIn();
+  //   // handleTableDetail();
+  //   const orderResume = JSON.parse(localStorage.getItem("orderOnHold"));
+  //   const ppostResume = orderResume.find(
+  //     (ordRes) => ordRes.customerId === customerId
+  //   );
+  //   console.log(ppostResume);
+  //   const index = orderResume.findIndex(
+  //     (ordRes) => ordRes.customerId === customerId
+  //   );
+
+  //   if (ppostResume && index !== -1) {
+  //     setOrder(ppostResume);
+  //     setOrderItem(ppostResume.orderItems);
+  //     setOrdId(ppostResume.localOrderId); // ✅ Restore backend order ID here
+  //     setSelectedTable(tabNumber);
+
+  //     orderResume.splice(index, 1);
+  //     localStorage.setItem("orderOnHold", JSON.stringify(orderResume));
+  //     setHoldOpen(false);
+  //   }else {
+  //     console.error("Unable to find order for user:", userId);
+  //   }
+  // };
+
   const handlepostResume = (customerId, tabNumber) => {
-    const orderResume = JSON.parse(localStorage.getItem("orderOnHold"));
+    console.log("just checking", customerId, tabNumber);
+    handleClick(1);
+
+    const orderResume = JSON.parse(localStorage.getItem("orderOnHold")) || [];
     const ppostResume = orderResume.find(
       (ordRes) => ordRes.customerId === customerId
     );
-    console.log(ppostResume);
+
     const index = orderResume.findIndex(
       (ordRes) => ordRes.customerId === customerId
     );
@@ -1140,12 +1333,15 @@ const Epos = (props) => {
     if (ppostResume && index !== -1) {
       setOrder(ppostResume);
       setOrderItem(ppostResume.orderItems);
+
+      const restoredOrderId = ppostResume.localOrderId || ppostResume.id;
+      console.log("Resumed order ID:", restoredOrderId);
+      setOrdId(restoredOrderId);
+
       setSelectedTable(tabNumber);
-      orderResume.splice(index, 1);
-      localStorage.setItem("orderOnHold", JSON.stringify(orderResume));
       setHoldOpen(false);
     } else {
-      console.error("Unable to find order for user:", userId);
+      console.error("Unable to find order for user:", customerId);
     }
   };
 
@@ -1440,6 +1636,7 @@ const Epos = (props) => {
     setOpenPhone(true);
   };
   console.log(order);
+
   const showOrdersItems = () => {
     return (
       <div className="pos_container" style={{ background: "#fff" }}>
@@ -2061,7 +2258,7 @@ const Epos = (props) => {
               ) : (
                 <Button
                   variant="contained"
-                  disabled={!order}
+                  disabled={!order || selectedTable === null}
                   id="btn"
                   onClick={finishOrder}
                 >
@@ -2122,8 +2319,9 @@ const Epos = (props) => {
   console.log(isleftAlign);
   const orderHold = localStorage.getItem("orderOnHold");
   const orderHoldData = orderHold ? JSON.parse(orderHold) : "";
-  console.log(orderHoldData);
-  console.log(billPrint);
+  // console.log(orderHoldData);
+  // console.log(billPrint);
+  // console.log('selectedTable here',selectedTable);
 
   return (
     <div
@@ -2285,30 +2483,45 @@ const Epos = (props) => {
         </div>
       </Dialog>
 
-      <Dialog open={tableDetail} style={{ width: "50% !important" }}>
-        <div style={{ textAlign: "center", padding: "10px" }}>
-          <h3>Select Table</h3>
-          {tableData.length ? (
-            <ul id="ul-list">
-              {tableData.map((tab) => (
-                <li
-                  key={tab.number}
-                  onClick={() => handleTableChange(tab.number)}
-                >
-                  <input
-                    type="radio"
-                    name="tableSelection"
-                    value={tab.number}
-                    style={{ fontSize: "1.5em" }}
-                  />
-                  {`Table Number ${tab.number}`}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            ""
-          )}
-        </div>
+      <Dialog open={tableDetail} fullWidth={true} maxWidth={500}>
+        <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
+          SELECT TABLE
+        </DialogTitle>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={(theme) => ({
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: theme.palette.grey[500],
+          })}
+        ></IconButton>
+        {tableData.length ? (
+          <ul id="ul-list">
+            {tableData.map((tab) => (
+              <li
+                key={tab.number}
+                onClick={() => handleTableChange(tab.number)}
+                className={`table-Select ${tab.isAvailable ? "green" : "red"}`}
+              >
+                <TableBarIcon />
+                <h3
+                  style={{ display: "block", textAlign: "center" }}
+                >{`Table# ${tab.number}`}</h3>
+                <label>{`Capacity: ${tab.capacity}`}</label>
+                <label>{`${tab.notes}`}</label>
+                {tab.isServiceCall ? (
+                  <b style={{ fontSize: "0.8", color: "red" }}>"CALLING"</b>
+                ) : (
+                  ""
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          ""
+        )}
 
         <div style={{ margin: "10px", textAlign: "end" }}>
           <Button
@@ -2319,15 +2532,6 @@ const Epos = (props) => {
             }}
           >
             {"Cancel"}
-          </Button>
-          <Button
-            variant="contained"
-            style={{ background: "#f7c919", marginLeft: "80px" }}
-            onClick={() => {
-              cancelTable();
-            }}
-          >
-            {"Select"}
           </Button>
         </div>
       </Dialog>

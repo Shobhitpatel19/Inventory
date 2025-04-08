@@ -81,9 +81,12 @@ export default function MediaCard(props) {
               </Typography>
             </Box>
 
-            <Box display="flex" justifyContent="space-between" alignItems="center" marginTop={1}>
+            <Box display="flex" flexDirection="column"  alignItems="start" marginTop={1}>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 Capacity: {props.capacity}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Notes: {props.notes}
               </Typography>
             </Box>
           </Box>

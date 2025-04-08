@@ -296,7 +296,7 @@ const OrderList = (props) => {
         console.log(order_payment);
         axios
           .put(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
-            action: orderStatus,
+            action: order_Status,
           })
           .then((response) => {
             console.log("response data", response.data);
@@ -338,11 +338,11 @@ const OrderList = (props) => {
       //       setOrderList(response.data);
       //     });
       //   });
-      // console.log(order_Status);
-
+      // console.log(orderStatus);
       setDeleteItemId(order_id);
       setOrderStatus(order_Status);
       setOpenDeleteDialog(true);
+
     }
   };
 
@@ -357,38 +357,49 @@ const OrderList = (props) => {
     }
 
     axios
-      .delete(
-        `${baseURL}/api/orders/${deleteItemId}?merchantCode=${merchCode}`,
-        {
+        .delete(`${baseURL}/api/orders/${deleteItemId}?merchantCode=${merchCode}`, {
           action: orderStatus,
-        }
-      )
-      .then((response) => {
-        console.log(response.data);
-        let today = new Date();
-        console.log(moment(today).format("DD/MMM/YYYY"));
-        axios.get(getOrderList).then((response) => {
-          console.log("response for orders", response.data);
-          setOrderList(response.data);
-        });
-      });
-    console.log(orderStatus);
-
-    setOpenDeleteDialog(false);
-    setDeleteItemId(null);
-  };
-
-  const handleCancel = (order_id, order_cancel) => {
-    if (order_cancel === false) {
-      axios
-        .put(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
-          action: "cancel",
         })
         .then((response) => {
+          console.log(response.data);
+          let today = new Date();
+          console.log(moment(today).format("DD/MMM/YYYY"));
           axios.get(getOrderList).then((response) => {
+            //setTotalOrders(response.data);
             setOrderList(response.data);
           });
         });
+      console.log(orderStatus);
+
+    setOpenDeleteDialog(false);
+    setDeleteItemId(null);
+  };
+
+  const handleCancel = async (order_id, order_cancel, tableId) => {
+    if (order_cancel === false) {
+      try {
+        await axios.put(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
+          action: "cancel",
+        });
+  
+        // Step 2: Fetch the table details directly from the API
+        const tableResponse = await axios.get(`${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`);
+        console.log(tableResponse.data);
+        const tableToUpdate = tableResponse.data;
+  
+        // Step 3: Free the table (only update isAvailable to true)
+        await axios.put(`${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`, {
+          ...tableToUpdate,
+          isAvailable: true,
+        });
+  
+        // Step 4: Refresh the order list
+        const response = await axios.get(getOrderList);
+        setOrderList(response.data);
+  
+      } catch (error) {
+        console.error("Error while cancelling order or updating table:", error);
+      }
     }
   };
 
@@ -844,8 +855,8 @@ const OrderList = (props) => {
           onConfirm={handleConfirmDelete}
         />
       ) : (
-        <div />
-      )}
+        <div />
+      )}
 
       <Dialog
         open={openNotifi || props.notification}
@@ -968,11 +979,11 @@ const OrderList = (props) => {
             />
           </div>
 
-          <Button
+          {/* <Button
             onClick={() => setTempOrderView((prev) => (prev === 0 ? 1 : 0))}
           >
             {tempOrderView === 0 ? "All Orders" : "Temporary Orders"}
-          </Button>
+          </Button> */}
 
           <div id="group">
             {false && <label>Group By: </label>}
@@ -1339,8 +1350,19 @@ const OrderList = (props) => {
                                 />
                               )}
 
-                              {orderLists.isPaid ? (
-                                orderLists.isCanceled === true ? (
+                              {orderLists.orderType === "Table Order" &&
+                              (<PrintIcon
+                                color="success"
+                                onClick={() => handlecheckprint(orderLists)}
+                                style={{
+                                  marginLeft: "45px",
+                                  cursor: "pointer",
+                                }}
+                              />)
+                              }
+                              
+
+                              {orderLists.isCanceled && (
                                   <Chip
                                     label="CANCELLED"
                                     color="error"
@@ -1351,7 +1373,8 @@ const OrderList = (props) => {
                                       cursor: "pointer",
                                     }}
                                   />
-                                ) : (
+                                )}
+                              {!orderLists.isDelivered && !orderLists.isCanceled&&(
                                   <Button
                                     variant="text"
                                     style={{ marginLeft: "15px" }}
@@ -1359,29 +1382,15 @@ const OrderList = (props) => {
                                     onClick={() =>
                                       handleCancel(
                                         orderLists.id,
-                                        orderLists.isCanceled
+                                        orderLists.isCanceled,
+                                        orderLists.tableId
                                       )
                                     }
                                   >
                                     <CancelIcon />
                                   </Button>
                                 )
-                              ) : (
-                                <Button
-                                  variant="text"
-                                  style={{ marginLeft: "15px" }}
-                                  color="error"
-                                  onClick={() =>
-                                    handleOrderStatus(
-                                      "cancel",
-                                      orderLists.id,
-                                      orderLists.isPaid
-                                    )
-                                  }
-                                >
-                                  <DeleteIcon />
-                                </Button>
-                              )}
+                              }
                             </div>
                           </Td>
                         </Tr>
@@ -1484,22 +1493,21 @@ const OrderList = (props) => {
                         ? JSON.parse(orderItem.sub_pro)
                         : orderItem.sub_pro;
                     console.log(subProArray);
-                    const subProNames = subProArray
+                    const subProNames = Array.isArray(subProArray?.addons)
                       ? subProArray.addons.map((subPro) => subPro.name)
                       : [];
+
+                    const subProInstruction = Array.isArray(
+                      subProArray?.cookInstructions
+                    )
+                      ? subProArray.cookInstructions
+                      : [];
+
                     const subProVariety =
-                      subProArray &&
-                      subProArray.variety &&
-                      Object.keys(subProArray.variety).length
-                        ? Object.keys(subProArray.variety)[0]
+                      subProArray?.variety &&
+                      typeof subProArray.variety === "object"
+                        ? Object.keys(subProArray.variety)[0] || ""
                         : "";
-                    console.log(subProVariety);
-                    const subProInstruction =
-                      subProArray &&
-                      subProArray.cookInstructions &&
-                      subProArray.cookInstructions instanceof Array
-                        ? subProArray.cookInstructions
-                        : [];
 
                     console.log("orderItemList", orderItemsList);
                     console.log(subProInstruction);
