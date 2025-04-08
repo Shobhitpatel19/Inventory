@@ -281,7 +281,7 @@ function FoodDescription() {
     setInstock("");
     setTags("");
     setCookTags("");
-    setImageURL("");
+    setImageURL("https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg");
     setAddOn([]);
     setCatType("");
     setCatItem("");
@@ -362,7 +362,10 @@ function FoodDescription() {
             category: catId,
             name: foodName,
             description: description,
-            image: imageURL != "" ? imageURL : selectedImage.image,
+            // image: imageURL != "" ? imageURL : selectedImage.image,
+            image: selectedImage && selectedImage.image
+            ? selectedImage.image
+            : imageURL,
             price: price,
             isPriceVariety: variety,
             varietyGroupId: select,
@@ -403,7 +406,7 @@ function FoodDescription() {
     setSelect("");
     SetPriceValues("");
     setInstock("");
-    setImageURL("");
+    setImageURL("https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg");
     setCookTags([]);
     setAddOn([]);
     setCatType("");

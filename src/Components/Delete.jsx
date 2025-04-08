@@ -10,10 +10,10 @@ const DeleteDialog = ({ open, onClose, onConfirm }) => {
         style: { backgroundColor: "rgba(0, 0, 0, 0.2)" }, // Adjust transparency
       }}
     >
-      <DialogTitle>Confirm Deletion</DialogTitle>
+      <DialogTitle>Alert</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Are you sure you want to delete this item? This action cannot be undone.
+          Are you sure you want to delete this item?
         </DialogContentText>
       </DialogContent>
       <DialogActions>
