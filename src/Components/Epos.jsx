@@ -41,6 +41,7 @@ import {
 import BillPrint from "./BillPrint";
 import PaymentOptions from "./sub_comp/PaymentOptions";
 import PriceUpdateDialog from "./sub_comp/PriceUpdateDialog";
+import { CoPresentOutlined } from "@mui/icons-material";
 
 const Epos = (props) => {
   const [showSelectedData, setShowSelectedData] = useState(false);
@@ -126,6 +127,8 @@ const Epos = (props) => {
 
   const { formatMessage: t, locale, setLocale } = useIntl();
   let authApi = configs.authapi;
+  // test server
+  // authApi = "https://inventory-service-gthb.onrender.com";
   let staticSer = configs.staticSer;
 
   // state for controlling address dialog
@@ -133,14 +136,14 @@ const Epos = (props) => {
   const handleTableChange = (tabNum) => {
     setSelectedTable(tabNum);
     let tabId = tableData.filter((tab) => tab.number === tabNum);
-    console.log(tabId);
+    // console.log(tabId);
     localStorage.setItem("tableId", tabId[0].id);
     setTableDetail(false);
   };
 
   const handleDiscountMethodSelect = (event) => {
     setSelectedDiscountMethod(event.target.value);
-    console.log(event.target.value);
+    // console.log(event.target.value);
     // setIsDropdownOpen(false)
   };
   const randomNumber = Math.floor(Math.random() * 1000000000);
@@ -183,7 +186,7 @@ const Epos = (props) => {
     newAdOns.map((ao, i) => {
       return ao.id == itemId ? (AoIndx = i) : false;
     });
-    console.log(AoIndx);
+    // console.log(AoIndx);
     if (AoIndx != -1) {
       newAdOns.splice(AoIndx, 1);
     } else {
@@ -193,14 +196,16 @@ const Epos = (props) => {
   };
 
   let baseURL = configs.baseURL;
-
+  // let baseURL = "https://inventory-service-gthb.onrender.com";
   const removeAddons = (itemId) => {
-    console.log(itemId);
+    // console.log(itemId);
   };
 
   let userToken = sessionStorage.getItem("token")
     ? sessionStorage.getItem("token")
     : "";
+
+  // let userToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NTZmMmE2ODc0YTRkNjIzYmJlM2Q1ODAiLCJyb2xlIjoiQWRtaW4iLCJpYXQiOjE3NDQyNjUxNTAsImV4cCI6MTc0NDg2OTk1MH0.NmI9JEM2gChfmIL9R8eR3XVpjLom4PUdKx0NTD_0bCE"
 
   const handleOrder = () => {
     //document.getElementById('bar').style.display='none';
@@ -210,12 +215,12 @@ const Epos = (props) => {
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
     : "";
-  console.log(userData);
+  // console.log(userData);
 
   let merchantData = sessionStorage.getItem("merchantData")
     ? JSON.parse(sessionStorage.getItem("merchantData"))
     : null;
-  console.log(merchantData);
+  // console.log(merchantData);
   // merchantData.taxPerc = merchantData.taxPerc || merchantData.takeAwayTax;
 
   // if (containedIndex == 1) {
@@ -236,11 +241,11 @@ const Epos = (props) => {
   );
   //console.log(currency)
   let SelectCurrency = currency && currency[0] ? currency[0].symbol : "";
-  console.log(SelectCurrency);
+  // console.log(SelectCurrency);
 
   const userId = userData ? userData.sub : " ";
   const getCatByUser = `${baseURL}/api/categories?merchantCode=${merchCode}`;
-  const getProductByUser = baseURL + `/api/products?merchantCode=${merchCode}`;
+  const getProductByUser = `${baseURL}/api/products?merchantCode=${merchCode}`;
   const getLatestInvoiceNumber =
     configs.payServer + `/api/invoice/latest/${userId}`;
 
@@ -249,7 +254,7 @@ const Epos = (props) => {
   const selectedCurrency = (
     <span dangerouslySetInnerHTML={{ __html: SelectCurrency }} />
   );
-  console.log(selectedCurrency);
+  // console.log(selectedCurrency);
 
   useEffect(() => {
     if (!categories.length) {
@@ -261,7 +266,7 @@ const Epos = (props) => {
 
     const query = ref(db, "products/" + merchCode);
     return onValue(query, (snapshot) => {
-      console.log("new product update", categories);
+      // console.log("new product update", categories);
       const data = snapshot.val();
       axios.get(getCatByUser).then((response) => {
         //console.log(response.data);
@@ -348,8 +353,8 @@ const Epos = (props) => {
   };
 
   const addPrductToOrder = (p) => {
-    console.log("Incoming product:", p);
-    console.log("Existing order:", orderItem);
+    // console.log("Incoming product:", p);
+    // console.log("Existing order:", orderItem);
 
     let orders = Array.isArray(orderItem) ? [...orderItem] : [];
     let matchFound = false;
@@ -380,16 +385,16 @@ const Epos = (props) => {
       orders.push(newItem);
     }
 
-    console.log("Updated order:", orders);
+    // console.log("Updated order:", orders);
     setOrderItem(orders);
     updateOrderDetails(orders);
   };
 
   const handleProduct = (p) => {
-    console.log(p);
+    // console.log(p);
     setBillPrint(false);
     if (p.isPriceVariety || p.add_ons || p.cookInstructions) {
-      console.log("if running");
+      // console.log("if running");
       setIsOpen(true);
       setSelectedVar({});
       setCookAlignment([]);
@@ -403,7 +408,7 @@ const Epos = (props) => {
       setSelAdons([]);
       setSelectedProduct(p);
     } else {
-      console.log("else running");
+      // console.log("else running");
       addPrductToOrder(p);
     }
   };
@@ -420,14 +425,14 @@ const Epos = (props) => {
             address: address,
           })
           .then((res) => {
-            console.log(res.data);
+            // console.log(res.data);
             setOpenPhone(false);
           });
       } else {
         let data = {
           email: `${phnumber}@menulive.in`,
           phone: phnumber,
-          firstName: name,
+          firstName: name !== "" ? name : phnumber,
           lastName: "",
           address: address,
           password: phnumber,
@@ -440,7 +445,7 @@ const Epos = (props) => {
           .post(`${authApi}/customer/auth-and-register`, { ...data })
           .then((res) => {
             setCustId(res.data.user.id);
-            console.log(res.data);
+            // console.log(res.data);
           });
         setOpenPhone(false);
       }
@@ -453,7 +458,7 @@ const Epos = (props) => {
     let selVarArr = selectedVarArr.length
       ? selectedVarArr
       : handleAlignment("", Object.keys(variety)[0]);
-    console.log(selVarArr);
+    // console.log(selVarArr);
     return (
       <ToggleButtonGroup
         value={selVarArr}
@@ -517,7 +522,7 @@ const Epos = (props) => {
     );
   };
 
-  console.log(merchantData);
+  // console.log(merchantData);
 
   useEffect(() => {
     if (orderItem && orderItem.length) {
@@ -526,7 +531,7 @@ const Epos = (props) => {
   }, [orderItem, containedIndex, discValue, percent]);
 
   let productItems = isSearch ? filterPro : products;
-  console.log("productsItem", productItems);
+  // console.log("productsItem", productItems);
 
   const handleAdd = (indx) => {
     order.orderItems[indx].quantity += 1;
@@ -539,17 +544,17 @@ const Epos = (props) => {
     // });
     setOrderItem(order.orderItems);
   };
-  console.log(order);
+  // console.log(order);
 
   const handleRemove = (indx) => {
-    console.log("index" + indx);
+    // console.log("index" + indx);
     let ord = order;
-    console.log(ord);
+    // console.log(ord);
     ord.orderItems[indx].quantity = ord.orderItems[indx].quantity - 1;
 
-    console.log(ord.orderItems);
+    // console.log(ord.orderItems);
     let items = ord.orderItems.filter((x) => x.quantity !== 0);
-    console.log(items);
+    // console.log(items);
     ord.orderItems = items;
     ord.totalPrice = 0;
     ord.taxPrice = 0;
@@ -585,7 +590,7 @@ const Epos = (props) => {
     setIsSearch(val ? true : false);
   };
 
-  console.log("userToken", userToken);
+  // console.log("userToken", userToken);
   useEffect(() => {
     axios({
       method: "get",
@@ -594,14 +599,14 @@ const Epos = (props) => {
         Authorization: `Bearer ${userToken}`,
       },
     }).then((res) => {
-      console.log("customers", res.data);
+      // console.log("customers", res.data);
       setCustomerData(res.data);
     });
   }, []);
 
   const updateOrderDetails = (newOrderItem) => {
-    console.log(newOrderItem);
-    console.log(orderItem);
+    // console.log(newOrderItem);
+    // console.log(orderItem);
     let orderItems = (newOrderItem || orderItem).map((x) => {
       if (!x.sub_pro) {
         x.sub_pro = { addons: [], variety: {}, cookInstructions: [] };
@@ -619,7 +624,7 @@ const Epos = (props) => {
     const itemsCount = orderItems.reduce((a, c) => a + c.quantity, 0);
     setItemCount(itemsCount);
     const itemsPrice = orderItems.reduce((a, c) => a + c.totalPrice, 0);
-    console.log(merchantData);
+    // console.log(merchantData);
     let txPerc = merchantData.taxPerc || merchantData.takeAwayTax;
     let orderType = "Eat In";
     // if (containedIndex == 1) {
@@ -627,7 +632,7 @@ const Epos = (props) => {
     //   txPerc = merchantData.taxPerc
     //   orderType = "Take Away";
     // }
-    console.log("----------", txPerc);
+    // console.log("----------", txPerc);
     const taxPrice = txPerc
       ? parseFloat((((txPerc / 100) * itemsPrice * 100) / 100).toFixed(2))
       : 0.0;
@@ -638,10 +643,10 @@ const Epos = (props) => {
       totalPrice = parseFloat(itemsPrice).toFixed(2);
     }
 
-    console.log(taxPrice);
+    // console.log(taxPrice);
     const setpro = [addons];
-    console.log(selectedDiscountMethod);
-    console.log(discValue);
+    // console.log(selectedDiscountMethod);
+    // console.log(discValue);
 
     let order = {
       number: 0,
@@ -671,7 +676,7 @@ const Epos = (props) => {
 
   const handleSearchCustomer = async () => {
     if (!phnumber) {
-      console.log("📭 No phone number provided.");
+      // console.log("📭 No phone number provided.");
       return;
     }
 
@@ -710,10 +715,10 @@ const Epos = (props) => {
         setAddress(firstCustomer.address || "");
         setCustId(firstCustomer.id || firstCustomer._id);
       } else {
-        console.log("No customers matched.");
+        // console.log("No customers matched.");
       }
     } catch (err) {
-      console.log("Search error:", err?.response?.data || err.message);
+      // console.log("Search error:", err?.response?.data || err.message);
       setSearchResults([]);
       setIsCustomerFound(false);
     }
@@ -728,13 +733,14 @@ const Epos = (props) => {
         }
       );
       setCustomerData(res.data);
-      console.log("✅ Customers refreshed:", res.data);
+      // console.log("✅ Customers refreshed:", res.data);
     } catch (err) {
       console.error("❌ Failed to fetch customers:", err);
     }
   };
   // Add this new function to handle radio selection
   const handleCustomerSelect = (customer) => {
+    // console.log("This is  the customer object: " + JSON.stringify(customer));
     setName(customer.firstName);
     setEmail(customer.email);
     setPhnumber(customer.phone);
@@ -751,21 +757,29 @@ const Epos = (props) => {
       setName(name);
       setAddress(address);
 
-      // // Initialize or update order object
-      // const updatedOrder = {
-      //   ...(order || {}), // Create new order if none exists
-      //   customerId: custId,
-      //   customerPhone: phnumber,
-      //   customerName: name,
-      //   customerAddress: address,
-      //   orderItems: order?.orderItems || [] // Ensure orderItems exists
-      // };
+      // check whether the  order has items in it or not.
+      const hasItems = order?.orderItems && order.orderItems.length > 0;
 
-      // // Update order state
-      // setOrder(updatedOrder);
+      if (hasItems) {
+        updateOrderDetails(order.orderItems);
+      }
+      // Initialize or update order object
+      const updatedOrder = {
+        ...(order || {}), // Create new order if none exists
+        customerId: custId,
+        customerPhone: mobileNo,
+        customerName: name !== "" ? name : phnumber,
+        customerAddress: address,
+        orderItems: order?.orderItems || [], // Ensure orderItems exists
+      };
+
+      // Update order state
+      setOrder(updatedOrder);
 
       // Reset UI states
       setOpenPhone(false);
+      setSearchAttempted(false);
+      setPhnumber("");
       setSearchResults([]);
       setCustomerDetail(false);
     }
@@ -802,18 +816,16 @@ const Epos = (props) => {
         },
       });
 
-      console.log("Customer added:", res.data);
+      // console.log("Customer added:", res.data);
 
       setCustId(res.data.id || res.data.user?.id);
       setShowAddressDialog(false);
-      await fetchCustomers();
-      await handleSearchCustomer();
 
       setPhnumber("");
       setAddress("");
       setEmail("");
       setName("");
-      setSearchResults([])
+      setSearchResults([]);
       setSearchAttempted(false);
       setOpenPhone(false);
     } catch (error) {
@@ -880,7 +892,7 @@ const Epos = (props) => {
     });
   }, []);
 
-  console.log("invoiceNo", invoiceNo);
+  // console.log("invoiceNo", invoiceNo);
   let orderData = {
     orderId: orderDet ? orderDet.id : "",
     merchantCode: merchCode ? merchCode : "",
@@ -894,7 +906,7 @@ const Epos = (props) => {
   };
 
   function summaryPath1(orderDetails) {
-    console.log(orderDetails);
+    // console.log(orderDetails);
     const fullName = userData ? userData.name : "";
 
     if (orderDetails) {
@@ -1210,7 +1222,7 @@ const Epos = (props) => {
           `${authApi}/customer/auth-and-register`,
           data
         );
-        console.log(res.data);
+        // console.log(res.data);
         setCustId(res.data.user.id);
       } catch (err) {
         console.error("Registration error:", err);
@@ -1268,15 +1280,15 @@ const Epos = (props) => {
           ...data,
         })
         .then((res) => {
-          console.log(res.data);
+          // console.log(res.data);
           setCustId(res.data.user.id);
         });
     }
-    console.log(order);
+    // console.log(order);
 
     if (order) {
-      console.log(order);
-      console.log(discValue);
+      // console.log(order);
+      // console.log(discValue);
       order.number = selectedTable;
       order.discountType = selectedDiscountMethod;
       order.discountAmount = parseFloat(discValue);
@@ -1284,7 +1296,7 @@ const Epos = (props) => {
       const timestamp = new Date().toLocaleString();
       order.timestamp = timestamp;
       if (containedIndex === 1 && selectedTable != "") {
-        console.log(tableData);
+        // console.log(tableData);
         tableData.isAvailable = "false";
         let isOrderwithPrint = true;
         // createOrder(null, isOrderwithPrint, true);
@@ -1333,7 +1345,7 @@ const Epos = (props) => {
     }
   }, [containedIndex === 1]);
 
-  console.log("tables available", tableData);
+  // console.log("tables available", tableData);
 
   // const handlepostResume = (customerId, tabNumber) => {
   //   console.log("just checking",customerId, tabNumber);
@@ -1364,7 +1376,7 @@ const Epos = (props) => {
   // };
 
   const handlepostResume = (customerId, tabNumber) => {
-    console.log("just checking", customerId, tabNumber);
+    // console.log("just checking", customerId, tabNumber);
     handleClick(1);
 
     const orderResume = JSON.parse(localStorage.getItem("orderOnHold")) || [];
@@ -1381,7 +1393,7 @@ const Epos = (props) => {
       setOrderItem(ppostResume.orderItems);
 
       const restoredOrderId = ppostResume.localOrderId || ppostResume.id;
-      console.log("Resumed order ID:", restoredOrderId);
+      // console.log("Resumed order ID:", restoredOrderId);
       setOrdId(restoredOrderId);
 
       setSelectedTable(tabNumber);
@@ -1408,7 +1420,8 @@ const Epos = (props) => {
   };
 
   const handleResume = () => {
-    console.log("resume");
+    // console.log("resume");
+    // console.log("test data: " + JSON.stringify(orderHoldData));
     setHoldOpen(true);
   };
 
@@ -1439,7 +1452,7 @@ const Epos = (props) => {
   };
 
   const handlePayMode = (mode) => {
-    console.log(mode);
+    // console.log(mode);
     let ord = order;
     ord.paymentState = "PAID";
     ord.isPaid = true;
@@ -1456,19 +1469,19 @@ const Epos = (props) => {
 
   const handlediscsubmit = () => {
     const valuedisc = parseFloat(discValue);
-    console.log(selectedDiscountMethod);
+    // console.log(selectedDiscountMethod);
 
     if (selectedDiscountMethod === "percentage") {
       const taxPrice = order.totalPrice * (valuedisc / 100);
       const percent = order.totalPrice - taxPrice;
       const formattedPercent = percent.toFixed(2); // Display percent with 2 decimal places
-      console.log(formattedPercent);
+      // console.log(formattedPercent);
       setPercent(parseFloat(formattedPercent)); // Set the value as a number
     } else {
       const discValue = order.totalPrice - valuedisc;
       const formattedDiscValue = discValue.toFixed(2); // Display discount value with 2 decimal places
       setPrice(parseFloat(formattedDiscValue)); // Set the value as a number
-      console.log(order.totalPrice);
+      // console.log(order.totalPrice);
     }
 
     setIsDropdownOpen(false);
@@ -1543,7 +1556,7 @@ const Epos = (props) => {
       Address: address,
     });
   };
-  console.log(order);
+  // console.log(order);
 
   const handleAllCategory = () => {
     setProducts(totalProducts);
@@ -1681,7 +1694,7 @@ const Epos = (props) => {
   const handleDelivery = () => {
     // setOpenPhone(true);
   };
-  console.log(order);
+  // console.log(order);
 
   const showOrdersItems = () => {
     return (
@@ -1808,7 +1821,7 @@ const Epos = (props) => {
                     className="number_input"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    maxLength={10} 
+                    maxLength={10}
                     style={{
                       padding: "5px",
                       marginLeft: "10px",
@@ -2003,7 +2016,7 @@ const Epos = (props) => {
                   {order
                     ? order.orderItems.map((item, indx) => {
                         const subProArray = item.sub_pro;
-                        console.log(subProArray);
+                        // console.log(subProArray);
                         const subProNames =
                           subProArray && subProArray.addons
                             ? subProArray.addons.map((subPro) => subPro.name)
@@ -2011,8 +2024,8 @@ const Epos = (props) => {
                         const subVariety = subProArray
                           ? subProArray.variety
                           : "";
-                        console.log(order);
-                        console.log(subVariety);
+                        // console.log(order);
+                        // console.log(subVariety);
                         return (
                           <>
                             <tr>
@@ -2153,7 +2166,9 @@ const Epos = (props) => {
                     </td>
                     <td>
                       {selectedCurrency}{" "}
-                      {order ? order.taxPrice.toFixed(2) : " "}
+                      {order && typeof order.taxPrice === "number"
+                        ? order.taxPrice.toFixed(2)
+                        : " "}
                     </td>
                   </tr>
                   <tr
@@ -2401,7 +2416,7 @@ const Epos = (props) => {
       </div>
     );
   };
-  console.log(isleftAlign);
+  // console.log(isleftAlign);
   const orderHold = localStorage.getItem("orderOnHold");
   const orderHoldData = orderHold ? JSON.parse(orderHold) : "";
   // console.log(orderHoldData);
@@ -2706,7 +2721,7 @@ const Epos = (props) => {
             {" "}
             ORDERS ON HOLD
           </h4>
-          {orderHold && orderHoldData && orderHoldData.length
+          {/* {orderHold && orderHoldData && orderHoldData.length
             ? orderHoldData
                 .filter((ordHold) => ordHold.isDelivered === false)
                 .map((ordHold) => (
@@ -2746,6 +2761,83 @@ const Epos = (props) => {
                     <span style={{ fontSize: "small" }}>
                       {ordHold.timestamp}
                     </span>
+                  </div>
+                ))
+            : ""} */}
+
+          {orderHold && orderHoldData && orderHoldData.length
+            ? orderHoldData
+                .filter((ordHold) => ordHold.isDelivered === false)
+                .map((ordHold, index) => (
+                  <div className="pro_item" key={index}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: "16px",
+                        margin: "10px 0",
+                        gap: "10px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {/* Customer Name */}
+                      <div style={{ flex: 2, fontWeight: "bold" }}>
+                        {ordHold.customerName ||
+                          ordHold.customerPhone ||
+                          "Unnamed Customer"}
+                      </div>
+
+                      {/* Price */}
+                      <div style={{ flex: 1, textAlign: "center" }}>
+                        {selectedCurrency}
+                        {ordHold.discountType === "price"
+                          ? (
+                              ordHold.totalPrice - ordHold.discountAmount
+                            ).toFixed(2)
+                          : (
+                              ordHold.totalPrice -
+                              (ordHold.totalPrice * ordHold.discountAmount) /
+                                100
+                            ).toFixed(2)}
+                      </div>
+
+                      {/* ❌ Cancel Button */}
+                      <div>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          onClick={() => handleCancelord(ordHold.customerId)}
+                        >
+                          X
+                        </Button>
+                      </div>
+
+                      {/* Resume Button */}
+                      <div>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() =>
+                            handlepostResume(ordHold.customerId, ordHold.number)
+                          }
+                        >
+                          {t({ id: "resume" })}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* 🕒 Timestamp below */}
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        textAlign: "right",
+                      }}
+                    >
+                      {ordHold.timestamp}
+                    </div>
                   </div>
                 ))
             : ""}

@@ -48,13 +48,15 @@ const Customers = () => {
   let userToken = sessionStorage.getItem("token")
     ? sessionStorage.getItem("token")
     : "";
+  // let userToken =
+  //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NTZmMmE2ODc0YTRkNjIzYmJlM2Q1ODAiLCJyb2xlIjoiQWRtaW4iLCJpYXQiOjE3NDQyNjUxNTAsImV4cCI6MTc0NDg2OTk1MH0.NmI9JEM2gChfmIL9R8eR3XVpjLom4PUdKx0NTD_0bCE";
   console.log(userToken);
   const getCustomerList = () => {
     // console.log("This is the token: " + userToken)
     // console.log("This is the api that is calling from the customers end : " + `${authApi}/customer?merchantCode=${merchCode}`)
     axios({
       method: "get",
-      url: `${authApi}/customer?merchantCode=${merchCode}`,
+      url: `${authApi}/user/customers?merchantCode=${merchCode}`,
       headers: {
         Authorization: `Bearer ${userToken}`,
       },
@@ -67,7 +69,7 @@ const Customers = () => {
     if (!customerData.length) {
       getCustomerList();
     }
-  });
+  }, []);
   const handleSubmit = () => {
     console.log(mobileNo);
     axios
