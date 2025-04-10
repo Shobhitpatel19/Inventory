@@ -2060,3 +2060,18 @@ flex-wrap: wrap;
 .table-Select.red{
   border: 2px solid red;
 }
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-header th {
+  border-bottom: 1px solid #ccc;
+  padding: 8px
+}
+
+.table-body-row td {
+  border: none; /* No borders for body rows */
+  margin-top: 10px;
+}

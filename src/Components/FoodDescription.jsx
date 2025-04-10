@@ -148,6 +148,35 @@ function FoodDescription() {
         plateType: recipePlateType,
       };
       setRecipeItems([...recipeItems, newItem]);
+
+      // Post product inventory payload
+      axios
+        .post(
+          baseURL +
+            "/api/product-inventories?merchantCode=" +
+            merchCode,
+          {
+            productId: selectProductId || "newProduct", // adjust as necessary
+            inventoryId: "inventoryIdDummy", // provide appropriate inventory id
+            quantity_per_variety: variety && select
+              ? JSON.stringify(recipeQuantities)
+              : recipeQuantity,
+            notes: "",
+          },
+          {
+            headers: {
+              Authorization:
+                "Bearer " + sessionStorage.getItem("token"),
+            },
+          }
+        )
+        .then((response) => {
+          console.log("Product inventory saved", response.data);
+        })
+        .catch((error) => {
+          console.error("Error saving product inventory:", error);
+        });
+
       // reset the fields:
       setRecipeName("");
       setRecipeQuantity(""); // used for non-variety
@@ -375,21 +404,57 @@ function FoodDescription() {
   };
   console.log(pricevalues);
   console.log(catType);
+  // Add this helper function somewhere before handleSubmit:
+  const saveRecipeInventories = (productId) => {
+    recipeItems.forEach(item => {
+        axios
+          .post(
+            baseURL + "/api/product-inventories?merchantCode=" + merchCode,
+            {
+              productId: productId, // use the saved product id
+              inventoryId: "inventoryIdDummy", // update as needed
+              quantity_per_variety: typeof item.quantity === "object"
+                ? JSON.stringify(item.quantity)
+                : item.quantity,
+              notes: ""
+            },
+            {
+              headers: {
+                Authorization: "Bearer " + sessionStorage.getItem("token")
+              }
+            }
+          )
+          .then((response) => {
+            console.log("Inventory saved for item", response.data);
+          })
+          .catch((error) => {
+            console.error("Error saving inventory for item", error);
+          });
+    });
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
-    // setHideProductList(false);
     if (!foodName || !catId) {
-      console.log("error");
-      let cat_type = document.getElementsByClassName("category");
-      cat_type[0].style.borderColor = "red";
+        console.log("error");
+        const catElement = document.getElementsByClassName("category")[0];
+        if (catElement) {
+            catElement.style.borderColor = "red";
+        }
 
-      let fname = document.getElementsByClassName("name");
-      fname[0].innerHTML = "required";
-      fname[1].style.borderColor = "red";
-    } else if (selectProductId) {
-      console.log(cooktags.length ? cooktags.join(",") : "");
-      console.log("image", imageURL);
-      console.log("kitchen", selectedKitchen);
+        const nameElements = document.getElementsByClassName("name");
+        if (nameElements && nameElements.length > 1) {
+            if (nameElements[0]) {
+                nameElements[0].innerHTML = "required";
+            }
+            if (nameElements[1]) {
+                nameElements[1].style.borderColor = "red";
+            }
+        }
+        return;
+    }
+    if (selectProductId) {
+      // Update existing product
       axios
         .put(
           baseURL +
@@ -424,14 +489,18 @@ function FoodDescription() {
         )
         .then((response) => {
           console.log(response.data);
+          // Call the inventory API for each recipe item
+          if (recipeItems.length > 0) {
+            saveRecipeInventories(selectProductId);
+          }
           axios.get(`${getProductByUser}`).then((response) => {
-            console.log(response.data);
             setProducts(response.data);
           });
         });
       setHideProductList(false);
       setHideEdit(false);
     } else {
+      // Create new product
       axios
         .post(
           baseURL + "/api/products?merchantCode=" + merchCode,
@@ -440,10 +509,10 @@ function FoodDescription() {
             category: catId,
             name: foodName,
             description: description,
-            // image: imageURL != "" ? imageURL : selectedImage.image,
-            image: selectedImage && selectedImage.image
-            ? selectedImage.image
-            : imageURL,
+            image:
+              selectedImage && selectedImage.image
+                ? selectedImage.image
+                : imageURL,
             price: price,
             isPriceVariety: variety,
             varietyGroupId: select,
@@ -463,14 +532,19 @@ function FoodDescription() {
           }
         )
         .then((response) => {
+          // Assuming response.data contains the new product id:
+          const newProductId = response.data.id || "newProduct";
           axios.get(`${getProductByUser}`).then((response) => {
             setProducts(response.data);
           });
+          if (recipeItems.length > 0) {
+            saveRecipeInventories(newProductId);
+          }
         });
       setHideProductList(false);
       setHideEdit(false);
     }
-
+    // Reset states after submit
     setCookTags("");
     setSelectedImage();
     setTags("");
@@ -484,7 +558,9 @@ function FoodDescription() {
     setSelect("");
     SetPriceValues("");
     setInstock("");
-    setImageURL("https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg");
+    setImageURL(
+      "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg"
+    );
     setCookTags([]);
     setAddOn([]);
     setCatType("");

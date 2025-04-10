@@ -1,7 +1,7 @@
 import React from "react";
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
 
-const DeleteDiaologue = ({ open, onClose, onConfirm }) => {
+const DeleteDiaologue = ({ msg, open, onClose, onConfirm }) => {
   return (
     <Dialog
       open={open}
@@ -13,15 +13,15 @@ const DeleteDiaologue = ({ open, onClose, onConfirm }) => {
       <DialogTitle>Alert</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Are you sure you want to delete this item?
+          Are you sure you want to {msg === "cancel" ? <span>Cancel</span> : <span>delete</span>} this item?
         </DialogContentText>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="primary">
-          Cancel
+          Close
         </Button>
         <Button onClick={onConfirm} color="error" autoFocus>
-          Delete
+        {msg === "cancel" ? <span>Cancel</span> : <span>Delete</span>}
         </Button>
       </DialogActions>
     </Dialog>

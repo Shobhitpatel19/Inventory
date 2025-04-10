@@ -122,6 +122,7 @@ const Epos = (props) => {
   const [selectedTable, setSelectedTable] = useState(null);
   const [editPriceDialog, setEditPriceDialog] = useState(null);
   const [ordId, setOrdId] = useState("");
+  const [searchAttempted, setSearchAttempted] = useState(false);
 
   const { formatMessage: t, locale, setLocale } = useIntl();
   let authApi = configs.authapi;
@@ -215,11 +216,11 @@ const Epos = (props) => {
     ? JSON.parse(sessionStorage.getItem("merchantData"))
     : null;
   console.log(merchantData);
-  merchantData.taxPerc = merchantData.taxPerc || merchantData.takeAwayTax;
+  // merchantData.taxPerc = merchantData.taxPerc || merchantData.takeAwayTax;
 
-  if (containedIndex == 1) {
-    merchantData.taxPerc = merchantData.dineinTax;
-  }
+  // if (containedIndex == 1) {
+  //   merchantData.taxPerc = merchantData.dineinTax;
+  // }
 
   const merchCode = merchantData ? merchantData.merchantCode : "";
   useEffect(() => {
@@ -308,7 +309,8 @@ const Epos = (props) => {
     setTableDetail(true);
   };
   const handleCustomerDetail = () => {
-    setCustomerDetail(true);
+    // setCustomerDetail(true);
+    setOpenPhone(true);
   };
   const cancelCustomer = () => {
     setCustomerDetail(false);
@@ -346,32 +348,39 @@ const Epos = (props) => {
   };
 
   const addPrductToOrder = (p) => {
-    console.log(p);
-    console.log(orderItem);
+    console.log("Incoming product:", p);
+    console.log("Existing order:", orderItem);
 
-    let orders = orderItem && orderItem.length ? [...orderItem] : [];
+    let orders = Array.isArray(orderItem) ? [...orderItem] : [];
+    let matchFound = false;
 
-    // Check if the product already exists in the order
-    const existingIndex = orders.findIndex(
-      (item) =>
-        item.id === p.id &&
-        JSON.stringify(item.sub_pro.addons) ===
-          JSON.stringify(p.sub_pro.addons) &&
-        JSON.stringify(item.sub_pro.variety) ===
-          JSON.stringify(p.sub_pro.variety)
-    );
+    const normalizeAddons = (addons) => {
+      if (!addons || !Array.isArray(addons) || addons.length === 0) return null;
+      return JSON.stringify(addons);
+    };
 
-    if (existingIndex !== -1) {
-      // If the product exists, increase the quantity
-      orders[existingIndex].quantity += 1;
-    } else {
-      // If the product doesn't exist, create a new item
-      const newItem = JSON.parse(JSON.stringify(p));
-      newItem.quantity = 1;
+    const pId = p?.id;
+    const pAddons = normalizeAddons(p?.sub_pro?.addons);
+
+    for (let i = 0; i < orders.length; i++) {
+      const item = orders[i];
+
+      const itemId = item?.id;
+      const itemAddons = normalizeAddons(item?.sub_pro?.addons);
+
+      if (itemId === pId && itemAddons === pAddons) {
+        orders[i].quantity += 1;
+        matchFound = true;
+        break;
+      }
+    }
+
+    if (!matchFound) {
+      const newItem = { ...p, quantity: 1 };
       orders.push(newItem);
     }
 
-    console.log("final order", orders);
+    console.log("Updated order:", orders);
     setOrderItem(orders);
     updateOrderDetails(orders);
   };
@@ -576,15 +585,16 @@ const Epos = (props) => {
     setIsSearch(val ? true : false);
   };
 
+  console.log("userToken", userToken);
   useEffect(() => {
     axios({
       method: "get",
-      url: `${authApi}/customer?merchantCode=${merchCode}`,
+      url: `${authApi}/user/customers?merchantCode=${merchCode}`,
       headers: {
         Authorization: `Bearer ${userToken}`,
       },
     }).then((res) => {
-      console.log(res.data);
+      console.log("customers", res.data);
       setCustomerData(res.data);
     });
   }, []);
@@ -659,47 +669,70 @@ const Epos = (props) => {
     setOrder(order);
   };
 
-  // const handleSearchCustomer = () => {
+  const handleSearchCustomer = async () => {
+    if (!phnumber) {
+      console.log("📭 No phone number provided.");
+      return;
+    }
 
-  //   const customer = customerData.find(
-  //     (customer) =>
-  //       customer.phnumber === phnumber
-  //      ||
-  //       customer.email === email ||
-  //       customer.name === name
-  //   );
-  //   if (customer) {
-  //     setIsCustomerFound(true);
-  //     console.log("Customer found:", customer);
-  //     setName(customer.firstName);
-  //     setEmail(customer.email);
-  //     setPhnumber(customer.phone);
-  //     setCustId(customer.id);
-  //     setAddress(customer.address);
-  //   } else {
-  //     setIsCustomerFound(false);
-  //       // Reset fields for new customer entry
-  //   setName("");
-  //   setEmail("");
-  //   setAddress("");
+    try {
+      // console.log("🔍 Searching customer with phone:", phnumber);
 
-  //     return <Alert severity="error">Customer not found</Alert>;
-  //   }
-  // };
+      setSearchAttempted(true);
 
-  // Replace the existing handleSearchCustomer function
-  const handleSearchCustomer = () => {
-    if (!phnumber) return;
+      const res = await axios.post(
+        `${authApi}/user/customers/find`,
+        { phone: phnumber },
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
 
-    // Find all matching customers based on phone number
-    const matchingCustomers = customerData.filter(
-      (customer) => customer.phone && customer.phone.includes(phnumber)
-    );
+      // console.log("Full API response:", res);
 
-    setSearchResults(matchingCustomers);
-    setIsCustomerFound(matchingCustomers.length > 0);
+      const customers = Array.isArray(res.data?.customers)
+        ? res.data.customers
+        : [];
+
+      // console.log("Parsed customers array:", customers);
+
+      setSearchResults(customers);
+      setIsCustomerFound(customers.length > 0);
+
+      if (customers.length > 0) {
+        const firstCustomer = customers[0];
+        // console.log("First matched customer:", firstCustomer);
+
+        setName(firstCustomer.firstName || "");
+        setEmail(firstCustomer.email || "");
+        setAddress(firstCustomer.address || "");
+        setCustId(firstCustomer.id || firstCustomer._id);
+      } else {
+        console.log("No customers matched.");
+      }
+    } catch (err) {
+      console.log("Search error:", err?.response?.data || err.message);
+      setSearchResults([]);
+      setIsCustomerFound(false);
+    }
   };
 
+  const fetchCustomers = async () => {
+    try {
+      const res = await axios.get(
+        `${authApi}/user/customers?merchantCode=${merchCode}`,
+        {
+          headers: { Authorization: `Bearer ${userToken}` },
+        }
+      );
+      setCustomerData(res.data);
+      console.log("✅ Customers refreshed:", res.data);
+    } catch (err) {
+      console.error("❌ Failed to fetch customers:", err);
+    }
+  };
   // Add this new function to handle radio selection
   const handleCustomerSelect = (customer) => {
     setName(customer.firstName);
@@ -738,46 +771,57 @@ const Epos = (props) => {
     }
   };
 
-  const handleAddCustomer = () => {
-    if (phnumber) {
-      // createNewOrder()
-      setShowAddressDialog(true);
+  const handleAddCustomer = async () => {
+    if (!phnumber) {
+      console.log("Phone number is required");
+      return;
+    }
 
-      if (existingData != {} && custId != "") {
-        axios
-          .put(`${authApi}/customer/${custId}`, {
-            email: email,
-            phone: phnumber,
-            firstName: name,
-          })
-          .then((res) => {
-            console.log(res.data);
-            setOpenPhone(false);
-          });
-      } else {
-        let data = {
-          email: email || `${phnumber}@menulive.in`,
-          phone: phnumber,
-          firstName: phnumber,
-          lastName: "",
-          address: address,
-          password: phnumber,
-          isEmailVerified: false,
-          isPhoneVerified: false,
-          referenceDetails: "",
-          merchantCode: merchCode,
-          userType: "CUSTOMER",
-        };
+    const generatedEmail = email || `${phnumber}@menulive.in`;
 
-        axios
-          .post(`${authApi}/customer/auth-and-register`, data)
-          .then((res) => {
-            setCustId(res.data.user.id);
-            setShowAddressDialog(false);
-            console.log(res.data);
-          });
-        setOpenPhone(false);
-      }
+    try {
+      const data = {
+        email: generatedEmail,
+        phone: phnumber,
+        firstName: name || phnumber,
+        lastName: "",
+        address: address || "",
+        password: phnumber,
+        isEmailVerified: false,
+        isPhoneVerified: false,
+        referenceDetails: "",
+        merchantCode: merchCode,
+        userType: "CUSTOMER",
+      };
+
+      // console.log("Sending to API:", data);
+
+      const res = await axios.post(`${authApi}/user/customer`, data, {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+
+      console.log("Customer added:", res.data);
+
+      setCustId(res.data.id || res.data.user?.id);
+      setShowAddressDialog(false);
+      await fetchCustomers();
+      await handleSearchCustomer();
+
+      setPhnumber("");
+      setAddress("");
+      setEmail("");
+      setName("");
+      setSearchResults([])
+      setSearchAttempted(false);
+      setOpenPhone(false);
+    } catch (error) {
+      console.log(
+        "Error adding customer:",
+        error?.response?.data || error.message
+      );
+      console.log("Customer could not be added.");
     }
   };
 
@@ -806,6 +850,8 @@ const Epos = (props) => {
   const handleCancel = () => {
     setOpenPhone(false);
     setBillPrint(false);
+
+    setSearchAttempted(false);
 
     // Reset all customer-related states
     setPhnumber("");
@@ -1633,7 +1679,7 @@ const Epos = (props) => {
   const handleTakeAway = () => {};
   const handleDineIn = () => {};
   const handleDelivery = () => {
-    setOpenPhone(true);
+    // setOpenPhone(true);
   };
   console.log(order);
 
@@ -1729,13 +1775,40 @@ const Epos = (props) => {
                     margin: "5px",
                   }}
                 >
-                  <input
-                    type="number"
+                  {/* <input
+                    type="text"
                     placeholder="Enter Mobile"
-                    onChange={(e) => setPhnumber(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow only digits
+                      if (/^\d*$/.test(value)) {
+                        setPhnumber(value);
+                      }
+                    }}
                     value={phnumber}
                     className="number_input"
-                    pattern="[1-9]{1}[0-9]{9}"
+                    style={{
+                      padding: "5px",
+                      marginLeft: "10px",
+                      width: "70%",
+                      fontSize: "1.2em",
+                    }}
+                    inputMode="numeric" // for mobile numeric keypad
+                    pattern="[0-9]*"
+                  /> */}
+
+                  <input
+                    type="text"
+                    placeholder="Enter Mobile"
+                    value={phnumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      setPhnumber(value);
+                    }}
+                    className="number_input"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10} 
                     style={{
                       padding: "5px",
                       marginLeft: "10px",
@@ -1744,8 +1817,20 @@ const Epos = (props) => {
                     }}
                   />
 
-                  <button
+                  {/* <button
                     onClick={() => handleSearchCustomer()}
+                    style={{
+                      margin: "10px",
+                      borderRadius: "10px",
+                      background: "#000",
+                      color: "#fff",
+                    }}
+                  >
+                    <SearchIcon />
+                  </button> */}
+
+                  <button
+                    onClick={handleSearchCustomer}
                     style={{
                       margin: "10px",
                       borderRadius: "10px",
@@ -1757,8 +1842,7 @@ const Epos = (props) => {
                   </button>
                 </div>
 
-                {/* Search Results Section */}
-                {searchResults.length > 0 && (
+                {searchAttempted && searchResults.length > 0 && (
                   <div style={{ margin: "20px" }}>
                     <Typography variant="subtitle1">
                       Select Existing Customer:
@@ -1772,17 +1856,17 @@ const Epos = (props) => {
                     >
                       {searchResults.map((customer) => (
                         <div
-                          key={customer.id}
+                          key={customer.id || customer._id}
                           style={{ display: "flex", alignItems: "center" }}
                         >
                           <input
                             type="radio"
-                            id={customer.id}
+                            id={customer.id || customer._id}
                             name="customerSelect"
                             onChange={() => handleCustomerSelect(customer)}
                           />
                           <label
-                            htmlFor={customer.id}
+                            htmlFor={customer.id || customer._id}
                             style={{ marginLeft: "10px" }}
                           >
                             {customer.firstName} - {customer.phone}
@@ -1794,36 +1878,37 @@ const Epos = (props) => {
                   </div>
                 )}
 
-                {!isCustomerFound && phnumber && phnumber.length > 3 && (
-                  <div
-                    style={{
-                      color: "#f44336",
-                      padding: "8px 16px",
-                      marginTop: "8px",
-                      borderRadius: "4px",
-                      marginLeft: "10px",
-                      marginRight: "10px",
-                    }}
-                  >
-                    Customer not found
-                  </div>
+                {searchAttempted && searchResults.length === 0 && (
+                  <>
+                    <div
+                      style={{
+                        color: "#f44336",
+                        padding: "8px 16px",
+                        marginTop: "8px",
+                        borderRadius: "4px",
+                        marginLeft: "10px",
+                        marginRight: "10px",
+                      }}
+                    >
+                      Customer not found
+                    </div>
+
+                    <div style={{ padding: "20px" }}>
+                      <h3>Add Delivery Address:</h3>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Delivery Address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        variant="outlined"
+                        style={{ marginBottom: "20px" }}
+                      />
+                    </div>
+                  </>
                 )}
 
-                {phnumber && phnumber.length > 3 && !isCustomerFound && (
-                  <div style={{ padding: "20px" }}>
-                    <h3>Add Delievery Address:</h3>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label="Delivery Address"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      variant="outlined"
-                      style={{ marginBottom: "20px" }}
-                    />
-                  </div>
-                )}
                 <div
                   style={{
                     display: "flex",
@@ -1839,7 +1924,7 @@ const Epos = (props) => {
                     Close
                   </Button>
 
-                  {phnumber && phnumber.length > 3 && !isCustomerFound && (
+                  {searchAttempted && searchResults.length === 0 && (
                     <Button
                       variant="contained"
                       color="primary"
@@ -1849,7 +1934,7 @@ const Epos = (props) => {
                     </Button>
                   )}
 
-                  {phnumber && phnumber.length > 3 && isCustomerFound && (
+                  {searchAttempted && searchResults.length > 0 && (
                     <Button
                       variant="contained"
                       onClick={handleSaveCustomerSelection}
@@ -1857,7 +1942,7 @@ const Epos = (props) => {
                         width: "50px",
                         textAlign: "center",
                         background: "#f7c919",
-                        padding: " 5px 50px",
+                        padding: "5px 50px",
                       }}
                     >
                       SELECT
@@ -2375,11 +2460,7 @@ const Epos = (props) => {
             <Button
               onClick={handleCustomerDetail}
               id="butt"
-              style={
-                containedIndex === 0
-                  ? { display: "flex", fontSize: "10px" }
-                  : { display: "none" }
-              }
+              style={{ display: "flex", fontSize: "10px" }}
             >
               <PermContactCalendarIcon />
               <span> {t({ id: "customer" })}</span>
@@ -2496,7 +2577,13 @@ const Epos = (props) => {
             top: 8,
             color: theme.palette.grey[500],
           })}
-        ></IconButton>
+        >
+          <CloseIcon
+            onClick={() => {
+              cancelTable();
+            }}
+          />
+        </IconButton>
         {tableData.length ? (
           <ul id="ul-list">
             {tableData.map((tab) => (

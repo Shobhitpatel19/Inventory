@@ -50,6 +50,8 @@ const Customers = () => {
     : "";
   console.log(userToken);
   const getCustomerList = () => {
+    // console.log("This is the token: " + userToken)
+    // console.log("This is the api that is calling from the customers end : " + `${authApi}/customer?merchantCode=${merchCode}`)
     axios({
       method: "get",
       url: `${authApi}/customer?merchantCode=${merchCode}`,

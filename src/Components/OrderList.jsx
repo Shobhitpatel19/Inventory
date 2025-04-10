@@ -89,6 +89,10 @@ const OrderList = (props) => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
   const [orderStatus, setOrderStatus] = useState("");
+  const [tempOrders, setTempOrders] = useState([]);
+  const [orderCancel, setOrderCancel] = useState(true);
+  const [tableId, setTableId] = useState(null);
+  const [OrderId, setOrderId] = useState(null);
 
   let baseURL = configs.baseURL;
   let authApi = configs.authapi;
@@ -108,6 +112,7 @@ const OrderList = (props) => {
     ? JSON.parse(sessionStorage.getItem("merchantData"))
     : null;
   const merchCode = merchantData ? merchantData.merchantCode : "";
+  let userToken = sessionStorage.getItem("token") || "";
   console.log("merch", merchCode);
   const userId = userData ? userData.sub : " ";
   //const getOrderList = `${baseURL}/api/orders?merchantCode=${merchCode}`;
@@ -117,6 +122,7 @@ const OrderList = (props) => {
   const getTabByUser = baseURL + "/api/tables?merchantCode=" + merchCode;
   const getProductByUser = baseURL + `/api/products?merchantCode=${merchCode}`;
 
+  //currecny
   let currency = Currencies.filter(
     (curen) => curen.abbreviation == merchantData.currency
   );
@@ -138,19 +144,24 @@ const OrderList = (props) => {
     }
   }, []);
 
-  // useEffect(() => {
-  //   let billData = {};
-  //   billData.userId = merchantData.merchantCode;
-  //   billData.appName = "EPOS";
-  //   billData.payType = "onetime";
-  //   billData.payStatus = "paid";
-  //   // billData.purchaseItems = JSON.stringify(order.orderItems);
+  useEffect(() => {
+    const fetchTempOrders = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/temporders`, {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        });
+        setTempOrders(res.data);
+      } catch (err) {
+        console.log("Failed to fetch orders");
+      }
+    };
 
-  //   axios.post(`${configs.payUrl}/api/new-order`, billData).then((res) => {
-  //     console.log(res.data);
-  //     setInvoiceNo(res.data.invoiceData.invoicePath);
-  //   });
-  // }, []);
+    fetchTempOrders();
+  }, [baseURL, userToken]);
+
+  console.log("Temp Orders:", tempOrders);
 
   const handleOpenPopup = (order) => {
     setBillDetails(order);
@@ -171,7 +182,8 @@ const OrderList = (props) => {
   };
 
   const orderListHandler = (orderId, customerId, order) => {
-    console.log(orderId.order);
+    console.log("orderId", orderId);
+    console.log("customerId", customerId);
     console.log("order", order);
     setToken(order.number);
     setIsOpen(true);
@@ -179,8 +191,9 @@ const OrderList = (props) => {
     const SelectedorderItem = orderList.length
       ? orderList.filter((order) => order.id === orderId)
       : [];
-    console.log(SelectedorderItem);
     setSelectedOrd(SelectedorderItem);
+    console.log(SelectedorderItem);
+
     axios
       .get(`${baseURL}/api/orders/${orderId}?merchantCode=${merchCode}`)
       .then((res) => {
@@ -195,7 +208,7 @@ const OrderList = (props) => {
     if (customerId) {
       console.log(customerId);
       axios
-        .get(`${authApi}/customer/${customerId}`)
+        .get(`${authApi}/user/customers/${customerId}`)
         .then((response) => {
           console.log(response.data);
           if (!response.data) {
@@ -210,6 +223,19 @@ const OrderList = (props) => {
         });
     }
     console.log(SelectedorderItem);
+  };
+
+  const tempOrderListHandler = (orderId, customerId, order) => {
+    console.log("order", order);
+    setIsOpen(true);
+    setToken(order.token || 0);
+    setSelectedOrd([order]);
+    setCustomerData({
+      firstName: order.customerName || "N/A",
+      phone: order.customerPhone || "N/A",
+      address: order.customerAddress || "N/A",
+    });
+    setOrderItemsList(order.orderItems || []);
   };
 
   const handleClose = () => {
@@ -342,7 +368,6 @@ const OrderList = (props) => {
       setDeleteItemId(order_id);
       setOrderStatus(order_Status);
       setOpenDeleteDialog(true);
-
     }
   };
 
@@ -357,50 +382,110 @@ const OrderList = (props) => {
     }
 
     axios
-        .delete(`${baseURL}/api/orders/${deleteItemId}?merchantCode=${merchCode}`, {
+      .delete(
+        `${baseURL}/api/orders/${deleteItemId}?merchantCode=${merchCode}`,
+        {
           action: orderStatus,
-        })
-        .then((response) => {
-          console.log(response.data);
-          let today = new Date();
-          console.log(moment(today).format("DD/MMM/YYYY"));
-          axios.get(getOrderList).then((response) => {
-            //setTotalOrders(response.data);
-            setOrderList(response.data);
-          });
+        }
+      )
+      .then((response) => {
+        console.log(response.data);
+        let today = new Date();
+        console.log(moment(today).format("DD/MMM/YYYY"));
+        axios.get(getOrderList).then((response) => {
+          //setTotalOrders(response.data);
+          setOrderList(response.data);
         });
-      console.log(orderStatus);
+      });
+    console.log(orderStatus);
 
     setOpenDeleteDialog(false);
     setDeleteItemId(null);
-  };
+  };
 
   const handleCancel = async (order_id, order_cancel, tableId) => {
-    if (order_cancel === false) {
+    // if (order_cancel === false) {
+    //   try {
+    //     await axios.put(
+    //       `${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`,
+    //       {
+    //         action: "cancel",
+    //       }
+    //     );
+
+    //     // Step 2: Fetch the table details directly from the API
+    //     const tableResponse = await axios.get(
+    //       `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`
+    //     );
+    //     console.log(tableResponse.data);
+    //     const tableToUpdate = tableResponse.data;
+
+    //     // Step 3: Free the table (only update isAvailable to true)
+    //     await axios.put(
+    //       `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`,
+    //       {
+    //         ...tableToUpdate,
+    //         isAvailable: true,
+    //       }
+    //     );
+
+    //     // Step 4: Refresh the order list
+    //     const response = await axios.get(getOrderList);
+    //     setOrderList(response.data);
+    //   } catch (error) {
+    //     console.error("Error while cancelling order or updating table:", error);
+    //   }
+    // }
+    setOrderId(order_id);
+    setOrderCancel(order_cancel);
+    setTableId(tableId);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCancelClose = () => {
+    setOrderId(null);
+    setOrderCancel("");
+    setTableId(null);
+    setOpenDeleteDialog(false);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (orderCancel === false) {
       try {
-        await axios.put(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
-          action: "cancel",
-        });
-  
+        await axios.put(
+          `${baseURL}/api/orders/${OrderId}?merchantCode=${merchCode}`,
+          {
+            action: "cancel",
+          }
+        );
+
         // Step 2: Fetch the table details directly from the API
-        const tableResponse = await axios.get(`${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`);
+        const tableResponse = await axios.get(
+          `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`
+        );
         console.log(tableResponse.data);
         const tableToUpdate = tableResponse.data;
-  
+
         // Step 3: Free the table (only update isAvailable to true)
-        await axios.put(`${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`, {
-          ...tableToUpdate,
-          isAvailable: true,
-        });
-  
+        await axios.put(
+          `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`,
+          {
+            ...tableToUpdate,
+            isAvailable: true,
+          }
+        );
+
         // Step 4: Refresh the order list
         const response = await axios.get(getOrderList);
         setOrderList(response.data);
-  
       } catch (error) {
         console.error("Error while cancelling order or updating table:", error);
       }
     }
+    setOrderId(null);
+    setOrderCancel(true);
+    setTableId(null);
+    setOpenDeleteDialog(false);
   };
 
   const handlePayment = (mode, order) => {
@@ -730,7 +815,13 @@ const OrderList = (props) => {
   });
 
   console.log("filterOrders here", filteredOrders);
+  console.log("tempOrders", tempOrders);
   // console.log("orderList", orderList);
+
+  const acceptOrder = (order) => {
+    console.log("acceptOrder", order);
+    setOrderList((prevOrders) => [...prevOrders, order]);
+  };
 
   return (
     <div className="container">
@@ -850,13 +941,25 @@ const OrderList = (props) => {
 
       {openDeleteDialog === true ? (
         <DeleteDiaologue
+          msg="Delete"
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
         />
       ) : (
-        <div />
-      )}
+        <div />
+      )}
+
+      {openDeleteDialog === true ? (
+        <DeleteDiaologue
+          msg="cancel"
+          open={openDeleteDialog}
+          onClose={handleCancelClose}
+          onConfirm={handleConfirmCancel}
+        />
+      ) : (
+        <div />
+      )}
 
       <Dialog
         open={openNotifi || props.notification}
@@ -979,12 +1082,6 @@ const OrderList = (props) => {
             />
           </div>
 
-          {/* <Button
-            onClick={() => setTempOrderView((prev) => (prev === 0 ? 1 : 0))}
-          >
-            {tempOrderView === 0 ? "All Orders" : "Temporary Orders"}
-          </Button> */}
-
           <div id="group">
             {false && <label>Group By: </label>}
             <span
@@ -1013,160 +1110,254 @@ const OrderList = (props) => {
           </div>
         </div>
 
-        {tempOrderView === 0 ? (
-          <TempOrder />
-        ) : (
-          <div>
-            {!tabView ? (
-              <Table breakPoint={700} style={{ width: "100%" }}>
-                <Thead>
-                  <Tr>
-                    <Th>#{t({ id: "token_table" })}</Th>
-                    <Th>{t({ id: "source" })}</Th>
-                    <Th>{t({ id: "ammount" })} (Inc Tax)</Th>
-                    <Th>{t({ id: "order_items" })}</Th>
-                    <Th></Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {filteredOrders.length ? (
-                    (isReversed
-                      ? filteredOrders.slice().reverse()
-                      : filteredOrders
-                    ).map((orderLists, index) => {
-                      let paidStaus = notifiData.filter(
-                        (nof) => orderLists.number === nof.token
-                      );
-                      let payStatus = paidStaus.length ? true : false;
-                      console.log(orderLists);
-                      let tableCall = false;
-                      if (orderLists.orderSource === "Table Order") {
-                        const table =
-                          tableData &&
-                          tableData.filter(
-                            (tab) => tab.number == orderLists.number
-                          );
-                        console.log(tableData);
-                        //  table.isCallService ? document.getAnimations("point").style.display = "block":document.getAnimations("point").style.display = "none"
-                        console.log(table);
-                        tableCall = table
-                          ? table[0]
-                            ? table[0].isServiceCall
-                            : ""
-                          : "";
-                      }
-                      return (
-                        <Tr
-                          style={
-                            orderLists.isCanceled === true
-                              ? {
-                                  backgroundColor: "#fbe3e3cc",
-                                  borderBottom: "1px solid #f0eeee",
-                                  margin: "5px",
-                                }
-                              : {
-                                  borderBottom: "1px solid #f0eeee",
-                                  margin: "5px",
-                                }
-                          }
+        <div>
+          <div className="tempOrder">
+            <Table className="custom-table">
+              <Thead>
+                <Tr className="table-header">
+                  <Th>Source</Th>
+                  <Th>Amount(Inc tax)</Th>
+                  <Th>Order Items</Th>
+                  <Th>Actions</Th>
+                  <Th>TimeLimit</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {tempOrders.map((order) => (
+                  <Tr key={order.id} className="table-body-row">
+                    <Td>
+                      <Chip
+                        label={order.orderSource || "Self Order"}
+                        color={
+                          (order.orderSource || "Self Order") === "EPOS"
+                            ? "info"
+                            : (order.orderSource || "Self Order") ===
+                              "Self Order"
+                            ? "warning"
+                            : (order.orderSource || "Self Order") ===
+                              "Table Order"
+                            ? "secondary"
+                            : (order.orderSource || "Self Order") ===
+                              "Online Order"
+                            ? "error"
+                            : "default"
+                        }
+                        style={{
+                          marginLeft: "10px",
+                          fontSize: "x-small",
+                          fontWeight: "bold",
+                        }}
+                      />
+                      <div style={{ fontSize: "12px" }}>
+                        {moment(order.scheduleDate || order.createdAt).format(
+                          "DD-MMM h:mm a"
+                        )}
+                      </div>
+                    </Td>
+                    <Td>
+                      {selectedCurrency}
+                      {(order.discountType
+                        ? order.discountType === "discount" ||
+                          order.discountType === "price"
+                          ? order.totalPrice - (order.discountAmount || 0)
+                          : order.totalPrice -
+                            (order.totalPrice * order.discountAmount) / 100
+                        : order.totalPrice
+                      ).toFixed(2)}
+                    </Td>
+                    <Td style={{ fontSize: "12px" }}>
+                      <button
+                        className="btn-icon"
+                        onClick={() =>
+                          tempOrderListHandler(
+                            order.id,
+                            order.customerId,
+                            order
+                          )
+                        }
+                      >
+                        <ReceiptLongOutlinedIcon />
+                      </button>
+                    </Td>
+                    <Td>
+                      {
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: "20px",
+                          }}
                         >
-                          <Td
-                            style={{
-                              fontSize: "25px",
-                              display: "flex",
-                              justifyContent: "space-around",
-                              alignItems: "center",
-                              color: "#4d4a4a",
-                            }}
+                          <Button
+                            variant="contained"
+                            color="success"
+                            onClick={() => acceptOrder(order)}
                           >
-                            {orderLists.orderType.toLowerCase() ===
-                              "eat in" && (
-                              <img
-                                height="20px"
-                                alt=""
-                                width="20px"
-                                src="./images/eat_in.png"
-                              />
-                            )}
-                            {orderLists.orderType.toLowerCase() ===
-                              "take away" && (
-                              <img
-                                height="20px"
-                                width="20px"
-                                alt=""
-                                src="./images/take-out-2.png"
-                              />
-                            )}
-                            {orderLists.orderType === "Table Order" && (
-                              <img
-                                height="30px"
-                                width="30px"
-                                alt=""
-                                src="./images/tableOrder.png"
-                              />
-                            )}
-                            {orderLists.orderType.toLowerCase() ===
-                              "delivery" && (
-                              <DeliveryDiningIcon
-                                style={{ height: "30px", width: "30px" }}
-                              />
-                            )}
-                            {orderLists.orderType.toLowerCase() ===
-                              "pick up" && (
-                              <img
-                                height="30px"
-                                width="30px"
-                                alt=""
-                                src="./images/pickup.png"
-                              />
-                            )}
+                            Accept
+                          </Button>
+                          <Button variant="outlined" color="error">
+                            Reject
+                          </Button>
+                        </div>
+                      }
+                    </Td>
+                    <Td>00:00</Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </div>
+          <br />
+          <hr />
+          <br />
+          {!tabView ? (
+            <Table breakPoint={700} style={{ width: "100%" }}>
+              <Thead>
+                <Tr>
+                  <Th>#{t({ id: "token_table" })}</Th>
+                  <Th>{t({ id: "source" })}</Th>
+                  <Th>{t({ id: "ammount" })} (Inc Tax)</Th>
+                  <Th>{t({ id: "order_items" })}</Th>
+                  <Th></Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {filteredOrders.length ? (
+                  (isReversed
+                    ? filteredOrders.slice().reverse()
+                    : filteredOrders
+                  ).map((orderLists, index) => {
+                    let paidStaus = notifiData.filter(
+                      (nof) => orderLists.number === nof.token
+                    );
+                    let payStatus = paidStaus.length ? true : false;
+                    console.log(orderLists);
+                    let tableCall = false;
+                    if (orderLists.orderSource === "Table Order") {
+                      const table =
+                        tableData &&
+                        tableData.filter(
+                          (tab) => tab.number == orderLists.number
+                        );
+                      console.log(tableData);
+                      //  table.isCallService ? document.getAnimations("point").style.display = "block":document.getAnimations("point").style.display = "none"
+                      console.log(table);
+                      tableCall = table
+                        ? table[0]
+                          ? table[0].isServiceCall
+                          : ""
+                        : "";
+                    }
+                    return (
+                      <Tr
+                        style={
+                          orderLists.isCanceled === true
+                            ? {
+                                backgroundColor: "#fbe3e3cc",
+                                borderBottom: "1px solid #f0eeee",
+                                margin: "5px",
+                              }
+                            : {
+                                borderBottom: "1px solid #f0eeee",
+                                margin: "5px",
+                              }
+                        }
+                      >
+                        <Td
+                          style={{
+                            fontSize: "25px",
+                            display: "flex",
+                            justifyContent: "space-around",
+                            alignItems: "center",
+                            color: "#4d4a4a",
+                          }}
+                        >
+                          {orderLists.orderType.toLowerCase() === "eat in" && (
+                            <img
+                              height="20px"
+                              alt=""
+                              width="20px"
+                              src="./images/eat_in.png"
+                            />
+                          )}
+                          {orderLists.orderType.toLowerCase() ===
+                            "take away" && (
+                            <img
+                              height="20px"
+                              width="20px"
+                              alt=""
+                              src="./images/take-out-2.png"
+                            />
+                          )}
+                          {orderLists.orderType === "Table Order" && (
+                            <img
+                              height="30px"
+                              width="30px"
+                              alt=""
+                              src="./images/tableOrder.png"
+                            />
+                          )}
+                          {orderLists.orderType.toLowerCase() ===
+                            "delivery" && (
+                            <DeliveryDiningIcon
+                              style={{ height: "30px", width: "30px" }}
+                            />
+                          )}
+                          {orderLists.orderType.toLowerCase() === "pick up" && (
+                            <img
+                              height="30px"
+                              width="30px"
+                              alt=""
+                              src="./images/pickup.png"
+                            />
+                          )}
 
-                            {orderLists.number}
-                            <br />
-                            {tableCall && (
-                              <span
-                                className={
-                                  orderLists.isDelivered ? "" : "shaking-icon"
-                                }
-                                style={{
-                                  display: "inline-block",
-                                  fontSize: "9px",
-                                  fontWeight: "bold",
-                                  left: "35px",
-                                }}
-                              >
-                                <NotificationsActiveIcon
-                                  sx={{ color: "red" }}
-                                  fontSize="small"
-                                />
-                              </span>
-                            )}
-                          </Td>
-                          <Td>
-                            <Chip
-                              label={orderLists.orderSource || "Self Order"}
-                              color={
-                                (orderLists.orderSource || "Self Order") ===
-                                "EPOS"
-                                  ? "info"
-                                  : (orderLists.orderSource || "Self Order") ===
-                                    "Self Order"
-                                  ? "warning"
-                                  : (orderLists.orderSource || "Self Order") ===
-                                    "Table Order"
-                                  ? "secondary"
-                                  : (orderLists.orderSource || "Self Order") ===
-                                    "Online Order"
-                                  ? "error"
-                                  : "default"
+                          {orderLists.number}
+                          <br />
+                          {tableCall && (
+                            <span
+                              className={
+                                orderLists.isDelivered ? "" : "shaking-icon"
                               }
                               style={{
-                                marginLeft: "10px",
-                                fontSize: "x-small",
+                                display: "inline-block",
+                                fontSize: "9px",
                                 fontWeight: "bold",
+                                left: "35px",
                               }}
-                            />
-                            {/* <Chip
+                            >
+                              <NotificationsActiveIcon
+                                sx={{ color: "red" }}
+                                fontSize="small"
+                              />
+                            </span>
+                          )}
+                        </Td>
+                        <Td>
+                          <Chip
+                            label={orderLists.orderSource || "Self Order"}
+                            color={
+                              (orderLists.orderSource || "Self Order") ===
+                              "EPOS"
+                                ? "info"
+                                : (orderLists.orderSource || "Self Order") ===
+                                  "Self Order"
+                                ? "warning"
+                                : (orderLists.orderSource || "Self Order") ===
+                                  "Table Order"
+                                ? "secondary"
+                                : (orderLists.orderSource || "Self Order") ===
+                                  "Online Order"
+                                ? "error"
+                                : "default"
+                            }
+                            style={{
+                              marginLeft: "10px",
+                              fontSize: "x-small",
+                              fontWeight: "bold",
+                            }}
+                          />
+                          {/* <Chip
                           label={orderLists.orderSource}
                           color={
                             orderLists.orderSource === "EPOS"
@@ -1185,112 +1376,132 @@ const OrderList = (props) => {
                             fontWeight: "bold",
                           }} 
                           /> */}
-                            <div style={{ fontSize: "12px" }}>
-                              {moment(
-                                orderLists.scheduleDate || orderLists.createdAt
-                              ).format("DD-MMM h:mm a")}
-                            </div>
-                          </Td>
+                          <div style={{ fontSize: "12px" }}>
+                            {moment(
+                              orderLists.scheduleDate || orderLists.createdAt
+                            ).format("DD-MMM h:mm a")}
+                          </div>
+                        </Td>
 
-                          <Td>
-                            {selectedCurrency}
-                            {orderLists.discountType
-                              ? orderLists.discountType === "discount" ||
-                                orderLists.discountType === "price"
-                                ? orderLists.totalPrice -
-                                  (orderLists.discountAmount || 0)
-                                : orderLists.totalPrice -
-                                  (orderLists.totalPrice *
-                                    orderLists.discountAmount) /
-                                    100
-                              : orderLists.totalPrice}
-                            {!orderLists.isPaid ? (
-                              <Chip
-                                label="PENDING"
-                                style={{
-                                  fontSize: "x-small",
-                                  fontWeight: "bold",
-                                  background: "#fdd564",
-                                  color: "#6f650e",
-                                }}
-                              />
-                            ) : (
-                              <Chip
-                                label="✔ PAID"
-                                color="success"
-                                style={{
-                                  fontSize: "x-small",
-                                  fontWeight: "bold",
-                                }}
-                              />
-                            )}
-                          </Td>
+                        <Td>
+                          {selectedCurrency}
+                          {(orderLists.discountType
+                            ? orderLists.discountType === "discount" ||
+                              orderLists.discountType === "price"
+                              ? orderLists.totalPrice -
+                                (orderLists.discountAmount || 0)
+                              : orderLists.totalPrice -
+                                (orderLists.totalPrice *
+                                  orderLists.discountAmount) /
+                                  100
+                            : orderLists.totalPrice
+                          ).toFixed(2)}
+                          {!orderLists.isPaid ? (
+                            <Chip
+                              label="PENDING"
+                              style={{
+                                fontSize: "x-small",
+                                fontWeight: "bold",
+                                background: "#fdd564",
+                                color: "#6f650e",
+                              }}
+                            />
+                          ) : (
+                            <Chip
+                              label="✔ PAID"
+                              color="success"
+                              style={{
+                                fontSize: "x-small",
+                                fontWeight: "bold",
+                              }}
+                            />
+                          )}
+                        </Td>
 
-                          <Td style={{ fontSize: "12px" }}>
-                            <button
-                              className="btn-icon"
-                              onClick={() =>
-                                orderListHandler(
-                                  orderLists.id,
-                                  orderLists.customerId,
-                                  orderLists
-                                )
-                              }
-                            >
-                              <ReceiptLongOutlinedIcon />
-                            </button>
-                          </Td>
+                        <Td style={{ fontSize: "12px" }}>
+                          <button
+                            className="btn-icon"
+                            onClick={() =>
+                              orderListHandler(
+                                orderLists.id,
+                                orderLists.customerId,
+                                orderLists
+                              )
+                            }
+                          >
+                            <ReceiptLongOutlinedIcon />
+                          </button>
+                        </Td>
 
-                          <Td>
-                            <div className="actions-container">
-                              {orderLists.isPaid ||
-                              orderLists.orderType === "Table Order" ? (
-                                orderLists.isDelivered ? (
-                                  <Chip
-                                    label="✔ DELIVERED"
-                                    color="success"
-                                    style={{
-                                      marginLeft: "10px",
-                                      fontSize: "x-small",
-                                      fontWeight: "bold",
-                                      cursor: "pointer",
-                                    }}
-                                  />
-                                ) : orderLists.isReady &&
-                                  !orderLists.isCanceled ? (
-                                  <Button
-                                    variant="contained"
-                                    color="info"
-                                    onClick={() =>
-                                      handleOrderStatus(
-                                        "deliver",
-                                        orderLists.id,
-                                        orderLists.isPaid,
-                                        orderLists
-                                      )
-                                    }
-                                  >
-                                    {t({ id: "deliver" })}
-                                  </Button>
-                                ) : orderLists.isCanceled ? (
-                                  ""
-                                ) : (
-                                  <Button
-                                    variant="contained"
-                                    color="success"
-                                    onClick={() =>
-                                      handleOrderStatus(
-                                        "ready",
-                                        orderLists.id,
-                                        orderLists.isPaid,
-                                        orderLists
-                                      )
-                                    }
-                                  >
-                                    {t({ id: "ready" })}
-                                  </Button>
-                                )
+                        <Td>
+                          <div className="actions-container">
+                            {orderLists.isPaid ||
+                            orderLists.orderType === "Table Order" ? (
+                              orderLists.isDelivered ? (
+                                <Chip
+                                  label="✔ DELIVERED"
+                                  color="success"
+                                  style={{
+                                    marginLeft: "10px",
+                                    fontSize: "x-small",
+                                    fontWeight: "bold",
+                                    cursor: "pointer",
+                                  }}
+                                />
+                              ) : orderLists.isReady &&
+                                !orderLists.isCanceled ? (
+                                <Button
+                                  variant="contained"
+                                  color="info"
+                                  onClick={() =>
+                                    handleOrderStatus(
+                                      "deliver",
+                                      orderLists.id,
+                                      orderLists.isPaid,
+                                      orderLists
+                                    )
+                                  }
+                                >
+                                  {t({ id: "deliver" })}
+                                </Button>
+                              ) : orderLists.isCanceled ? (
+                                ""
                               ) : (
+                                <Button
+                                  variant="contained"
+                                  color="success"
+                                  onClick={() =>
+                                    handleOrderStatus(
+                                      "ready",
+                                      orderLists.id,
+                                      orderLists.isPaid,
+                                      orderLists
+                                    )
+                                  }
+                                >
+                                  {t({ id: "ready" })}
+                                </Button>
+                              )
+                            ) : (
+                              <Button
+                                variant="contained"
+                                color="error"
+                                onClick={(e) => {
+                                  setPayModeSelectDialog(true);
+                                  setSelectedOrder(orderLists);
+                                }}
+                                style={{
+                                  display: orderLists.isPaid ? "none" : "block",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {t({ id: "pay_now" })}
+                              </Button>
+                            )}
+
+                            {orderLists.orderType === "Table Order" ? (
+                              orderLists.discountType === "coupon" ||
+                              orderLists.discountType === "discount" ? (
                                 <Button
                                   variant="contained"
                                   color="error"
@@ -1305,136 +1516,113 @@ const OrderList = (props) => {
                                     cursor: "pointer",
                                   }}
                                 >
-                                  {t({ id: "pay_now" })}
+                                  Pay
                                 </Button>
-                              )}
-
-                              {orderLists.orderType === "Table Order" ? (
-                                orderLists.discountType === "coupon" ||
-                                orderLists.discountType === "discount" ? (
-                                  <Button
-                                    variant="contained"
-                                    color="error"
-                                    onClick={(e) => {
-                                      setPayModeSelectDialog(true);
-                                      setSelectedOrder(orderLists);
-                                    }}
-                                    style={{
-                                      display: orderLists.isPaid
-                                        ? "none"
-                                        : "block",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    Pay
-                                  </Button>
-                                ) : orderLists.isDelivered === true ? (
-                                  <Button
-                                    color="info"
-                                    variant="contained"
-                                    onClick={() => handleOpenPopup(orderLists)}
-                                  >
-                                    Bill
-                                  </Button>
-                                ) : (
-                                  " "
-                                )
+                              ) : orderLists.isDelivered === true ? (
+                                <Button
+                                  color="info"
+                                  variant="contained"
+                                  onClick={() => handleOpenPopup(orderLists)}
+                                >
+                                  Bill
+                                </Button>
                               ) : (
-                                <PrintIcon
-                                  color="success"
-                                  onClick={() => handlecheckprint(orderLists)}
-                                  style={{
-                                    marginLeft: "45px",
-                                    cursor: "pointer",
-                                  }}
-                                />
-                              )}
-
-                              {orderLists.orderType === "Table Order" &&
-                              (<PrintIcon
+                                " "
+                              )
+                            ) : (
+                              <PrintIcon
                                 color="success"
                                 onClick={() => handlecheckprint(orderLists)}
                                 style={{
                                   marginLeft: "45px",
                                   cursor: "pointer",
                                 }}
-                              />)
-                              }
-                              
+                              />
+                            )}
 
-                              {orderLists.isCanceled && (
-                                  <Chip
-                                    label="CANCELLED"
-                                    color="error"
-                                    style={{
-                                      marginLeft: "10px",
-                                      fontSize: "x-small",
-                                      fontWeight: "bold",
-                                      cursor: "pointer",
-                                    }}
-                                  />
-                                )}
-                              {!orderLists.isDelivered && !orderLists.isCanceled&&(
-                                  <Button
-                                    variant="text"
-                                    style={{ marginLeft: "15px" }}
-                                    color="error"
-                                    onClick={() =>
-                                      handleCancel(
-                                        orderLists.id,
-                                        orderLists.isCanceled,
-                                        orderLists.tableId
-                                      )
-                                    }
-                                  >
-                                    <CancelIcon />
-                                  </Button>
-                                )
-                              }
-                            </div>
-                          </Td>
-                        </Tr>
-                      );
-                    })
-                  ) : (
-                    <div className="">
-                      <h5 className="">No data available for this date</h5>
-                    </div>
-                  )}
-                </Tbody>
-              </Table>
-            ) : (
-              <div>
-                <h3 align="center">{t({ id: "table_details" })}</h3>
-                <div className="mainTab">
-                  {tableData &&
-                    tableData.map((tab) => {
-                      return (
-                        <div
-                          className="tab_1 col-lg-2 clo-md-2 col-sm-3"
-                          style={{
-                            backgroundColor: tab.isAvailable
-                              ? "#12cf12"
-                              : "orange",
-                          }}
-                        >
-                          <h2>#{tab.number}</h2>
-                          <h6>
-                            {t({ id: "capacity" })}:{tab.capacity}
-                          </h6>
-                          {tab.isAvailable === false ? (
-                            <h6>Serving By:DL 24</h6>
-                          ) : (
-                            ""
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
+                            {orderLists.orderType === "Table Order" && (
+                              <PrintIcon
+                                color="success"
+                                onClick={() => handlecheckprint(orderLists)}
+                                style={{
+                                  marginLeft: "45px",
+                                  cursor: "pointer",
+                                }}
+                              />
+                            )}
+
+                            {orderLists.isCanceled && (
+                              <Chip
+                                label="CANCELLED"
+                                color="error"
+                                style={{
+                                  marginLeft: "10px",
+                                  fontSize: "x-small",
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                }}
+                              />
+                            )}
+                            {!orderLists.isDelivered &&
+                              !orderLists.isCanceled && (
+                                <Button
+                                  variant="text"
+                                  style={{ marginLeft: "15px" }}
+                                  color="error"
+                                  onClick={() =>
+                                    handleCancel(
+                                      orderLists.id,
+                                      orderLists.isCanceled,
+                                      orderLists.tableId
+                                    )
+                                  }
+                                >
+                                  <CancelIcon />
+                                </Button>
+                              )}
+                          </div>
+                        </Td>
+                      </Tr>
+                    );
+                  })
+                ) : (
+                  <div className="">
+                    <h5 className="">No data available for this date</h5>
+                  </div>
+                )}
+              </Tbody>
+            </Table>
+          ) : (
+            <div>
+              <h3 align="center">{t({ id: "table_details" })}</h3>
+              <div className="mainTab">
+                {tableData &&
+                  tableData.map((tab) => {
+                    return (
+                      <div
+                        className="tab_1 col-lg-2 clo-md-2 col-sm-3"
+                        style={{
+                          backgroundColor: tab.isAvailable
+                            ? "#12cf12"
+                            : "orange",
+                        }}
+                      >
+                        <h2>#{tab.number}</h2>
+                        <h6>
+                          {t({ id: "capacity" })}:{tab.capacity}
+                        </h6>
+                        {tab.isAvailable === false ? (
+                          <h6>Serving By:DL 24</h6>
+                        ) : (
+                          ""
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bill Popup */}
