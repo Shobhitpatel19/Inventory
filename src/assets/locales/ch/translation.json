@@ -79,5 +79,6 @@
                "split_pay_by":"Split bezahlt von",
                "paid_by_cash":"Mit Bargeld bezahlt",
                "bill_amount":"Gesamtbetrag",
-               "cash_change": "Bargeldwechsel"
+               "cash_change": "Bargeldwechsel",
+                "kitchen":"Kitchen"
 }

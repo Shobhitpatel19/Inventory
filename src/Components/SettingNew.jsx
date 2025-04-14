@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Box, Button, ButtonGroup , Dialog , DialogTitle } from "@mui/material";
+import { Box, Button, ButtonGroup, Dialog, DialogTitle } from "@mui/material";
 import axios from "axios";
 import configs from "../Constants";
 import EditableField from "../Components/sub_comp/EditableField";
@@ -8,6 +8,7 @@ import { TextField } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AddIcon from "@mui/icons-material/Add";
+import Chip from "@mui/material/Chip";
 import {
   Edit as EditIcon,
   Check as CheckIcon,
@@ -18,7 +19,7 @@ export default function App() {
   const [tabValue, setTabValue] = useState(0);
   const [userInfo, setUserInfo] = useState(null);
   const [providerDetail, setProviderDetail] = useState([]);
-  const [latitude, setLatitude] = useState(""); // For latitude
+  const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
 
   const [dialogOPen, setDialogOPen] = useState(false);
@@ -30,7 +31,6 @@ export default function App() {
   const [isTest, setIsTest] = useState("");
   const [region, setRegion] = useState("");
   const [open, setOpen] = useState(false);
-
 
   const baseURL = configs.baseURL;
 
@@ -55,6 +55,8 @@ export default function App() {
         console.error("Error fetching user info:", error);
       });
   }, [userId]);
+
+  console.log("userInfo", userInfo);
 
   // Handle field update
   const handleFieldUpdate = (key, newValue) => {
@@ -86,7 +88,7 @@ export default function App() {
         logoImg: userInfo.logoImg,
         id: userInfo.id,
         onlyTakeAway: userInfo.onlyTakeAway,
-        isLeftAlign: userInfo.MenuLeft,
+        isLeftAlign: userInfo.isLeftAlign,
         filterVegNonVeg: userInfo.filterVegNonVeg,
         themeColor: userInfo.themeColor,
         themeTxtColor: userInfo.themeTxtColor,
@@ -98,6 +100,9 @@ export default function App() {
           type: "Point",
           coordinates: [longitude, latitude],
         },
+        openTime: userInfo.openTime,
+        closeTime: userInfo.closeTime,
+        taxPerc: userInfo.taxPerc,
       });
 
       console.log("Settings updated successfully!");
@@ -108,71 +113,71 @@ export default function App() {
   };
 
   const handleClover = () => {
-      let merchantDetails = {
-        providerTitle: providerTitle,
-        providerCode: providerCode,
-        apiKey: apiKey,
-        isTestAccount: isTest,
-        region: region,
-      };
-  
-      if (clovId) {
-        let data = document.getElementById("country").value;
-        console.log(data);
-  
-        axios
-          .put(baseURL + "/api/thp-source/" + clovId, {
-            userId: userId,
-            provider: provider,
-            merchantDetails: JSON.stringify(merchantDetails),
-          })
-          .then((res) => {
-            console.log(res);
-            setApiKey("");
-  
-            setProviderCode("");
-            setProviderTitle("");
-            setProvider("");
-            setClovId("");
-            setIsTest("");
-            setRegion("");
-  
-            axios
-              .get(baseURL + "/api/thp-source?userId=" + userId)
-              .then((res) => {
-                console.log(res.data);
-                setProviderDetail(res.data);
-                console.log("hello");
-                setOpen(false);
-              });
-          });
-      } else if (providerCode && providerTitle) {
-        axios
-          .post(baseURL + "/api/thp-source", {
-            userId: userId,
-            provider: provider,
-            merchantDetails: JSON.stringify(merchantDetails),
-          })
-          .then((res) => {
-            console.log(res);
-            setApiKey("");
-            setProviderCode("");
-            setProviderTitle("");
-            setProvider("");
-            setIsTest("");
-            setRegion("");
-  
-            axios
-              .get(baseURL + "/api/thp-source?userId=" + userId)
-              .then((res) => {
-                console.log(res.data);
-                setProviderDetail(res.data);
-                setOpen(false);
-              });
-          });
-      } else {
-        console.log("errr");
-      }
+    let merchantDetails = {
+      providerTitle: providerTitle,
+      providerCode: providerCode,
+      apiKey: apiKey,
+      isTestAccount: isTest,
+      region: region,
+    };
+
+    if (clovId) {
+      let data = document.getElementById("country").value;
+      console.log(data);
+
+      axios
+        .put(baseURL + "/api/thp-source/" + clovId, {
+          userId: userId,
+          provider: provider,
+          merchantDetails: JSON.stringify(merchantDetails),
+        })
+        .then((res) => {
+          console.log(res);
+          setApiKey("");
+
+          setProviderCode("");
+          setProviderTitle("");
+          setProvider("");
+          setClovId("");
+          setIsTest("");
+          setRegion("");
+
+          axios
+            .get(baseURL + "/api/thp-source?userId=" + userId)
+            .then((res) => {
+              console.log(res.data);
+              setProviderDetail(res.data);
+              console.log("hello");
+              setOpen(false);
+            });
+        });
+    } else if (providerCode && providerTitle) {
+      axios
+        .post(baseURL + "/api/thp-source", {
+          userId: userId,
+          provider: provider,
+          merchantDetails: JSON.stringify(merchantDetails),
+        })
+        .then((res) => {
+          console.log(res);
+          setApiKey("");
+          setProviderCode("");
+          setProviderTitle("");
+          setProvider("");
+          setIsTest("");
+          setRegion("");
+
+          axios
+            .get(baseURL + "/api/thp-source?userId=" + userId)
+            .then((res) => {
+              console.log(res.data);
+              setProviderDetail(res.data);
+              setOpen(false);
+            });
+        });
+    } else {
+      console.log("errr");
+    }
   };
 
   const handleEdit = (cloverId) => {
@@ -198,9 +203,9 @@ export default function App() {
   }
 
   return (
-    <div >
+    <div>
       <div className="header">
-        <h4 align="center">Reports</h4>
+        <h4 align="center">Settings</h4>
         <Box
           sx={{
             width: "60%",
@@ -328,6 +333,7 @@ export default function App() {
             </div>
           </div>
 
+          {/* Common Info */}
           <div
             style={{
               padding: "16px",
@@ -346,6 +352,7 @@ export default function App() {
             >
               Common Settings
             </h2>
+
             <div
               style={{
                 display: "grid",
@@ -353,6 +360,20 @@ export default function App() {
                 gap: "16px",
               }}
             >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <label style={{ fontWeight: "bold", width: "40%" }}>
+                  Show Order Panel (in Left)
+                </label>
+                <input
+                  type="checkbox"
+                  checked={!!userInfo.isLeftAlign}
+                  onChange={() => handleCheckboxChange("isLeftAlign")}
+                  style={{ width: "20px", height: "20px" }}
+                />
+              </div>
+
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
@@ -381,48 +402,73 @@ export default function App() {
                 />
               </div>
 
-              {/* <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <label style={{ fontWeight: "bold", width: "40%" }}>
-                  Payment Gateway Enabled?
-                </label>
-                <input
-                  type="checkbox"
-                  checked={!!userInfo.activePaymentGateway}
-                  onChange={() => handleCheckboxChange("activePaymentGateway")}
-                  style={{ width: "20px", height: "20px" }}
-                />
-              </div> */}
-
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
                 <label style={{ fontWeight: "bold", width: "40%" }}>
-                  Tax for Dine-in
+                  Customize In Wizard
                 </label>
                 <input
                   type="checkbox"
-                  checked={!!userInfo.dineinTax}
+                  checked={!!userInfo.customizeInWizard}
                   onChange={() => handleCheckboxChange("dineinTax")}
                   style={{ width: "20px", height: "20px" }}
                 />
               </div>
+            </div>
 
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <label style={{ fontWeight: "bold", width: "40%" }}>
-                  Tax for Take Away
-                </label>
-                <input
-                  type="checkbox"
-                  checked={!!userInfo.takeAwayTax}
-                  onChange={() => handleCheckboxChange("takeAwayTax")}
-                  style={{ width: "20px", height: "20px" }}
-                />
+            <div
+              className="row"
+              style={{ marginBottom: "20px", marginTop: "20px" }}
+            >
+              <div className="col" style={{ paddingRight: "10px" }}>
+                <Box
+                  sx={{
+                    width: 400,
+                    maxWidth: "100%",
+                  }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <TextField
+                    fullWidth
+                    label="Dine-In Tax(%) "
+                    type="number"
+                    value={userInfo.dineinTax}
+                    onChange={(e) =>
+                      setUserInfo((prev) => ({
+                        ...prev,
+                        dineinTax: e.target.value,
+                      }))
+                    }
+                  />
+                </Box>
+              </div>
+              <div className="col" style={{ paddingLeft: "10px" }}>
+                <Box
+                  sx={{
+                    width: 400,
+                    maxWidth: "100%",
+                  }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <TextField
+                    fullWidth
+                    label="Default Tax %"
+                    type="number"
+                    value={userInfo.takeAwayTax}
+                    onChange={(e) =>
+                      setUserInfo((prev) => ({
+                        ...prev,
+                        takeAwayTax: e.target.value,
+                      }))
+                    }
+                  />
+                </Box>
               </div>
             </div>
+
             <div
               className="row"
               style={{ marginBottom: "20px", marginTop: "20px" }}
@@ -467,10 +513,62 @@ export default function App() {
               </div>
             </div>
 
+            <div
+              className="row"
+              style={{ marginBottom: "20px", marginTop: "20px" }}
+            >
+              <div className="col" style={{ paddingRight: "10px" }}>
+                <Box
+                  sx={{
+                    width: 400,
+                    maxWidth: "100%",
+                  }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <TextField
+                    fullWidth
+                    label="Open Time"
+                    type="number"
+                    value={userInfo.openTime}
+                    onChange={(e) =>
+                      setUserInfo((prev) => ({
+                        ...prev,
+                        openTime: e.target.value,
+                      }))
+                    }
+                  />
+                </Box>
+              </div>
+              <div className="col" style={{ paddingLeft: "10px" }}>
+                <Box
+                  sx={{
+                    width: 400,
+                    maxWidth: "100%",
+                  }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <TextField
+                    fullWidth
+                    label="Close Time"
+                    type="number"
+                    value={userInfo.closeTime}
+                    onChange={(e) =>
+                      setUserInfo((prev) => ({
+                        ...prev,
+                        closeTime: e.target.value,
+                      }))
+                    }
+                  />
+                </Box>
+              </div>
+            </div>
+
             {/* Save Button */}
-            <div style={{ marginTop: "16px" }}>
+            <div style={{ marginTop: "16px",float:"right" }}>
               <Button
-                variant="contained"
+                variant="outlined"
                 color="primary"
                 onClick={handleSaveSettings}
               >
@@ -478,11 +576,104 @@ export default function App() {
               </Button>
             </div>
           </div>
+
+          {/* POS  Settings */}
+          <div
+            style={{
+              padding: "16px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
+              background: "white",
+            }}
+          >
+
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: "bold",
+                marginBottom: "16px",
+              }}
+            >
+              POS Settings
+            </h2>
+              coming soon...
+          </div>
+
+          {/* SOK  Settings */}
+          <div
+            style={{
+              padding: "16px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
+              background: "white",
+            }}
+          >
+
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: "bold",
+                marginBottom: "16px",
+              }}
+            >
+              SOK Settings
+            </h2>
+            coming soon...
+          </div>
+
+          {/* TTO  Settings */}
+          <div
+            style={{
+              padding: "16px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
+              background: "white",
+            }}
+          >
+
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: "bold",
+                marginBottom: "16px",
+              }}
+            >
+              TTO Settings
+            </h2>
+            coming soon...
+          </div>
+
+          {/* Online Order  Settings */}
+          <div
+            style={{
+              padding: "16px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
+              background: "white",
+            }}
+          >
+
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: "bold",
+                marginBottom: "16px",
+              }}
+            >
+              Online Order Settings
+            </h2>
+            coming soon...
+          </div>
+
         </div>
       )}
 
       {tabValue === 1 && (
-        <div style={{padding: "20px"}}>
+        <div style={{ padding: "20px" }}>
           <div style={{ display: "flex", justifyContent: "end" }}>
             <button className="add_btn" onClick={() => setDialogOPen(true)}>
               <AddIcon /> Add New

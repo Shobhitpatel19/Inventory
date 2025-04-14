@@ -49,6 +49,16 @@ import { useIntl } from "react-intl";
 function Nav(props) {
   const [open1, setOpen1] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [franchiseAnchorEl, setFranchiseAnchorEl] = React.useState(null);
+  const [selectedFranchise, setSelectedFranchise] = React.useState("Main Branch");
+  const [franchises, setFranchises] = React.useState([
+    { id: 1, name: "Main Branch" },
+    { id: 2, name: "Downtown Location" },
+    { id: 3, name: "Uptown Location" },
+    { id: 4, name: "West Side Branch" },
+    { id: 5, name: "East Side Branch" }
+  ]);
+  
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
     : "";
@@ -130,6 +140,8 @@ function Nav(props) {
   };
 
   const open = Boolean(anchorEl);
+  const franchiseMenuOpen = Boolean(franchiseAnchorEl);
+  
   const handleClick = () => {
     setAnchorEl(true);
   };
@@ -139,6 +151,19 @@ function Nav(props) {
   };
   const handleClose = () => {
     setAnchorEl(false);
+  };
+
+  const handleFranchiseClick = (event) => {
+    setFranchiseAnchorEl(event.currentTarget);
+  };
+
+  const handleFranchiseClose = () => {
+    setFranchiseAnchorEl(null);
+  };
+
+  const handleFranchiseSelect = (franchise) => {
+    setSelectedFranchise(franchise.name);
+    handleFranchiseClose();
   };
 
   let cmsUrl = `${configs.cmsUrl}?token=${sessionStorage.getItem("token")}`;
@@ -325,7 +350,7 @@ const handleDashboard = () => {
           onClick={handleClosePopup}
         >
           <MicrowaveIcon sx={{ fontSize: "50px", cursor: "pointer" }} />
-          <label>{t({ id: "Kitchen" })}</label>
+          <label>{t({ id: "kitchen" })}</label>
         </NavLink>
 
         <NavLink
@@ -450,11 +475,42 @@ const handleDashboard = () => {
         <p>{"Scan with Mobile Camera"}</p>
         <p>{"[Gogle LENS, Scanner etc]"}</p>
       </div>
-
+          {/*  */}
       <span className="nav-links">
-        {/* <NavLink exact to="/dashboard" className='container'>Dashboard</NavLink>
-      <NavLink exact to={catPath} className='container'>Categories</NavLink>
-      <NavLink to={productPath}  className='container'>Products</NavLink> */}
+        {userData && userData.role === "FRANCHISE-ADMIN" && (
+          <div className="franchise-dropdown">
+            <Button 
+              className="franchise-selector"
+              onClick={handleFranchiseClick}
+              aria-controls={franchiseMenuOpen ? "franchise-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={franchiseMenuOpen ? "true" : undefined}
+              endIcon={<KeyboardArrowDownIcon />}
+            >
+              {selectedFranchise}
+            </Button>
+            <Menu
+              id="franchise-menu"
+              anchorEl={franchiseAnchorEl}
+              open={franchiseMenuOpen}
+              onClose={handleFranchiseClose }
+              MenuListProps={{
+                "aria-labelledby": "franchise-selector",
+              }}
+            >
+              {franchises.map((franchise) => (
+                <MenuItem 
+                  key={franchise.id} 
+                  onClick={() => handleFranchiseSelect(franchise)}
+                  selected={selectedFranchise === franchise.name}
+                >
+                  {franchise.name}
+                </MenuItem>
+              ))}
+            </Menu>
+          </div>
+        )}
+        
         <NavLink to={orderListPath} className="cont">
         {t({ id: "orders" })}
         </NavLink>

@@ -17,10 +17,10 @@ import Gallery from "./Gallery";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import CloseIcon from "@mui/icons-material/Close";
-import List from "@mui/material/List"; // Import List
-import ListItem from "@mui/material/ListItem"; // Import ListItem
-import Typography from "@mui/material/Typography"; // Import Typography
-import DeleteDiaologue from "./Delete";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem"; 
+import Typography from "@mui/material/Typography"; 
+import DeleteDiaologue from "./sub_comp/Delete";
 
 //Added by Mojahid
 import DragHandleIcon from "@mui/icons-material/DragHandle";

@@ -5,7 +5,7 @@ import axios from "axios";
 // import { json } from 'react-router-dom';
 import MerchantDetails from "./MerchantDetails";
 import configs, { getParameterByName } from "../Constants";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
 
 const MarchentInfo = () => {
   let baseURL = configs.baseURL;

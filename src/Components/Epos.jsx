@@ -220,12 +220,12 @@ const Epos = (props) => {
   let merchantData = sessionStorage.getItem("merchantData")
     ? JSON.parse(sessionStorage.getItem("merchantData"))
     : null;
-  // console.log(merchantData);
-  // merchantData.taxPerc = merchantData.taxPerc || merchantData.takeAwayTax;
-
-  // if (containedIndex == 1) {
-  //   merchantData.taxPerc = merchantData.dineinTax;
-  // }
+  
+   merchantData.taxPerc = userData.taxPerc || merchantData.takeAwayTax;
+   console.log(containedIndex);
+  if ((containedIndex == 1 || containedIndex == 3) && merchantData.dineinTax) {
+    merchantData.taxPerc = merchantData.dineinTax;
+  }
 
   const merchCode = merchantData ? merchantData.merchantCode : "";
   useEffect(() => {
@@ -257,12 +257,12 @@ const Epos = (props) => {
   // console.log(selectedCurrency);
 
   useEffect(() => {
-    if (!categories.length) {
-      axios.get(getCatByUser).then((response) => {
-        //console.log(response.data);
-        setCategories(response.data);
-      });
-    }
+    // if (!categories.length) {
+    //   axios.get(getCatByUser).then((response) => {
+    //     //console.log(response.data);
+    //     setCategories(response.data);
+    //   });
+    // }
 
     const query = ref(db, "products/" + merchCode);
     return onValue(query, (snapshot) => {
@@ -301,11 +301,6 @@ const Epos = (props) => {
     });
   };
 
-  useEffect(() => {
-    //fb listener for orders
-  }, []);
-
-  //console.log(categories)
   useEffect(() => {
     listProductAndCat(categories);
   }, [categories]);
@@ -590,20 +585,6 @@ const Epos = (props) => {
     setIsSearch(val ? true : false);
   };
 
-  // console.log("userToken", userToken);
-  useEffect(() => {
-    axios({
-      method: "get",
-      url: `${authApi}/user/customers?merchantCode=${merchCode}`,
-      headers: {
-        Authorization: `Bearer ${userToken}`,
-      },
-    }).then((res) => {
-      // console.log("customers", res.data);
-      setCustomerData(res.data);
-    });
-  }, []);
-
   const updateOrderDetails = (newOrderItem) => {
     // console.log(newOrderItem);
     // console.log(orderItem);
@@ -876,34 +857,25 @@ const Epos = (props) => {
     setIsCustomerFound(true);
   };
 
-  useEffect(() => {
-    let billData = {};
-    billData.userId = merchantData.merchantCode;
-    billData.appName = "EPOS";
-    billData.payType = "onetime";
-    billData.payStatus = "paid";
-    // billData.purchaseItems = JSON.stringify(order.orderItems);
-
-    axios.post(`${configs.payUrl}/api/new-order`, billData).then((res) => {
-      // console.log(res.data);
-      // console.log(res.data.invoiceData._id)
-      setInvoiceNo(res.data.invoiceData.invoicePath);
-      setInvoiceId(res.data.invoiceData._id);
-    });
-  }, []);
-
   // console.log("invoiceNo", invoiceNo);
-  let orderData = {
-    orderId: orderDet ? orderDet.id : "",
-    merchantCode: merchCode ? merchCode : "",
-    currency: currency.length && currency[0].abbreviation,
-    restaurant: merchantData ? merchantData.firstName : "",
-    address:
-      userData || merchantData ? merchantData.address || userData.address : "",
-    cgst: merchantData.taxPerc,
-    taxPerc: merchantData.taxPerc,
-    invoice_no: invoiceNo,
-  };
+  
+  const getOrderPrintDetails = () =>{
+    orderDet = JSON.parse(localStorage.getItem("newOrder"));
+    let orderData = {
+        orderId: orderDet ? orderDet.id : "",
+        merchantCode: merchCode ? merchCode : "",
+        currency: currency.length && currency[0].abbreviation,
+        restaurant: merchantData ? merchantData.firstName : "",
+        address:
+          userData || merchantData ? merchantData.address || userData.address : "",
+        cgst: merchantData.taxPerc,
+        taxPerc: merchantData.taxPerc,
+        invoice_no: invoiceNo,
+      };
+
+      console.log(orderData);
+      return orderData;
+  }
 
   function summaryPath1(orderDetails) {
     // console.log(orderDetails);
@@ -922,146 +894,32 @@ const Epos = (props) => {
     }
   }
 
-  // const createOrder = (e, isOrder, isSaveOrder) => {
-  //   if (!order) return;
-  //   if (containedIndex == 1) {
-  //     console.log(containedIndex);
-  //     let tabId = localStorage.getItem("tableId");
-  //     order.orderType = "Table Order";
-  //     order.number = selectedTable;
-  //     order.customerId = customerID;
-  //     // order.isPaid = isSaveOrder ? false : true;
-  //     order.isPaid = false;
-  //     order.isDelivered = order.isPaid;
-  //     order.tableId = tabId;
-  //     order.invoiceId = invoiceId;
-  //     const tabupdate = tableData.filter((tab) => tab.number === selectedTable);
-  //     console.log(tabupdate);
-  //     if (tabupdate.length > 0) {
-  //       tabupdate[0].isAvailable = false;
-  //     }
-  //     if (tabupdate.length > 0 && !isSaveOrder) {
-  //       tabupdate[0].isAvailable = true;
-  //     }
-  //     if (tabupdate.length > 0) {
-  //       axios
-  //         .put(
-  //           `${baseURL}/api/tables/${tabupdate[0].id}?merchantCode=${
-  //             merchantData ? merchantData.merchantCode : " "
-  //           }`,
-  //           tabupdate[0]
-  //         )
-  //         .then((res) => {
-  //           console.log(res.data);
-  //         });
-  //       setMoblileNo("");
-  //       setSelectedTable("");
-  //     }
-  //   } else if (containedIndex === 2) {
-  //     order.orderType = "Delivery";
-  //   } else if (containedIndex === 0) {
-  //     order.orderType = "Take Away";
-  //     order.isPaid = true;
-  //   } else if (containedIndex === 3) {
-  //     order.orderType = "Eat In";
-  //     order.isPaid = true;
-  //   }
-  //   order.orderItems = order.orderItems.map((it) => {
-  //     console.log(it.sub_pro);
-  //     let item = {
-  //       _id: it._id,
-  //       quantity: it.quantity,
+  const getNewInvoice = (orderItms) => {
+    return new Promise((resolve, reject) => {
+        try {
+           let billData = {};
+          billData.userId = merchantData.merchantCode;
+          billData.appName = "EPOS";
+          billData.payType = "onetime";
+          billData.payStatus = "paid";
+          billData.purchaseItems = JSON.stringify(orderItms);
 
-  //       price:
-  //         it.price +
-  //         (it.sub_pro && it.sub_pro.addons
-  //           ? it.sub_pro.addons.reduce((acc, val) => acc + val.price, 0)
-  //           : 0),
-  //       name: it.name,
-  //       sub_pro: JSON.stringify(it.sub_pro),
-  //     };
-  //     if (order.isDelivered) {
-  //       item.status = "delivered";
-  //     }
-  //     return item;
-  //   });
-  //   console.log(order);
-  //   order.invoiceId = invoiceId;
-  //   console.log(invoiceId);
-  //   console.log("for checking id",order);
+          axios
+            .post(`${configs.payUrl}/api/new-order`, billData)
+            .then((res) => {
+              setInvoiceNo(res.data.invoiceData.invoicePath);
+              setInvoiceId(res.data.invoiceData._id);
+              console.log('got')
+              resolve(res.data.invoiceData); 
+            });
+         
+        } catch (err) {
+          reject(err); 
+        }
+      })
+  }
 
-  //   console.log(order.totalPrice);
-  //   if (ordId) {
-  //     console.log(ordId);
-  //     console.log(order.totalPrice);
-  //     const updateOrder = async () => {
-  //       try {
-  //         await axios.put(
-  //           `${baseURL}/api/orders/${ordId}?userId=${
-  //             merchantData ? merchantData.merchantCode : " "
-  //           }`,
-  //           order
-  //         );
-  //         console.log("Order updated successfully.");
-  //       } catch (error) {
-  //         console.error("Error updating order:", error);
-  //       }
-  //     };
-
-  //     updateOrder();
-  //   } else {
-  //     console.log(order);
-  //     order.discountType = selectedDiscountMethod;
-  //     order.discountAmount = parseFloat(discValue);
-  //     axios
-  //       .post(
-  //         `${baseURL}/api/orders?userId=${
-  //           merchantData ? merchantData.merchantCode : " "
-  //         }`,
-  //         order
-  //       )
-  //       .then((res) => {
-  //         setOrdId(res.data.id);
-  //         console.log(res.data);
-  //         setSnackbarOpen(true);
-  //         setOrderItem();
-  //         setOrder();
-  //         const savedOrder = { ...res.data, localOrderId: res.data.id };
-  //         localStorage.setItem("newOrder", JSON.stringify(savedOrder));
-  //         if (order.orderType === "Table Order") {
-  //           let holdOrders = JSON.parse(localStorage.getItem("orderOnHold")) || [];
-  //           holdOrders.push(savedOrder);
-  //           localStorage.setItem("orderOnHold", JSON.stringify(holdOrders));
-  //         }
-  //         if (!isOrder) {
-  //           // if (!PrintInterface) {
-  //           if (!window.PrintInterface) {
-  //             //console.log(window.PrintInterface);
-  //             sessionStorage.setItem("billing", true);
-  //             summaryPath1(res.data);
-  //           } else {
-  //             setBillPrint(true);
-  //             setOrdId("");
-  //             localStorage.setItem("isPrintCall", "N");
-  //           }
-  //         }
-  //       });
-  //   }
-  //   console.log(isOrder);
-  //   setOrderItem();
-  //   setOrder();
-  //   setShowOrders(false);
-  //   setShowProducts(true);
-  //   setItemCount(0);
-  //   setOrdId();
-  //   // sessionStorage.setItem("billing", true);
-  //   // summaryPath1();
-  //   setPrice();
-  //   setPercent();
-  //   setDialogStep(3);
-  // };
-
-  const createOrder = (e, isOrder, isSaveOrder) => {
+  const createOrder = async (e, isOrder, isSaveOrder) => {
     if (!order) return;
 
     const currentOrdId = ordId || localStorage.getItem("ordId");
@@ -1111,11 +969,13 @@ const Epos = (props) => {
       sub_pro: JSON.stringify(it.sub_pro),
       ...(order.isDelivered && { status: "delivered" }),
     }));
-
-    order.invoiceId = invoiceId;
+    console.log('-----------------before invoice------------');
+    let invData= await getNewInvoice();
+    console.log('----------inv data--after--',invData);
+    console.log('done')
+    order.invoiceId = invData._id;
     order.discountType = selectedDiscountMethod;
     order.discountAmount = parseFloat(discValue);
-
     // 3️⃣ Update or create order
     const orderCallback = (resData, isUpdate = false) => {
       const newId = resData.id;
@@ -1197,6 +1057,9 @@ const Epos = (props) => {
         )
         .then((res) => {
           console.log("🆕 Order created:", res.data);
+            setOrdId(res.data.id);
+          setSnackbarOpen(true);
+          localStorage.setItem("newOrder", JSON.stringify(res.data));
           orderCallback(res.data, false);
         })
         .catch((err) => console.error("❌ Order creation failed:", err));
@@ -1345,35 +1208,7 @@ const Epos = (props) => {
     }
   }, [containedIndex === 1]);
 
-  // console.log("tables available", tableData);
-
-  // const handlepostResume = (customerId, tabNumber) => {
-  //   console.log("just checking",customerId, tabNumber);
-  //   handleClick(1);
-  //   // handleDineIn();
-  //   // handleTableDetail();
-  //   const orderResume = JSON.parse(localStorage.getItem("orderOnHold"));
-  //   const ppostResume = orderResume.find(
-  //     (ordRes) => ordRes.customerId === customerId
-  //   );
-  //   console.log(ppostResume);
-  //   const index = orderResume.findIndex(
-  //     (ordRes) => ordRes.customerId === customerId
-  //   );
-
-  //   if (ppostResume && index !== -1) {
-  //     setOrder(ppostResume);
-  //     setOrderItem(ppostResume.orderItems);
-  //     setOrdId(ppostResume.localOrderId); // ✅ Restore backend order ID here
-  //     setSelectedTable(tabNumber);
-
-  //     orderResume.splice(index, 1);
-  //     localStorage.setItem("orderOnHold", JSON.stringify(orderResume));
-  //     setHoldOpen(false);
-  //   }else {
-  //     console.error("Unable to find order for user:", userId);
-  //   }
-  // };
+ 
 
   const handlepostResume = (customerId, tabNumber) => {
     // console.log("just checking", customerId, tabNumber);
@@ -1716,7 +1551,7 @@ const Epos = (props) => {
                     handleClick(3);
                   }}
                 >
-                  {t({ id: "Eat In" })}
+                  {t({ id: "eat_in" })}
                 </Button>
                 <Button
                   variant={containedIndex === 0 ? "contained" : "outlined"}
@@ -1749,7 +1584,7 @@ const Epos = (props) => {
                     handleTableDetail();
                   }}
                 >
-                  {t({ id: "Table Order" })}
+                  {t({ id: "table_order" })}
                 </Button>
                 <Button
                   variant={containedIndex === 2 ? "contained" : "outlined"}
@@ -2447,7 +2282,7 @@ const Epos = (props) => {
         </style>
       </div>
       {billPrint && (
-        <BillPrint orderDetails={orderData} setBillPrint={setBillPrint} />
+        <BillPrint orderDetails={getOrderPrintDetails()} setBillPrint={setBillPrint} />
       )}
 
       <div

@@ -20,9 +20,11 @@ const p = new Promise((response, rej) => {
    axios.get(`https://menuapi.${domain.split(".")[1]}.${domain.split(".")[2]}/api/configs`)
   .then(res=>{
         console.log(res.data[0]);
-        let data = res&&res.data.length?JSON.stringify(res.data[0]):null;
-        localStorage.setItem("configs",data);
-        config = JSON.parse(data);
+        
+        let data = res&&res.data.length?res.data[0]:null;
+        data.baseURL= window.location.href.indexOf('localhost') > 0? 'https://inventory-service-gthb.onrender.com': data.baseURL;
+        localStorage.setItem("configs",JSON.stringify(data));
+        config = data;
         response(config);
     });
 }else{

@@ -12,14 +12,23 @@ import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
 import TextField from "@mui/material/TextField";
 import InputLabel from "@mui/material/InputLabel";
+import Paper from '@mui/material/Paper';
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
+import CloseIcon from "@mui/icons-material/Close";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
+import FileCopyIcon from '@mui/icons-material/FileCopy';
+import Divider from '@mui/material/Divider';
 import TablePagination from "@mui/material/TablePagination";
 import { Table, Thead, Tbody, Tr, Th, Td } from "react-responsive-list";
 import "react-responsive-list/assets/index.css";
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import MenuList from '@mui/material/MenuList';
 import Box from "@mui/material/Box";
 import { FormControlLabel } from "@mui/material";
+import InventoryProLink from  './sub_comp/InventoryProLink';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   Card,
   CardContent,
@@ -27,17 +36,21 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
+
 } from "@mui/material";
 import Gallery from "./Gallery";
 import Currencies from "../root/currency";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
+import Autocomplete from "@mui/material/Autocomplete";
+import AddLinkIcon from '@mui/icons-material/AddLink';
+
 function FoodDescription() {
   const [addonsGroup, setAddonsGroup] = useState([]);
   const [categories, setCategories] = useState([]);
   const [foodName, setFoodName] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
-  const [kitchenList, setKitchenList] = useState([]); // Stores the fetched kitchens
-  const [selectedKitchen, setSelectedKitchen] = useState(""); // Stores selected kitchen ID
+  const [kitchenList, setKitchenList] = useState([]); 
+  const [selectedKitchen, setSelectedKitchen] = useState(""); 
   const [price, setPrice] = useState(0);
   const [calorie, setCalorie] = useState(0);
   const [inStock, setInstock] = useState(true);
@@ -48,16 +61,13 @@ function FoodDescription() {
   const [categoryType, setCategoryType] = useState("");
   const [variety, setVariety] = useState(false);
   const [option, setOption] = useState([]);
-  // console.log(description);
   const [hideProductList, setHideProductList] = useState(false);
   const [selectProductId, setSelectProductId] = useState(0);
   const [hideEdit, setHideEdit] = useState(false);
-  // console.log(selectProductId);
   const [products, setProducts] = useState([]);
   const [catItem, setCatItem] = useState();
   const [catType, setCatType] = useState();
   const [proStack, setProStack] = useState();
-  // console.log(catItem);
   const [catId, setCatId] = useState(0);
   const [tags, setTags] = useState();
   const [cooktags, setCookTags] = useState([]);
@@ -74,126 +84,25 @@ function FoodDescription() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddon, setShowAddon] = useState(false);
   const [isPriceEditable, setEditablePrice] = useState(false);
-  const [invenOpen, setInvenOpen] = useState(false);
-  const [inventoryData, setInventoryData] = useState([]);
+  
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
-  // const [showRecipeDialog, setShowRecipeDialog] = useState(false);
-  const [recipeName, setRecipeName] = useState("");
-  const [recipeQuantity, setRecipeQuantity] = useState("");
-  const [recipeUnit, setRecipeUnit] = useState("kg");
-  const [recipeItems, setRecipeItems] = useState([]);
-  const [recipePlateType, setRecipePlateType] = useState("Full Plate");
-  const [showRecipeForm, setShowRecipeForm] = useState(false);
-    // Add a new state near your other recipe item states:
-  const [recipeQuantities, setRecipeQuantities] = useState({});
 
-  const handleRecipeItemChange = (index, field, value) => {
-    const updatedItems = [...recipeItems];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-    setRecipeItems(updatedItems);
-  };
+  const [showInventory, setShowInventory] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [openActions, setOpenActions] = React.useState(false);
 
-  // Helper to return the variety options based on the selected variety group
   const getVarietyOptions = () => {
     const selectedOpt = option.find((opt) => opt.id === select);
     return selectedOpt ? selectedOpt.items.split(",") : [];
   };
 
-  // Update the function to add an empty recipe item using the variety options if applicable
-    // Modify handleAddEmptyRecipeItem so that if variety is enabled it
-  // initializes quantity as an object with keys from getVarietyOptions()
-  const handleAddEmptyRecipeItem = () => {
-    if (variety && select) {
-      const variants = getVarietyOptions();
-      let defaultQuantities = {};
-      variants.forEach((variant) => {
-        defaultQuantities[variant] = "";
-      });
-      setRecipeItems([
-        ...recipeItems,
-        {
-          name: "",
-          quantity: defaultQuantities,
-          unit: "",
-          plateType: "Full Plate",
-        },
-      ]);
-    } else {
-      setRecipeItems([
-        ...recipeItems,
-        {
-          name: "",
-          quantity: "",
-          unit: "kg",
-          plateType: "Full Plate",
-        },
-      ]);
-    }
-  };
-
-  const handleDeleteRecipeItem = (index) => {
-    const updatedItems = [...recipeItems];
-    updatedItems.splice(index, 1);
-    setRecipeItems(updatedItems);
-  };
-
-    // Update handleSaveRecipeItem so that it uses recipeQuantities when variety is enabled
-  const handleSaveRecipeItem = () => {
-    if (recipeName && ((variety && select && Object.keys(recipeQuantities).length > 0) || (!variety && recipeQuantity))) {
-      const newItem = {
-        name: recipeName,
-        quantity: variety && select ? recipeQuantities : recipeQuantity,
-        unit: variety && select ? "" : recipeUnit,
-        plateType: recipePlateType,
-      };
-      setRecipeItems([...recipeItems, newItem]);
-
-      // Post product inventory payload
-      axios
-        .post(
-          baseURL +
-            "/api/product-inventories?merchantCode=" +
-            merchCode,
-          {
-            productId: selectProductId || "newProduct", // adjust as necessary
-            inventoryId: "inventoryIdDummy", // provide appropriate inventory id
-            quantity_per_variety: variety && select
-              ? JSON.stringify(recipeQuantities)
-              : recipeQuantity,
-            notes: "",
-          },
-          {
-            headers: {
-              Authorization:
-                "Bearer " + sessionStorage.getItem("token"),
-            },
-          }
-        )
-        .then((response) => {
-          console.log("Product inventory saved", response.data);
-        })
-        .catch((error) => {
-          console.error("Error saving product inventory:", error);
-        });
-
-      // reset the fields:
-      setRecipeName("");
-      setRecipeQuantity(""); // used for non-variety
-      setRecipeQuantities({});
-      setRecipeUnit("kg");
-      setRecipePlateType("Full Plate");
-    }
-  };
-
-  console.log(pricevalues);
   //add by sk
   const [selectedCategory, setSelectedCategory] = useState("");
-  console.log("selected category------------", selectedCategory);
   let baseURL = configs.baseURL;
+  // let baseURL = "https://inventory-service-gthb.onrender.com"
   let staticSer = configs.staticSer;
   const userToken = sessionStorage.getItem("token") || "";
-  console.log("token", userToken);
 
   const [userInfo, setUserInfo] = useState([]);
   const [showGallery, setShowGallery] = useState(false);
@@ -216,9 +125,8 @@ function FoodDescription() {
     fetchKitchens();
   }, []);
 
-  const handleKitchenChange = (event) => {
-    setSelectedKitchen(event.target.value); // Save selected kitchen ID
-  };
+  
+
   const handleGallery = () => {
     setSearchQuery(foodName);
     setShowGallery(true);
@@ -229,7 +137,6 @@ function FoodDescription() {
   };
   const handleSubmitImage = () => {
     if (selectedImage) {
-      console.log("Selected Image:", selectedImage);
       // Perform any other actions with the selected image
     } else {
       console.error("No image selected!");
@@ -253,25 +160,20 @@ function FoodDescription() {
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
     : "";
-  console.log(userData);
 
   let merchantData = sessionStorage.getItem("merchantData")
     ? JSON.parse(sessionStorage.getItem("merchantData"))
     : null;
   const merchCode = merchantData ? merchantData.merchantCode : "";
 
-  console.log(baseURL + "/api/products");
-  // let cur = merchantData ? merchantData.currency : "";
-  // let SelectCurrency = cur.toUpperCase() === "INR" ? "₹" : "$";
+
   let currency = Currencies.filter(
     (curen) => curen.abbreviation == merchantData.currency
   );
   let SelectCurrency = currency && currency[0] ? currency[0].symbol : "";
-  console.log(SelectCurrency);
   const selectedCurrency = (
     <span dangerouslySetInnerHTML={{ __html: SelectCurrency }} />
   );
-  console.log(selectedCurrency);
 
   const userId = userData ? userData.sub : " ";
   const getCatByUser = `${baseURL}/api/categories?merchantCode=${merchCode}`;
@@ -279,7 +181,6 @@ function FoodDescription() {
   const getVariety = baseURL + `/api/varieties?merchantCode=${merchCode}`;
 
   const handleCategoryType = (event) => {
-    console.log(event.target.value);
     setCategoryType(event.target.value);
   };
 
@@ -289,47 +190,36 @@ function FoodDescription() {
   const handleChangeVariety = (e) => {
     setVariety(e.target.checked);
     axios.get(getVariety).then((response) => {
-      console.log(response.data);
       setOption(response.data);
     });
   };
   useEffect(() => {
-    if (variety) {
       axios.get(getVariety).then((response) => {
-        console.log(response.data);
         setOption(response.data);
       });
-    }
-  }, [variety]);
+  }, []);
 
-  console.log(select);
   const handleSelectChange = (e) => {
     setSelect(e.target.value);
 
     let opt = option.filter((opt) => opt.id === select);
-    console.log(opt);
     let optmap = opt.map((optmap, index) => optmap.items.split(","));
-    console.log(optmap);
     optmap.map((items, index) => {
       let obj = {};
       items.forEach((item) => {
         obj[item] = "";
       });
-      console.log(obj);
     });
   };
 
   useEffect(() => {
     const opt = option.filter((opt) => opt.id === select);
-    console.log(opt);
     setOptMap(opt.map((optmap, index) => optmap.items.split(",")));
   }, [option, select]);
 
   const handleInputChange = (e) => {
     var formData = new FormData();
     let file = e.target.files[0];
-    console.log(e.target);
-    console.log(file);
     let fileName = "pro_" + new Date().getTime() + file.name;
 
     formData.append("uploader", file, fileName);
@@ -354,7 +244,6 @@ function FoodDescription() {
 
   const handleInStockChange = (event) => {
     setInstock(event.target.value);
-    console.log(event.target.value);
   };
 
   const handleTagsChange = (event) => {
@@ -365,35 +254,13 @@ function FoodDescription() {
     setDescription(event.target.value);
   };
 
-  // const handleAddOns=(event)=>{
-  //   setAddOn(event.target.value);
-  // }
   let catAddongrp;
   if (categories.length) {
     catAddongrp = [...categories, ...addonsGroup];
   }
-  console.log(catAddongrp);
 
   const handleClose = () => {
-    setHideProductList(false);
-    setHideEdit(false);
-    setInstock("");
-    setCalorie("");
-    setFoodName("");
-    setDescription("");
-    setPrice("");
-    setVariety(false);
-    setSelect("");
-    SetPriceValues("");
-    setInstock("");
-    setTags("");
-    setCookTags("");
-    setImageURL("https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg");
-    setAddOn([]);
-    setCatType("");
-    setCatItem("");
-    setProStack("");
-    setSelectProductId("");
+  resetVars();
   };
 
   const setTextValue = (value, item) => {
@@ -402,41 +269,11 @@ function FoodDescription() {
       [item]: value,
     }));
   };
-  console.log(pricevalues);
-  console.log(catType);
-  // Add this helper function somewhere before handleSubmit:
-  const saveRecipeInventories = (productId) => {
-    recipeItems.forEach(item => {
-        axios
-          .post(
-            baseURL + "/api/product-inventories?merchantCode=" + merchCode,
-            {
-              productId: productId, // use the saved product id
-              inventoryId: "inventoryIdDummy", // update as needed
-              quantity_per_variety: typeof item.quantity === "object"
-                ? JSON.stringify(item.quantity)
-                : item.quantity,
-              notes: ""
-            },
-            {
-              headers: {
-                Authorization: "Bearer " + sessionStorage.getItem("token")
-              }
-            }
-          )
-          .then((response) => {
-            console.log("Inventory saved for item", response.data);
-          })
-          .catch((error) => {
-            console.error("Error saving inventory for item", error);
-          });
-    });
-  };
+  
 
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!foodName || !catId) {
-        console.log("error");
         const catElement = document.getElementsByClassName("category")[0];
         if (catElement) {
             catElement.style.borderColor = "red";
@@ -488,11 +325,6 @@ function FoodDescription() {
           { headers: { Authorization: `Bearer ${userToken}` } }
         )
         .then((response) => {
-          console.log(response.data);
-          // Call the inventory API for each recipe item
-          if (recipeItems.length > 0) {
-            saveRecipeInventories(selectProductId);
-          }
           axios.get(`${getProductByUser}`).then((response) => {
             setProducts(response.data);
           });
@@ -532,19 +364,20 @@ function FoodDescription() {
           }
         )
         .then((response) => {
-          // Assuming response.data contains the new product id:
           const newProductId = response.data.id || "newProduct";
           axios.get(`${getProductByUser}`).then((response) => {
             setProducts(response.data);
           });
-          if (recipeItems.length > 0) {
-            saveRecipeInventories(newProductId);
-          }
+         
         });
       setHideProductList(false);
       setHideEdit(false);
     }
     // Reset states after submit
+    resetVars();
+  };
+
+  const resetVars = () => {
     setCookTags("");
     setSelectedImage();
     setTags("");
@@ -568,13 +401,13 @@ function FoodDescription() {
     setCatItem("");
     setSelectProductId("");
     setEditablePrice(false);
-  };
-  useEffect(() => {
-    console.log(categories);
+     setHideProductList(false);
+     setHideEdit(false);
+  }
 
+  useEffect(() => {
     if (!categories.length) {
       axios.get(getCatByUser).then((response) => {
-        console.log(response.data);
         if (response.data.length !== categories.length) {
           setCategories(response.data);
         }
@@ -583,54 +416,40 @@ function FoodDescription() {
   }, []);
 
   useEffect(() => {
-    if (!products.length) {
       getProductsList();
-    }
-  });
+  },[]);
 
   const getProductsList = () => {
     axios.get(getProductByUser).then((response) => {
       if (response.data) {
-        console.log(response.data);
         setProducts(response.data);
         let addons = [];
         addons = categories.filter((c) => c.isAddOn);
         let addIds = addons.map((a) => a.id);
-        console.log(addIds);
         setAddonsGroup(
           response.data.filter((pro) => addIds.indexOf(pro.category) !== -1)
         );
       }
     });
   };
-  console.log(addonsGroup);
   const handleCategoryId = (event, catId) => {
     let selectCatId = event?.target?.value || catId;
     setCatId(selectCatId);
     setCatItem(selectCatId);
-    //console.log(event.target.value);
-    console.log(categories);
     let addonsval = categories.filter((addcat) => addcat.isAddOn === true);
-    //console.log(addonsval,event.target.value)
     let addvalue = addonsval.filter((addonval) => addonval.id === selectCatId);
-    console.log(addvalue);
     if (addvalue.length > 0) {
       setShowAddon(false);
     } else {
       setShowAddon(true);
     }
   };
-  console.log(addonsGroup);
   const handleUpload = () => {
     setImage(true);
   };
   const handleDelete = (id) => {
-    console.log(id);
     setDeleteItemId(id);
     setOpenDeleteDialog(true);
-    // axios.delete(baseURL + "/api/products/" + id).then((response) => {
-    //   getProductsList();
-    // });
   };
 
   const handleDeleteClose = () => {
@@ -643,8 +462,10 @@ function FoodDescription() {
       axios.delete(`${baseURL}/api/products/${deleteItemId}`).then(() => {
         getProductsList();
         handleDeleteClose();
+
       });
     }
+
   };
 
   const handleEdit = (
@@ -654,8 +475,6 @@ function FoodDescription() {
     proCat_type,
     pro_stock
   ) => {
-    console.log(pro_image);
-    console.log(pro_id);
     setHideEdit(true);
     setCatItem(pro_category);
     setCatType(proCat_type);
@@ -668,7 +487,6 @@ function FoodDescription() {
       setImageURL(imageURL);
     }
     axios.get(getVariety).then((response) => {
-      console.log(response.data);
       setSeloption(response.data);
     });
 
@@ -690,14 +508,12 @@ function FoodDescription() {
     );
     setEditablePrice(prodata[0].isPriceEditable);
 
-    console.log(prodata[0]);
     setCatId(prodata[0].category);
     setAddOn(prodata[0].add_ons.split(",").filter((a) => a.length));
     handleCategoryId(null, prodata[0].category);
   };
 
   const handleStocks = (prod) => {
-    console.log(prod);
     axios
       .put(
         baseURL + "/api/products/" + prod.id + "?merchantCode=" + merchCode,
@@ -728,11 +544,9 @@ function FoodDescription() {
   };
   const filterProducts = (event) => {
     let fname = event.target.value;
-    console.log(fname);
     let filter = products.filter(
       (li) => li.name.toLowerCase().indexOf(fname.toLowerCase()) !== -1
     );
-    console.log(filter);
     setFilterOpen(fname ? true : false);
     setFilterPro(fname ? filter : []);
   };
@@ -747,16 +561,13 @@ function FoodDescription() {
       const items = existItem.length
         ? addOn.map((x) => (x === existItem[0] ? val : x))
         : [...addOn, val];
-      console.log(event.target.value);
       setAddOn(items);
     }
   };
   let cat_ad = [];
 
   if (categories && products) {
-    console.log(categories, products);
     let adFilter = categories.filter((cat) => cat.isAddOn);
-    console.log(adFilter);
     let addPro = products.filter((pro) =>
       adFilter.filter((li) => {
         if (li.id === pro.category) {
@@ -766,38 +577,42 @@ function FoodDescription() {
     );
   }
 
-  console.log(select.length);
   const imageOnErrorHandler = (event) => {
     event.currentTarget.src = "./images/blank.jpeg";
   };
 
   let catAddon = categories;
   let prod = filterOpen ? (filterPro.length ? filterPro : "") : products;
-  console.log(catId);
 
   const handleSearch = (event) => {
     setSearchQuery(event.target.value);
   };
 
-  const handleInventory = async () => {
-    console.log("user", userToken);
-    try {
-      const response = await axios.get(
-        `${baseURL}/api/inventories?merchantCode=${merchCode}`,
-        { headers: { Authorization: `Bearer ${userToken}` } }
-      );
-      console.log(response.data);
-      setInventoryData(response.data); // Store the data in state
-      setInvenOpen(true); // Open the popup
-    } catch (error) {
-      console.error("Error fetching inventory data:", error);
-    }
+  const handleShowProductForm = () => {
+    setHideProductList(true);
   };
 
-  const handleInvenClose = () => {
-    setInvenOpen(false);
+  const handleKitchenChange = (event) => {
+    setSelectedKitchen(event.target.value);
   };
 
+
+  const handleActionsClick = (pro_id) => {
+     setSelectProductId(pro_id);
+    setOpenActions(!openActions);
+  };
+
+  const handleActionsClose = () => {
+    console.log(openActions);
+    setOpenActions(false);
+  };
+
+  const showInventoryDialog = (foodName) => {
+    setShowDialog(true);
+    setShowInventory(foodName);
+    setOpenActions(false);
+
+  }
   return (
     <>
       <div className="container">
@@ -821,17 +636,17 @@ function FoodDescription() {
           {/* add by sk */}
           <div>
             <FormControl sx={{ m: 1, minWidth: 120 }}>
-              <InputLabel id="category-select-label">Category</InputLabel>
+              <InputLabel id="category-select-label"><label>Category</label></InputLabel>
               <Select
                 labelId="category-select-label"
                 id="category-select"
-                value={selectedCategory}
+                value={selectedCategory||"all"}
                 label="Category"
                 size="small"
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
-                <MenuItem value="">
-                  <em>None</em>
+                <MenuItem value="all">
+                  <em>All</em>
                 </MenuItem>
                 {categories.map((category) => (
                   <MenuItem key={category.id} value={category.name}>
@@ -844,7 +659,7 @@ function FoodDescription() {
           {merchCode && !merchCode.activeProviderId ? (
             <button
               className="add_btn"
-              onClick={() => setHideProductList(true)}
+              onClick={handleShowProductForm}
             >
               <AddIcon /> Add New
             </button>
@@ -853,27 +668,35 @@ function FoodDescription() {
           )}
         </div>
 
+
+
         <Dialog
           open={hideProductList || hideEdit}
           maxWidth="lg"
           fullWidth={true}
         >
-          <div className="dialogTitle">
-            <DialogTitle style={{ textAlign: "center", fontWeight: "bold" }}>
+        
+            <DialogTitle style={{ fontWeight: "bold" }}>
               {hideEdit ? "Edit Products" : "Add Products"}
             </DialogTitle>
-          </div>
-
+  
+        <IconButton
+          aria-label="close"
+          onClick={resetVars}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+        <DialogContent dividers>
           <div>
             {hideProductList || hideEdit ? (
               <>
-                <form
-                  style={{
-                    padding: "18px",
-                    paddingLeft: "18px",
-                    paddingTop: "50px",
-                  }}
-                >
+                <form>
                   <FormControl sx={{ m: 1, minWidth: 150 }}>
                     <InputLabel id="demo-simple-select-helper-label">
                       Category
@@ -918,16 +741,11 @@ function FoodDescription() {
                   <div className="row">
                     <div className="col">
                       <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
                         noValidate
                         autoComplete="off"
                       >
                         <TextField
                           fullWidth
-                          id="fullWidth"
                           label="Name"
                           defaultValue=""
                           onChange={handleFoodNameChange}
@@ -939,17 +757,13 @@ function FoodDescription() {
 
                     <div className="col">
                       <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
+                        
                         noValidate
                         autoComplete="off"
                       >
                         <div>
                           <TextField
                             fullWidth
-                            id="fullWidth"
                             label="Description"
                             defaultValue=""
                             onChange={handleDescriptionChange}
@@ -962,13 +776,10 @@ function FoodDescription() {
                   </div>
                   <br />
                   <div className="row dialog-row">
-                    <label>Item Image </label>
+                    <label><b>Item Image </b></label>
                     <div className="col">
                       <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
+                      
                         noValidate
                         autoComplete="off"
                       >
@@ -996,16 +807,10 @@ function FoodDescription() {
                       style={image ? { display: "block" } : { display: "none" }}
                     >
                       <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
                         noValidate
                         autoComplete="off"
                       >
                         <TextField
-                          fullWidth
-                          id="fullWidth"
                           label=""
                           defaultValue=""
                           onChange={handleInputChange}
@@ -1016,21 +821,56 @@ function FoodDescription() {
                     </div>
                   </div>
                   <br />
-                  <div className="dialog-row">
-                    <label
-                      style={{ marginTop: "8px", marginLeft: "10px" }}
-                      htmlFor=""
-                    >
-                      <b>Price</b>{" "}
+                  <Divider sx={{ my: 0.5 }} />
+                  <div className="row">
+                    <label style={{ marginTop: "8px" }}>
+                      <b>SET PRICE DETAILS</b>{" "}
                     </label>{" "}
-                    <br />
-                    <label
-                      style={{ marginTop: "8px", marginLeft: "10px" }}
-                      htmlFor=""
-                    >
-                      Editable Price ?
-                    </label>
-                    <input
+                   </div>
+
+                  <div className="row">
+                    <div  style={
+                            variety ? { display: "block" } : { display: "none" }
+                          }>
+                        <div
+                          id="itemPrice">
+                          {optMap.flat().map((item, index) => (
+                            <div className="col">
+                            <TextField
+                              key={index}
+                              size="small"
+                              id={`outlined-basic-${index}`}
+                              label={item}
+                              variant="outlined"
+                              value={pricevalues[item]}
+                              style={{ marginRight: "10px" }}
+                              onChange={(e) =>
+                                setTextValue(e.target.value, item)
+                              }
+                            />
+                            </div>
+                          ))}
+                        </div>
+                        </div>
+                        <div className="col"  style={{ display: variety ? "none" : "block" }}>
+                        <div id="price">
+                          <TextField
+                            fullWidth
+                            label="Add Item Price"
+                            defaultValue=""
+                            onChange={handlePriceChange}
+                            type="number"
+                            name="price"
+                            value={price}
+                          />
+                        </div>
+                     
+                    </div>
+                   
+                  </div>
+                  <div className="row">
+                    <div className="col" style={{display:"flex"}}>
+                     <input
                       onChange={() => setEditablePrice(!isPriceEditable)}
                       type="checkbox"
                       name="isPriceEditable"
@@ -1044,12 +884,15 @@ function FoodDescription() {
                       checked={isPriceEditable}
                     />
                     <label
-                      style={{ marginTop: "8px", marginLeft: "20px" }}
+                      style={{ marginLeft: "10px",marginTop:"3px" }}
                       htmlFor=""
                     >
-                      Has Varieties ?
+                      Editable Price ?
                     </label>
-                    <input
+                   </div>
+
+                    <div className="col" style={{display:"flex"}}>
+                     <input
                       onChange={handleChangeVariety}
                       type="checkbox"
                       name="variety"
@@ -1062,112 +905,56 @@ function FoodDescription() {
                       }}
                       checked={variety}
                     />
+                    <label
+                      style={{ marginLeft: "10px",marginTop:"3px" }}
+                      htmlFor=""
+                    >
+                      Has Varieties ?
+                    </label>
+                    </div>
+
                     <div
-                      id="vgroup"
                       style={{
                         display: variety ? "block" : "none",
-                        width: "220px",
-                        marginLeft: "20px",
                       }}
+                      className="col"
                     >
-                      <label htmlFor="">Select Variety Group</label>
-                      <select
-                        className="select_input"
+                     <FormControl sx={{ m: 1, minWidth: 150 }}>
+                       <InputLabel id="var_grp_lbl" htmlFor="">Variety Group</InputLabel>
+                      <Select
+                        labelId="var_grp_lbl"
                         value={select}
                         onChange={handleSelectChange}
                       >
-                        <option>Select Variety Group</option>
-
                         {option.map((opt) => (
-                          <option value={opt.id} selected={opt.id === select}>
+                          <MenuItem  value={opt.id}>
                             {opt.name}
-                          </option>
+                          </MenuItem>
                         ))}
-                      </select>
+                      </Select>
+                      </FormControl>
                     </div>
                   </div>
-                  <br />
-
-                  <div className="row">
-                    <div className="col">
-                      <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
-                        noValidate
-                        autoComplete="off"
-                      >
-                        <div
-                          id="itemPrice"
-                          style={
-                            select ? { display: "block" } : { display: "none" }
-                          }
-                        >
-                          {optMap.flat().map((item, index) => (
-                            <TextField
-                              key={index}
-                              size="small"
-                              id={`outlined-basic-${index}`}
-                              label={item}
-                              variant="outlined"
-                              value={pricevalues[item]}
-                              style={{ marginRight: "10px" }}
-                              onChange={(e) =>
-                                setTextValue(e.target.value, item)
-                              }
-                            />
-                          ))}
-                        </div>
-                        <div
-                          id="price"
-                          style={{ display: variety ? "none" : "block" }}
-                        >
-                          <TextField
-                            fullWidth
-                            id="fullWidth"
-                            label="Add Item Price"
-                            defaultValue=""
-                            onChange={handlePriceChange}
-                            type="text"
-                            name="price"
-                            value={price}
-                          />
-                        </div>
-                      </Box>
-                    </div>
-                    <div className="col">
-                      <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
-                        noValidate
-                        autoComplete="off"
-                      >
+                
+                <Divider sx={{ my: 0.5 }} />
+                <div className="row">
+                    <label style={{ marginTop: "8px" }}>
+                      <b>ADDITIONAL DETAILS</b>{" "}
+                    </label>{" "}
+                   </div>
+                <div className="row">
+                      <div className="col" style={{ marginTop: "8px" }}>
                         <TextField
-                          fullWidth
-                          id="fullWidth"
+                         
                           label="Calorie"
                           defaultValue=""
                           onChange={handleCalorieChange}
-                          type="text"
+                          type="number"
                           name="calorie"
                           value={calorie}
                         />
-                      </Box>
-                    </div>
-                  </div>
-                  {/* </div> */}
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      display: "flex",
-                      justifyContent: "flex-start",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div className="row">
+                      </div>
+
                       <div className="col">
                         <FormControl sx={{ m: 1, minWidth: 150 }}>
                           <InputLabel id="demo-simple-select-helper-label">
@@ -1213,10 +1000,78 @@ function FoodDescription() {
                         </FormControl>
                       </div>
                     </div>
-                    {/* Food Type Select Start  */}
-                  </div>
+                   
+                  <div className="row">
 
-                  <div style={{ display: showAddon ? "block" : "none" }}>
+
+                    <div className="col">
+                      <Box
+                        noValidate
+                        autoComplete="off"
+                      >
+                        <ul id="tags">
+                          {cooktags && cooktags.length ? (
+                            cooktags.length &&
+                            cooktags.map((cooktags, index) => (
+                              <li key={index} className="tag">
+                                <span className="tag-title">{cooktags}</span>
+                                <span
+                                  className="btn"
+                                  onClick={() => removeTags(index)}
+                                >
+                                  x
+                                </span>
+                              </li>
+                            ))
+                          ) : (
+                            <span className="tag-title"></span>
+                          )}{" "}
+                        </ul>
+                        <TextField
+                        
+                          label="Cooking Instruction"
+                          defaultValue=""
+                          onKeyUp={(event) =>
+                            event.key === "Enter" ? addTags(event) : null
+                          }
+                          placeholder="Press Enter to Add new"
+                          type="text"
+                        />
+                      </Box>
+                    </div>
+                    <div className="col">
+                    <FormControl sx={{ m: 1, minWidth: 150 }}>
+                      <InputLabel id="kitchen-select-label">
+                        Assign Kitchen
+                      </InputLabel>
+                      <Select
+                        labelId="kitchen-select-label"
+                        id="kitchen-select"
+                        value={selectedKitchen}
+                        label="Assign Kitchen"
+                        onChange={handleKitchenChange}
+                      >
+                        <MenuItem value="">
+                          <em>None</em>
+                        </MenuItem>
+                        {kitchenList.map((kitchen) => (
+                          <MenuItem key={kitchen.id} value={kitchen.id}>
+                            {kitchen.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    </div>
+                  </div>
+                 
+                <Divider sx={{ my: 0.5 }} />
+                <div className="row">
+                    <label style={{ marginTop: "8px" }}>
+                      <b>ADD-ON DETAILS</b>{" "}
+                    </label>{" "}
+                   </div>
+                 <div className="row">
+                 <div className="col" style={{ display: showAddon ? "block" : "none" }}>
                     <label
                       style={{ marginTop: "10px", marginLeft: "10px" }}
                       htmlFor=""
@@ -1226,7 +1081,6 @@ function FoodDescription() {
                     <div className="tags-input " style={{ display: "block" }}>
                       <div id="addons">
                         {addOn.map((tag, index) => {
-                          console.log(addOn);
 
                           let addName = categories.filter(
                             (li) => li.id === tag
@@ -1260,338 +1114,52 @@ function FoodDescription() {
                       </select>
                     </div>
                   </div>
-                  <div className="row-last">
-                    <div className="col">
+                  <div className="col"></div>
+                  <div className="col">
                       <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
                         noValidate
                         autoComplete="off"
                       >
                         <TextField
-                          fullWidth
-                          id="fullWidth"
                           label="Tags"
                           defaultValue=""
                           onChange={handleTagsChange}
                           //className="input_cls"
                           type="text"
                           name="tags"
+                          placeholder="Comma separated"
                           value={tags}
                         />
                       </Box>
                     </div>
-
-                    <div className="col">
-                      <Box
-                        sx={{
-                          width: 500,
-                          maxWidth: "100%",
-                        }}
-                        noValidate
-                        autoComplete="off"
-                      >
-                        <ul id="tags">
-                          {cooktags && cooktags.length ? (
-                            cooktags.length &&
-                            cooktags.map((cooktags, index) => (
-                              <li key={index} className="tag">
-                                <span className="tag-title">{cooktags}</span>
-                                <span
-                                  className="btn"
-                                  onClick={() => removeTags(index)}
-                                >
-                                  x
-                                </span>
-                              </li>
-                            ))
-                          ) : (
-                            <span className="tag-title"></span>
-                          )}{" "}
-                        </ul>
-                        <TextField
-                          fullWidth
-                          id="fullWidth"
-                          label="Cooking Instruction"
-                          defaultValue=""
-                          onKeyUp={(event) =>
-                            event.key === "Enter" ? addTags(event) : null
-                          }
-                          //className="input_cls"
-                          type="text"
-                          //name="calorie"
-                          //value={calorie}
-                        />
-                      </Box>
-                    </div>
-                    <FormControl sx={{ m: 1, minWidth: 150 }}>
-                      <InputLabel id="kitchen-select-label">
-                        Assign Kitchen
-                      </InputLabel>
-                      <Select
-                        labelId="kitchen-select-label"
-                        id="kitchen-select"
-                        value={selectedKitchen}
-                        label="Assign Kitchen"
-                        onChange={handleKitchenChange}
-                      >
-                        <MenuItem value="">
-                          <em>None</em>
-                        </MenuItem>
-                        {kitchenList.map((kitchen) => (
-                          <MenuItem key={kitchen.id} value={kitchen.id}>
-                            {kitchen.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </div>
-                  <div style={{ marginTop: "30px", padding: "0 16px" }}>
-  {/* Recipe header row with aligned heading and Add Item button */}
-  <div style={{ 
-    display: "flex", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    marginBottom: "16px",
-    borderBottom: "1px solid #eaeaea",
-    paddingBottom: "8px"
-  }}>
-    <h1 style={{ margin: 0, fontWeight: "600" }}>Recipy</h1>
-    <Button 
-      variant="contained" 
-      color="primary" 
-      size="small"
-      startIcon={<AddIcon />}
-      onClick={handleAddEmptyRecipeItem}
-    >
-      Add Item
-    </Button>
-  </div>
-  
-  {/* Recipe input form - shown only when Add Item is clicked */}
-  {showRecipeForm && (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      padding: "12px 16px",
-      background: "#f8f9fa",
-      borderRadius: "8px",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-      gap: "12px",
-      flexWrap: "wrap",
-      marginBottom: "16px"
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 2, minWidth: "160px" }}>
-        <TextField
-          size="small"
-          value={recipeName}
-          onChange={(e) => setRecipeName(e.target.value)}
-          placeholder="Item Name"
-          style={{ flexGrow: 1 }}
-        />
-        <FormControl size="small" style={{ minWidth: "120px" }}>
-          <Select
-            value={recipePlateType}
-            onChange={(e) => setRecipePlateType(e.target.value)}
-            displayEmpty
-          >
-            <MenuItem value="Half Plate">Half Plate</MenuItem>
-            <MenuItem value="Full Plate">Full Plate</MenuItem>
-          </Select>
-        </FormControl>
-      </div>
-            {/* // Within your showRecipeForm block replacing the current quantity field: */}
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 1, minWidth: "220px" }}>
-        {variety && select ? (
-          <div style={{ display: "flex", gap: "8px" }}>
-            {getVarietyOptions().map((variant) => (
-              <TextField
-                key={variant}
-                size="small"
-                type="numbers"
-                placeholder={`${variant} quantity`}
-                value={recipeQuantities[variant] || ""}
-                onChange={(e) =>
-                  setRecipeQuantities((prev) => ({
-                    ...prev,
-                    [variant]: e.target.value,
-                  }))
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <TextField
-            size="small"
-            value={recipeQuantity}
-            onChange={(e) => setRecipeQuantity(e.target.value)}
-            placeholder="Quantity"
-            type="number"
-            style={{ width: "100px" }}
-          />
-        )}
-        {/* if variety is not enabled, allow unit selection */}
-        {!variety && (
-          <FormControl size="small" style={{ minWidth: "100px" }}>
-            <Select
-              value={recipeUnit}
-              onChange={(e) => setRecipeUnit(e.target.value)}
-              displayEmpty
-            >
-              <MenuItem value="kg">kg</MenuItem>
-              <MenuItem value="litre">litre</MenuItem>
-              <MenuItem value="gm">gm</MenuItem>
-            </Select>
-          </FormControl>
-        )}
-      </div>
-      <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          size="small"
-          onClick={() => {
-            handleSaveRecipeItem();
-            setShowRecipeForm(false);
-          }}
-        >
-          Save
-        </Button>
-        <Button 
-          variant="outlined" 
-          color="error" 
-          size="small"
-          onClick={() => setShowRecipeForm(false)}
-        >
-          Cancel
-        </Button>
-      </div>
-    </div>
-  )}
-  
-  {/* Recipe items display */}
-{recipeItems.length > 0 ? (
-  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-    {recipeItems.map((item, index) => (
-      <div
-        key={index}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "12px 16px",
-          background: "#f8f9fa",
-          borderRadius: "8px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          gap: "12px",
-          flexWrap: "wrap"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 2, minWidth: "160px" }}>
-          <TextField
-            size="small"
-            value={item.name}
-            onChange={(e) => handleRecipeItemChange(index, "name", e.target.value)}
-            placeholder="Item Name"
-            style={{ flexGrow: 1 }}
-          />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexGrow: 1, minWidth: "220px" }}>
-          {variety && select && typeof item.quantity === "object" ? (
-            Object.keys(item.quantity).map((variant) => (
-              <TextField
-                key={variant}
-                size="small"
-                type="number"
-                placeholder={`${variant} quantity`}
-                value={item.quantity[variant] || ""}
-                onChange={(e) => {
-                  const updatedQuantities = {
-                    ...item.quantity,
-                    [variant]: e.target.value,
-                  };
-                  handleRecipeItemChange(index, "quantity", updatedQuantities);
-                }}
-              />
-            ))
-          ) : (
-            <TextField
-              size="small"
-              value={item.quantity}
-              onChange={(e) => handleRecipeItemChange(index, "quantity", e.target.value)}
-              placeholder="Quantity"
-              type="number"
-              style={{ width: "100px" }}
-            />
-          )}
-          {!variety && (
-            <FormControl size="small" style={{ minWidth: "100px" }}>
-              <Select
-                value={item.unit}
-                onChange={(e) => handleRecipeItemChange(index, "unit", e.target.value)}
-                displayEmpty
-              >
-                <MenuItem value="kg">kg</MenuItem>
-                <MenuItem value="litre">litre</MenuItem>
-                <MenuItem value="gm">gm</MenuItem>
-              </Select>
-            </FormControl>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-          <Button 
-            variant="outlined" 
-            color="error" 
-            size="small"
-            onClick={() => handleDeleteRecipeItem(index)}
-          >
-            Delete
-          </Button>
-        </div>
-      </div>
-    ))}
-  </div>
-) : (
-  <div style={{ 
-    padding: "20px", 
-    textAlign: "center", 
-    color: "#666",
-    background: "#f8f9fa", 
-    borderRadius: "8px",
-    border: "1px dashed #ccc"
-  }}>
-    Click the Add Item button to add your recipe.
-  </div>
-)}
-</div>
+                 </div>
                 </form>
-
-                <div className="fixed-buttons">
-                  <Button
-                    className="save-btn btnDialog-Fill"
-                    variant="contained"
-                    color="success"
-                    style={{ margin: "20px" }}
-                    onClick={handleSubmit}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    style={{ margin: "20px" }}
-                    className="close-btn"
-                    onClick={handleClose}
-                  >
-                    Close
-                  </Button>
-                </div>
               </>
             ) : (
               ""
             )}
           </div>
+          </DialogContent>
+          <DialogActions>
+                  <Button
+                    color="error"
+                    style={{ margin: "10px" }}
+                    className="close-btn"
+                    onClick={handleClose}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    className="save-btn btnDialog-Fill"
+                    variant="contained"
+                    color="success"
+                    style={{ margin: "10px" }}
+                    disabled={!foodName}
+                    onClick={handleSubmit}
+                  >
+                    Save
+                  </Button>
+                  </DialogActions>
         </Dialog>
 
         {openDeleteDialog === true ? (
@@ -1610,6 +1178,7 @@ function FoodDescription() {
           fullWidth={true}
           style={{ width: "600px", margin: "auto" }}
         >
+
           <div
             style={{ display: "flex", flexDirection: "column", height: "100%" }}
           >
@@ -1645,7 +1214,7 @@ function FoodDescription() {
                   value={searchQuery}
                 />
               </div>
-              {/* <input
+              {<input
                 type="button"
                 value="Search"
                 style={{
@@ -1658,7 +1227,7 @@ function FoodDescription() {
                   color: "#fff",
                 }}
                 onClick={handleSearch}
-              /> */}
+              />}
             </div>
 
             <div
@@ -1704,54 +1273,6 @@ function FoodDescription() {
           </div>
         </Dialog>
 
-        <Dialog open={invenOpen} onClose={handleInvenClose}>
-          <DialogTitle style={{ textAlign: "center", fontWeight: "700" }}>
-            Inventory List
-          </DialogTitle>
-          <Table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <Thead>
-              <Tr>
-                <Th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  Item
-                </Th>
-                <Th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  Avl. Quantity
-                </Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {inventoryData.length > 0 ? (
-                inventoryData.map((item, index) => (
-                  <Tr key={index}>
-                    <Td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                      {item.name}
-                    </Td>
-                    <Td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                      {item.availableQnty}
-                    </Td>
-                  </Tr>
-                ))
-              ) : (
-                <Tr>
-                  <Td
-                    colSpan={2}
-                    style={{
-                      border: "1px solid #ddd",
-                      padding: "8px",
-                      textAlign: "center",
-                    }}
-                  >
-                    No inventory data available
-                  </Td>
-                </Tr>
-              )}
-            </Tbody>
-          </Table>
-          <Button onClick={handleInvenClose} color="primary">
-            Close
-          </Button>
-        </Dialog>
-
         <div className="product-list">
           <Table width="100%" cellPadding="4px">
             <Thead>
@@ -1786,7 +1307,6 @@ function FoodDescription() {
                     })
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((p) => {
-                      console.log(p);
                       let cat_name =
                         catAddon && catAddon.length
                           ? catAddon.filter(
@@ -1795,7 +1315,6 @@ function FoodDescription() {
                                 (cat._id ? cat._id : cat.id)
                             )
                           : [];
-                      console.log(p);
                       cat_name = cat_name.length ? cat_name[0].name : "";
 
                       return (
@@ -1833,7 +1352,7 @@ function FoodDescription() {
                             {selectedCurrency}{" "}
                             {p.isPriceVariety
                               ? Object.values(JSON.parse(p.varietyPrices)).join(
-                                  ` ${selectedCurrency}`
+                                  '/'
                                 )
                               : p.price}
                           </Td>
@@ -1871,40 +1390,46 @@ function FoodDescription() {
                             />
                           </Td>
                           <Td>
-                            {!merchCode.activeProviderId && (
-                              <Td align="center">
-                                <IconButton
-                                  aria-label="delete"
-                                  size="large"
-                                  color="info"
-                                  onClick={() =>
+                            {
+                              !merchCode.activeProviderId &&   <div><Button
+        aria-controls={openActions ? 'demo-customized-menu' : undefined}
+        aria-haspopup="true"
+        aria-expanded={openActions ? 'true' : undefined}
+        variant="outlined"
+        disableElevation
+        onClick={()=>handleActionsClick(p.id)}
+        endIcon={<KeyboardArrowDownIcon />}
+      >
+        Actions
+      </Button>
+      {openActions && p.id==selectProductId  && <Paper style={{position:'absolute',zIndex:"99"}}><MenuList  open={false} onClose={handleActionsClose}>
+        <MenuItem onClick={()=>(handleActionsClose(),
                                     handleEdit(
                                       p.id,
                                       p.image,
                                       p.category,
                                       p.cat_type,
                                       p.inStock
-                                    )
-                                  }
-                                >
-                                  <EditIcon />
-                                </IconButton>
-                              </Td>
-                            )}
-
-                            {!merchCode.activeProviderId && (
-                              <Td align="center">
-                                {/* <button className='btn btn-danger' onClick={()=> handleDelete(p.id)}><DeleteIcon/></button> */}
-                                <IconButton
-                                  aria-label="delete"
-                                  size="large"
-                                  color="error"
-                                  onClick={() => handleDelete(p.id)}
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Td>
-                            )}
+                                    ))
+                                  } >
+          <EditIcon />
+          Edit
+        </MenuItem>
+        <MenuItem onClick={()=>(showInventoryDialog(p),handleActionsClose())} >
+          <AddLinkIcon />
+          Link Inventory
+        </MenuItem>
+        <MenuItem onClick={()=>handleActionsClose()} >
+          <FileCopyIcon />
+          Duplicate
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem onClick={()=>(setDeleteItemId(p.id),handleActionsClose(),setOpenDeleteDialog(true))} >
+          <DeleteIcon />
+          Delete
+        </MenuItem>
+         </MenuList></Paper>}
+       </div>                 }
                           </Td>
                         </Tr>
                       );
@@ -1924,7 +1449,17 @@ function FoodDescription() {
             />
           )}
         </div>
+
+         {showInventory && <InventoryProLink product={showInventory} 
+          variety={option} 
+          getVarietyOptions={getVarietyOptions} 
+          setShowInventory={setShowInventory} 
+          showSucMessg={()=>toast.success("Saved successfully!")}
+          showErrMessg={()=>toast.error("Save failed!")}
+          />}
+          }
       </div>
+       <ToastContainer />
     </>
   );
 }

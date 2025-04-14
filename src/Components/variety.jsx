@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, { useState, useEffect } from "react";
 import DialogTitle from "@mui/material/DialogTitle";
+import DialogActions from "@mui/material/DialogActions";
 import Dialog from "@mui/material/Dialog";
 import configs, { getParameterByName } from "../Constants";
 import IconButton from "@mui/material/IconButton";
@@ -9,7 +10,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
+import CloseIcon from "@mui/icons-material/Close";
+import TextField from "@mui/material/TextField";
 
 function Variety(props) {
   const [groupName, setgroupName] = useState("");
@@ -59,8 +62,8 @@ function Variety(props) {
     });
   }, []);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleSubmit = () => {
+    //event.preventDefault();
     console.log(
       `Variety name: ${groupName} name: ${selectedOption}, isAddOn:${addOn}`
     );
@@ -205,29 +208,51 @@ function Variety(props) {
   const categorieItems = isSearch ? filterCat : varieties;
   return (
     <>
-      <Dialog open={dialogOpen} maxWidth="mb" fullWidth={true}>
+      <Dialog open={dialogOpen} maxWidth="md" >
         <DialogTitle style={{ textAlign: "center", fontWeight: "bold" }}>
           {catId ? "Edit Variety" : "Add Variety"}
         </DialogTitle>
-
+          <IconButton
+          aria-label="close"
+          onClick={() =>{
+              setDialogOpen(false);
+              setAddOn(false);
+              setTags("");
+              setgroupName("");
+              setImageURL("");
+              setCatId("");
+          }}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
         <div
           className="container"
-          style={{ padding: "20px 40px", borderRadius: "10px", margin: "20px" }}
+          style={{minWidth:"400px", padding: "20px 40px", borderRadius: "10px", margin: "20px" }}
         >
-          <label>
-            Variety Group Name <span className="text-danger">*</span>
-          </label>
-          <input
-            className="input_cls"
-            type="text"
-            defaultValue={groupName}
-            value={groupName}
-            onChange={handleGroupNameChange}
-          />
-
-          <label>Group Items</label>
+          <div>
+         
+          <TextField
+                size="small"
+                 className="input_cls"
+                 type="text"
+                placeholder={'Enter Group Name'}
+                label={`Group Name`}
+                style={{minWidth:"300px"}}
+                value={groupName}
+                 onChange={handleGroupNameChange}
+            />
+         
+          </div>
+         
           <div className="tags-input-variety">
-            <ul id="tags">
+           <label>Group Items</label>
+            <ul id="tags"  style={{minWidth:"300px"}}>
               {tags.length ? (
                 tags.length &&
                 tags.map((tag, index) => (
@@ -251,11 +276,13 @@ function Variety(props) {
               placeholder="Press enter to add Items"
             />
           </div>
-          <Button
-            variant="contained"
-            color="error"
-            style={{ margin: "20px" }}
-            onClick={() => {
+        </div>
+        <DialogActions>
+                  <Button
+                    color="error"
+                    style={{ margin: "10px" }}
+                    className="close-btn"
+                    onClick={()=>{
               setDialogOpen(false);
               setAddOn(false);
               setTags("");
@@ -263,19 +290,19 @@ function Variety(props) {
               setImageURL("");
               setCatId("");
             }}
-          >
-            Close
-          </Button>
-
-          <Button
-            variant="contained"
-            color="success"
-            style={{ margin: "20px" }}
-            onClick={(e) => handleSubmit(e)}
-          >
-            Save
-          </Button>
-        </div>
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    className="save-btn btnDialog-Fill"
+                    variant="contained"
+                    color="success"
+                    style={{ margin: "10px" }}
+                    onClick={handleSubmit}
+                  >
+                    Save
+                  </Button>
+                  </DialogActions>
       </Dialog>
       {openDeleteDialog === true ? (
         <DeleteDiaologue

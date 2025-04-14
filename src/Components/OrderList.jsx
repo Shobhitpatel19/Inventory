@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios, { isCancel } from "axios";
 import DialogTitle from "@mui/material/DialogTitle";
 import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
 import FormGroup from "@mui/material/FormGroup";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -40,7 +42,7 @@ import "react-datepicker/dist/react-datepicker.css"; // Import the styles for th
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import BillPopup from "./sub_comp/BillPopup";
 import TempOrder from "./sub_comp/TempOrder";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
 
 const OrderList = (props) => {
   const orderListPath = `/orderList`;
@@ -95,6 +97,7 @@ const OrderList = (props) => {
   const [OrderId, setOrderId] = useState(null);
 
   let baseURL = configs.baseURL;
+  // let baseURL = "https://inventory-service-gthb.onrender.com";
   let authApi = configs.authapi;
   const theme = createTheme({
     palette: {
@@ -115,8 +118,8 @@ const OrderList = (props) => {
   let userToken = sessionStorage.getItem("token") || "";
   console.log("merch", merchCode);
   const userId = userData ? userData.sub : " ";
-  //const getOrderList = `${baseURL}/api/orders?merchantCode=${merchCode}`;
   const getOrderList = `${baseURL}/api/orders/recent?merchantCode=${merchCode}`;
+  // const getOrderList = `${baseURL}/api/orders/?merchantCode=${merchCode}`;
   const notificationURL = `${baseURL}/menu/notification/${userId}`;
   const deleteNOtificationUrl = `${baseURL}/menu/notifications/${userId}`;
   const getTabByUser = baseURL + "/api/tables?merchantCode=" + merchCode;
@@ -144,20 +147,23 @@ const OrderList = (props) => {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchTempOrders = async () => {
+   const fetchTempOrders = async () => {
       try {
-        const res = await axios.get(`${baseURL}/api/temporders`, {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
+        const res = await axios.get(
+          `${baseURL}/api/temporders/?merchantCode=${merchCode}`,
+          {
+            headers: {
+              Authorization: `Bearer ${userToken}`,
+            },
+          }
+        );
         setTempOrders(res.data);
       } catch (err) {
         console.log("Failed to fetch orders");
       }
     };
 
+  useEffect(() => {
     fetchTempOrders();
   }, [baseURL, userToken]);
 
@@ -371,6 +377,8 @@ const OrderList = (props) => {
     }
   };
 
+  console.log("orderlist for checking", orderList);
+
   const handleDeleteClose = () => {
     setOpenDeleteDialog(false);
     setDeleteItemId(null);
@@ -404,38 +412,6 @@ const OrderList = (props) => {
   };
 
   const handleCancel = async (order_id, order_cancel, tableId) => {
-    // if (order_cancel === false) {
-    //   try {
-    //     await axios.put(
-    //       `${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`,
-    //       {
-    //         action: "cancel",
-    //       }
-    //     );
-
-    //     // Step 2: Fetch the table details directly from the API
-    //     const tableResponse = await axios.get(
-    //       `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`
-    //     );
-    //     console.log(tableResponse.data);
-    //     const tableToUpdate = tableResponse.data;
-
-    //     // Step 3: Free the table (only update isAvailable to true)
-    //     await axios.put(
-    //       `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`,
-    //       {
-    //         ...tableToUpdate,
-    //         isAvailable: true,
-    //       }
-    //     );
-
-    //     // Step 4: Refresh the order list
-    //     const response = await axios.get(getOrderList);
-    //     setOrderList(response.data);
-    //   } catch (error) {
-    //     console.error("Error while cancelling order or updating table:", error);
-    //   }
-    // }
     setOrderId(order_id);
     setOrderCancel(order_cancel);
     setTableId(tableId);
@@ -450,7 +426,6 @@ const OrderList = (props) => {
   };
 
   const handleConfirmCancel = async () => {
-    if (orderCancel === false) {
       try {
         await axios.put(
           `${baseURL}/api/orders/${OrderId}?merchantCode=${merchCode}`,
@@ -458,7 +433,7 @@ const OrderList = (props) => {
             action: "cancel",
           }
         );
-
+        if(tableId){
         // Step 2: Fetch the table details directly from the API
         const tableResponse = await axios.get(
           `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`
@@ -474,14 +449,11 @@ const OrderList = (props) => {
             isAvailable: true,
           }
         );
-
-        // Step 4: Refresh the order list
-        const response = await axios.get(getOrderList);
-        setOrderList(response.data);
+        }
+        fetchOrdersAndNoti();
       } catch (error) {
         console.error("Error while cancelling order or updating table:", error);
       }
-    }
     setOrderId(null);
     setOrderCancel(true);
     setTableId(null);
@@ -689,23 +661,24 @@ const OrderList = (props) => {
     console.log("orderr", order);
     try {
       const response = await axios.get(
-        `${configs.payUrl}/api/invoices/${order.invoiceId}`
+        order.invoiceId?`${configs.payUrl}/api/invoices/${order.invoiceId}`:`${configs.payUrl}/api/proforma-invoices/${order.id}`
       );
-      console.log("API Response:", response.data);
-      setInvoiceNo(response.data.invoicePath);
+      //console.log("API Response:", response.data);
       setPrintOrder(order); // Set the order too
+      setInvoiceNo(response.data.invoicePath);
     } catch (error) {
+      setPrintOrder(order);
       console.error("Error calling order API:", error);
     }
   };
 
   // ⏬ This useEffect will run once invoiceNo is set
   useEffect(() => {
-    if (invoiceNo && printOrder) {
+    if (printOrder) {
       handlePrint(printOrder);
       setPrintOrder(null); // Reset it to avoid duplicate calls
     }
-  }, [invoiceNo]);
+  }, [printOrder]);
 
   const handlePrint = (order) => {
     console.log("print");
@@ -721,7 +694,7 @@ const OrderList = (props) => {
           : "",
       cgst: merchantData.taxPerc,
       taxPerc: merchantData.taxPerc,
-      invoice_no: invoiceNo,
+      invoice_no: invoiceNo?invoiceNo:"-",
     });
     if (!window.PrintInterface) {
       console.log(window.PrintInterface);
@@ -784,7 +757,7 @@ const OrderList = (props) => {
   }, []);
 
   // console.log("orderFilter" , orderFilter);
-  // console.log("orderList" , orderList);
+  console.log("orderList", orderList);
   const ListOrders = isSearch ? orderFilter : orderList;
   console.log("listOrders", ListOrders);
 
@@ -814,13 +787,45 @@ const OrderList = (props) => {
     return moment(dateToCompare).isSame(moment(selectedDate), "day");
   });
 
-  console.log("filterOrders here", filteredOrders);
-  console.log("tempOrders", tempOrders);
-  // console.log("orderList", orderList);
 
-  const acceptOrder = (order) => {
-    console.log("acceptOrder", order);
-    setOrderList((prevOrders) => [...prevOrders, order]);
+  const acceptOrder = async (orderId) => {
+    console.log("id for temp", orderId);
+    try {
+      const res = await axios.put(
+        `https://inventory-service-gthb.onrender.com/api/temporders/${orderId}`,
+        { orderStatus: "ACCEPTED" },
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      console.log("Order accepted");
+      fetchTempOrders();
+      fetchOrdersAndNoti();
+    } catch (err) {
+      console.error("Failed to accept order", err);
+    }
+  };
+
+  const rejectOrder = async (orderId) => {
+    console.log("id for temp", orderId);
+    try {
+      const res = await axios.put(
+        `https://inventory-service-gthb.onrender.com/api/temporders/${orderId}`,
+        { orderStatus: "REJECTED" },
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      console.log("Order rejected:");
+      fetchTempOrders();
+      fetchOrdersAndNoti();
+    } catch (err) {
+      console.error("Failed to reject order", err);
+    }
   };
 
   return (
@@ -941,7 +946,6 @@ const OrderList = (props) => {
 
       {openDeleteDialog === true ? (
         <DeleteDiaologue
-          msg="Delete"
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
@@ -1051,8 +1055,7 @@ const OrderList = (props) => {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            paddingInline: "50px",
-            marginBottom: "20px",
+            paddingInline: "50px"
           }}
         >
           <div className="search">
@@ -1104,83 +1107,93 @@ const OrderList = (props) => {
                 <option value="Self Order">Self Orders</option>
                 <option value="EPOS">EPOS Orders</option>
                 <option value="Online Order">Online Orders</option>
-                <option value="Table Order">Table Orders</option>
+                <option value="TTO">Table Orders</option>
               </select>
             </span>
           </div>
         </div>
 
         <div>
-          <div className="tempOrder">
-            <Table className="custom-table">
-              <Thead>
-                <Tr className="table-header">
-                  <Th>Source</Th>
-                  <Th>Amount(Inc tax)</Th>
-                  <Th>Order Items</Th>
-                  <Th>Actions</Th>
-                  <Th>TimeLimit</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {tempOrders.map((order) => (
-                  <Tr key={order.id} className="table-body-row">
-                    <Td>
-                      <Chip
-                        label={order.orderSource || "Self Order"}
-                        color={
-                          (order.orderSource || "Self Order") === "EPOS"
-                            ? "info"
-                            : (order.orderSource || "Self Order") ===
-                              "Self Order"
-                            ? "warning"
-                            : (order.orderSource || "Self Order") ===
-                              "Table Order"
-                            ? "secondary"
-                            : (order.orderSource || "Self Order") ===
-                              "Online Order"
-                            ? "error"
-                            : "default"
-                        }
-                        style={{
-                          marginLeft: "10px",
-                          fontSize: "x-small",
-                          fontWeight: "bold",
-                        }}
-                      />
-                      <div style={{ fontSize: "12px" }}>
-                        {moment(order.scheduleDate || order.createdAt).format(
-                          "DD-MMM h:mm a"
-                        )}
-                      </div>
-                    </Td>
-                    <Td>
-                      {selectedCurrency}
-                      {(order.discountType
-                        ? order.discountType === "discount" ||
-                          order.discountType === "price"
-                          ? order.totalPrice - (order.discountAmount || 0)
-                          : order.totalPrice -
-                            (order.totalPrice * order.discountAmount) / 100
-                        : order.totalPrice
-                      ).toFixed(2)}
-                    </Td>
-                    <Td style={{ fontSize: "12px" }}>
-                      <button
-                        className="btn-icon"
-                        onClick={() =>
-                          tempOrderListHandler(
-                            order.id,
-                            order.customerId,
-                            order
-                          )
-                        }
-                      >
-                        <ReceiptLongOutlinedIcon />
-                      </button>
-                    </Td>
-                    <Td>
-                      {
+          {tempOrders.length > 0 && tempOrders.filter((order) => order.orderStatus === "PENDING" || order.orderStatus === "NEW").length > 0 &&
+          (
+            <div className="tempOrder">
+              <Table className="custom-table">
+                <Thead>
+                  <Tr className="table-header">
+                    <Th>Source</Th>
+                    <Th>Amount(Inc tax)</Th>
+                    <Th>Order Items</Th>
+                    <Th>Actions</Th>
+                    {/* <Th>TimeLimit</Th> */}
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {tempOrders.filter((order) => order.orderStatus === "PENDING" || order.orderStatus === "NEW").map((order) => (
+                    <Tr key={order.id} className="table-body-row">
+                      <Td>
+                        <Chip
+                          label={order.orderSource || "Self Order"}
+                          color={
+                            (order.orderSource || "Self Order") === "EPOS"
+                              ? "info"
+                              : (order.orderSource || "Self Order") ===
+                                "Self Order"
+                              ? "warning"
+                              : (order.orderSource || "Self Order") ===
+                                "Table Order"
+                              ? "secondary"
+                              : (order.orderSource || "Self Order") ===
+                                "Online Order"
+                              ? "error"
+                              : "default"
+                          }
+                          style={{
+                            marginLeft: "10px",
+                            fontSize: "x-small",
+                            fontWeight: "bold",
+                          }}
+                        />
+                        <div style={{ fontSize: "12px" }}>
+                          {moment(order.scheduleDate || order.createdAt).format(
+                            "DD-MMM h:mm a"
+                          )}
+                        </div>
+                      </Td>
+                      <Td>
+                        {selectedCurrency}
+                        {/* {(
+                          (order.discountType
+                            ? order.discountType === "discount" ||
+                              order.discountType === "price"
+                              ? order.totalPrice - (order.discountAmount || 0)
+                              : order.totalPrice -
+                                (order.totalPrice * order.discountAmount) / 100
+                            : order.totalPrice) + (order.taxPrice || 0)
+                        ).toFixed(2)} */}
+                        {(order.discountType
+                          ? order.discountType === "discount" ||
+                            order.discountType === "price"
+                            ? order.totalPrice - (order.discountAmount || 0)
+                            : order.totalPrice -
+                              (order.totalPrice * order.discountAmount) / 100
+                          : order.totalPrice
+                        ).toFixed(2)}
+                      </Td>
+                      <Td style={{ fontSize: "12px" }}>
+                        <button
+                          className="btn-icon"
+                          onClick={() =>
+                            tempOrderListHandler(
+                              order.id,
+                              order.customerId,
+                              order
+                            )
+                          }
+                        >
+                          <ReceiptLongOutlinedIcon />
+                        </button>
+                      </Td>
+                      <Td>
                         <div
                           style={{
                             display: "flex",
@@ -1191,24 +1204,25 @@ const OrderList = (props) => {
                           <Button
                             variant="contained"
                             color="success"
-                            onClick={() => acceptOrder(order)}
+                            onClick={() => acceptOrder(order.id)}
                           >
                             Accept
                           </Button>
-                          <Button variant="outlined" color="error">
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={() => rejectOrder(order.id)}
+                          >
                             Reject
                           </Button>
                         </div>
-                      }
-                    </Td>
-                    <Td>00:00</Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </div>
-          <br />
-          <hr />
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </div>
+          )}
           <br />
           {!tabView ? (
             <Table breakPoint={700} style={{ width: "100%" }}>
@@ -1435,8 +1449,8 @@ const OrderList = (props) => {
 
                         <Td>
                           <div className="actions-container">
-                            {orderLists.isPaid ||
-                            orderLists.orderType === "Table Order" ? (
+                            {orderLists.isCanceled ? null : orderLists.isPaid ||
+                              orderLists.orderType === "Table Order" ? (
                               orderLists.isDelivered ? (
                                 <Chip
                                   label="✔ DELIVERED"
@@ -1448,11 +1462,10 @@ const OrderList = (props) => {
                                     cursor: "pointer",
                                   }}
                                 />
-                              ) : orderLists.isReady &&
-                                !orderLists.isCanceled ? (
+                              ) : orderLists.isReady ? (
                                 <Button
                                   variant="contained"
-                                  color="info"
+                                  color="success"
                                   onClick={() =>
                                     handleOrderStatus(
                                       "deliver",
@@ -1464,12 +1477,10 @@ const OrderList = (props) => {
                                 >
                                   {t({ id: "deliver" })}
                                 </Button>
-                              ) : orderLists.isCanceled ? (
-                                ""
                               ) : (
                                 <Button
                                   variant="contained"
-                                  color="success"
+                                  color="info"
                                   onClick={() =>
                                     handleOrderStatus(
                                       "ready",
@@ -1529,7 +1540,7 @@ const OrderList = (props) => {
                               ) : (
                                 " "
                               )
-                            ) : (
+                            ) : (!orderLists.isCanceled ?
                               <PrintIcon
                                 color="success"
                                 onClick={() => handlecheckprint(orderLists)}
@@ -1537,10 +1548,10 @@ const OrderList = (props) => {
                                   marginLeft: "45px",
                                   cursor: "pointer",
                                 }}
-                              />
-                            )}
+                              />:"")
+                            }
 
-                            {orderLists.orderType === "Table Order" && (
+                            {!orderLists.isCanceled && orderLists.orderType === "Table Order" && (
                               <PrintIcon
                                 color="success"
                                 onClick={() => handlecheckprint(orderLists)}
@@ -1638,11 +1649,24 @@ const OrderList = (props) => {
         fullWidth={true}
         open={isOpen}
       >
-        <div style={{ padding: "10px" }} className="order-tab">
-          <h4 style={{ margin: "5px" }} align="center">
+       <DialogTitle style={{ fontWeight: "bold" }}>
             {t({ id: "order_summary_token" })}: #
             <span style={{ fontSize: "35px" }}>{token}</span>
-          </h4>
+            </DialogTitle>
+          <IconButton
+          aria-label="close"
+          onClick={() => handleClose()}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+       
+         <DialogContent dividers>
           <div
             style={
               customerorderpop
@@ -1781,16 +1805,19 @@ const OrderList = (props) => {
                 : ""}
             </tbody>
           </Table>
+          </DialogContent>
+          <DialogActions>
           <Button
             variant="outlined"
             color="error"
             style={{ float: "right", marginTop: "8px" }}
             className="btn btn-danger m-2 btn-small"
-            onClick={handleClose}
+            onClick={ handleClose}
           >
             {t({ id: "close" })}
           </Button>
-        </div>
+          </DialogActions>
+       
       </Dialog>
 
       <Dialog open={edit} maxWidth="xs" className="pd-2" fullWidth={true}>

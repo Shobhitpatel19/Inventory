@@ -21,7 +21,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useIntl } from "react-intl";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
 //import { db } from "./../root/util";
 //import { onValue, ref } from "firebase/database";
 //import Switch from "@mui/material/Switch";
@@ -202,7 +202,7 @@ function TableView(props) {
         .post(`${baseURL}/api/tables?merchantCode=${merchCode}`, {
           number: tabNum,
           capacity: parseInt(tabCapcity),
-          isAvailable: isAvailable,
+          isAvailable: true,
           userId: merchCode,
           notes: notes,
         })
@@ -536,12 +536,11 @@ function TableView(props) {
     }
   }
 
-  console.log(isTableView);
   return (
     <div>
       <Dialog open={dialogOpen} maxWidth="mb" fullWidth={true}>
         <DialogTitle
-          style={{ textAlign: "center", fontSize: "20px", fontWeight: "bold" }}
+          style={{  fontWeight: "bold" }}
         >
           {tableId ? "Edit Table Info" : "Add Table Info"}
         </DialogTitle>

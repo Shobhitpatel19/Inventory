@@ -15,7 +15,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Table, Thead, Tbody, Tr, Th, Td } from "react-responsive-list";
 import configs from "../Constants";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
 
 const KitchenAssign = () => {
   let baseURL = configs.baseURL;

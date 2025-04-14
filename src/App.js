@@ -12,7 +12,7 @@ import axios from "axios";
 import TableView from "./Components/TableView";
 import ReactLoading from "react-loading";
 import configs, { getParameterByName } from "./Constants";
-import Setting from "./Components/Setting";
+//import Setting from "./Components/Setting";
 import Epos from "./Components/Epos";
 import DashBoard from "./Components/Dashboard";
 import Customers from "./Components/Customers";
@@ -239,8 +239,7 @@ function App() {
             <Route exact path="/merchantInfo" element={<MerchantInfo />} />
             <Route exact path="/reports" element={<Reports />} />
             <Route exact path="/table" element={<TableView />} />
-            <Route exact path="/setting" element={<Setting />} />
-            <Route exact path="/settingnew" element={<SettingNew />}/>
+            <Route exact path="/setting" element={<SettingNew />}/>
             <Route
               exact
               path="/epos"
@@ -270,8 +269,7 @@ function App() {
                 path="/productDetails"
                 element={<Cl_Fooddescription />}
               />
-              <Route exact path="/setting" element={<Setting />} />
-              <Route exact path="/settingnew" element={<SettingNew />}/>
+              <Route exact path="/setting" element={<SettingNew />}/>
               <Route exact path="/table" element={<TableView />} />
               <Route exact path="/members" element={<Members />} />
               <Route exact path="/orderList" element={<OrderList />} />
@@ -311,8 +309,7 @@ function App() {
               <Route exact path="/merchantInfo" element={<MerchantInfo />} />
               <Route exact path="/reports" element={<Reports />} />
               <Route exact path="/table" element={<TableView />} />
-              <Route exact path="/setting" element={<Setting />} />
-              <Route exact path="/settingnew" element={<SettingNew />}/>
+              <Route exact path="/setting" element={<SettingNew />}/>
 
               <Route
                 exact
@@ -331,7 +328,7 @@ function App() {
           )}
         {!userSets && openSetting && (
           <Routes>
-            <Route exact path="/" element={<Setting />} />
+            <Route exact path="/" element={<SettingNew />} />
           </Routes>
         )}
       </Router>

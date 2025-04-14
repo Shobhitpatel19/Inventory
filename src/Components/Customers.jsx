@@ -11,7 +11,7 @@ import moment from "moment";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import { Box, TextField, Button } from "@mui/material";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
 const Customers = () => {
   const [customerData, setCustomerData] = useState([]);
   const [editedData, setEditedData] = useState([]);

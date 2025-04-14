@@ -274,7 +274,7 @@ const Dashboard = () => {
         </div>
       </div>
       <div className="item_list">
-        <h3>INVENTORY REPORT</h3>
+        <h3>MENU SUMMARY</h3>
 
         <div
           style={{

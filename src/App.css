@@ -195,6 +195,7 @@ padding: 5px;
   text-align: center;
   border: 3;
 }
+
 .pri {
   background-color: rgb(255, 188, 0);
   height: 25px;
@@ -285,6 +286,7 @@ padding: 5px;
     flex-wrap: wrap;
     min-height: 48px;
     width: 480px;
+    margin-top: 20px;
     padding: 0 8px;
     border: 1px solid rgb(214, 216, 218);
     border-radius: 6px;
@@ -309,7 +311,7 @@ padding: 5px;
   display: flex;
   flex-wrap: wrap;
   padding: 0;
-  margin: 8px 0 0 0;
+  margin: -3px;
 }
 
 .category-list {
@@ -339,11 +341,6 @@ padding: 5px;
   cursor: pointer;
 }
 
-.close-btn {
-  float: right;
-  margin-right: 30px;
-  margin-bottom: 8px;
-}
 .save-btn {
   float: right;
   margin-right: 8px;
@@ -361,6 +358,7 @@ padding: 5px;
   text-align: left;
   padding: 7px;
   flex-wrap: wrap;
+  min-height: 50px;
 }
 .header h4 {
   font-size: 1.3em;
@@ -918,8 +916,8 @@ padding: 5px;
 
 }
 .input_cls {
-  height: 46px;
-  width: 50%;
+  height: auto;
+  width: 100%;
   border-radius: 8px;
   outline: none;
   padding: 5px;
@@ -1394,18 +1392,19 @@ padding: 5px;
 .rowS {
   overflow: hidden;
   padding: 10px;
-  margin-bottom: -20px;
+  
 }
 .col {
   float: left;
-  width: 50%;
+  width: 33%;
+  padding: 5px;
 }
 
 .col-end {
   float: right;
   width: 80px;
   margin-top: 18px;
-  margin-left: auto;
+  margin-left: 10px;
 }
 
 
@@ -1428,6 +1427,7 @@ padding: 5px;
   background-color: white;
   float: right;
   width: 100%;
+  margin-right: 20px;
 }
 
 .fixed-buttons .MuiButton-root {
@@ -1904,7 +1904,7 @@ flex-wrap: wrap;
 .btnDialog-Fill{
   background-color:#f7c919!important;
   color:#000!important;
-  margin-right: 10px!important;
+
 }
 
 .textsmall_b{
@@ -2074,4 +2074,34 @@ flex-wrap: wrap;
 .table-body-row td {
   border: none; /* No borders for body rows */
   margin-top: 10px;
+}
+
+.tempOrder{
+  border-bottom: 2px solid #373737;
+  padding-bottom: 20px;
+}
+
+#category-select{
+  padding: 3px!important;
+}
+#category-select-label{
+  position: absolute;
+  display: inline-block;
+}
+.MuiMenu-list {
+      padding: '4px 0',
+    }
+
+.MuiMenuItem-root svg{
+ margin-right: 10px;
+}
+
+
+.tags-input-variety{
+  margin-top: 20px;
+}
+
+.small_row_inputs{
+  width: 150px;
+  margin-left: 10px!important;
 }

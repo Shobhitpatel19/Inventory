@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 
 import configs from "../Constants";
-import DeleteDiaologue from "./Delete";
+import DeleteDiaologue from "./sub_comp/Delete";
 
 const Inventories = () => {
   const [products, setProducts] = useState([]);
@@ -34,7 +34,7 @@ const Inventories = () => {
   const [newProduct, setNewProduct] = useState({
     id: "",
     name: "",
-    unitType: "kg",
+    unitType: "grams",
     availableQnty: "",
     minLimit: "",
     expiryDate: "",
@@ -143,7 +143,7 @@ const Inventories = () => {
     setNewProduct({
       id: "",
       name: "",
-      unitType: "kg",
+      unitType: "grams",
       availableQnty: "",
       minLimit: "",
       expiryDate: "",
@@ -246,9 +246,9 @@ const Inventories = () => {
             value={newProduct.unitType}
             onChange={handleInputChange}
           >
-            <MenuItem value="kg">kg</MenuItem>
-            <MenuItem value="ltr">ltr</MenuItem>
-            <MenuItem value="qnty">qnty</MenuItem>
+            <MenuItem value="grams">Grams</MenuItem>
+            <MenuItem value="milliliter">Milliliter</MenuItem>
+            <MenuItem value="quantity">Quantity</MenuItem>
           </TextField>
           <TextField
             fullWidth
@@ -303,13 +303,14 @@ const Inventories = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} color="secondary">
+          <Button style={{marginRight:"20px"}} onClick={handleClose} color="secondary">
             Close
           </Button>
           <Button
             onClick={isEditing ? handleUpdate : handleSave}
-            color="primary"
+            className={"btnDialog-Fill"}
             variant="contained"
+            color="success"
           >
             {isEditing ? "Update" : "Save"}
           </Button>
@@ -376,7 +377,7 @@ const Inventories = () => {
                       </Td>
                     </Tr>
                   ))
-              : "No products available"}
+              : <Tr><Td></Td><Td style={{width:"100px"}}>No products available</Td></Tr>}
           </Tbody>
         </Table>
         {products.length > 0 && (

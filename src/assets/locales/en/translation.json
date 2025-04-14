@@ -36,9 +36,9 @@
   "source": "Source",
   "token_table": "Token / Table No",
   "calling": "Calling",
-  "pay_now": "PAY NOW",
-  "deliver": "Deliver",
-  "ready": "Ready",
+  "pay_now": "PROCESS PAYMENT",
+  "deliver": "Deliver NOW",
+  "ready": "MARK READY",
   "table_details": "Table Details",
   "capacity": "Capacity",
   "order_summary_token": "Order summary token / table no",
@@ -80,6 +80,7 @@
                "split_pay_by":"Split Paid By",
                "paid_by_cash":"Paid By Cash",
                "bill_amount":"Total Amount",
-               "cash_change": "Cash Change"
+               "cash_change": "Cash Change",
+               "kitchen":"Kitchen"
 
 }
