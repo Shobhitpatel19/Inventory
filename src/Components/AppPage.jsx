@@ -4,12 +4,12 @@ import React from "react";
 function AppPage() {
     let domainName=window.location.href.indexOf('localhost') > 0 ?'xmedia-solutions.net':window.location.origin;
     // Replace with actual AWS file URLs for APKs or executables
-    const androidPOSUrl = "https://digisign24.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/android/pos.apk";
-    const androidSOKUrl = "https://digisign24.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/android/sok.apk";
+    const androidPOSUrl = "https://signage-common-assets.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/android/pos.apk";
+    const androidSOKUrl = "https://signage-common-assets.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/android/sok.apk";
     const iosPOSUrl = "https://your-aws-bucket/ios-pos-app.ipa";
     const iosSOKUrl = "https://your-aws-bucket/ios-sok-app.ipa";
-    const windowsPOSUrl = "https://digisign24.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/windows/pos.zip";
-    const windowsSOKUrl = "https://digisign24.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/windows/sok.zip";
+    const windowsPOSUrl = "https://signage-common-assets.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/windows/pos.zip";
+    const windowsSOKUrl = "https://signage-common-assets.s3.ap-south-1.amazonaws.com/apps/"+domainName+"/windows/sok.zip";
 
     const handleDownload = (url) => {
         window.open(url, '_blank');

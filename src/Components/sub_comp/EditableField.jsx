@@ -11,6 +11,8 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import Select, { SelectChangeEvent } from "@mui/material/Select";
+import Autocomplete from "@mui/material/Autocomplete";
 import axios from "axios";
 import configs from "../../Constants";
 
@@ -23,6 +25,7 @@ export default function EditableField({
   setUserInfo,
   isEditable = true,
   width = "250px",
+  options
 }) {
   const [editMode, setEditMode] = useState(false);
   const [fieldValue, setFieldValue] = useState(value);
@@ -135,12 +138,20 @@ export default function EditableField({
     setMediaOpen(false);
     handleSaveForImg(fullUrl); 
   };
+   const handleChange = (val, key) => {
+    console.log(key);
+    console.log(val);
+    if(key == 'locale'){
+      localStorage.setItem('locale',Object.keys(val)[0]);
+    }
+  }
 
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <label style={{ fontWeight: "bold", width: "40%" }}>{label}:</label>
-        {editMode && fieldKey !== "logo" ? (
+        
+        <label style={{ width: "40%",color:"#726e6e" }}>{label}:</label>
+        {(editMode && fieldKey !== "logo") && 
           <TextField
             size="small"
             type={type}
@@ -148,8 +159,9 @@ export default function EditableField({
             onChange={(e) => setFieldValue(e.target.value)}
             disabled={loading}
             style={{ width }}
-          />
-        ) : type === "color" ? (
+          />}
+
+        {!editMode && type === "color" && 
           <div
             style={{
               width: "40px",
@@ -160,7 +172,9 @@ export default function EditableField({
               cursor: "pointer",
             }}
           ></div>
-        ) : fieldKey === "logoImg" ? (
+          } 
+
+        {fieldKey === "logoImg" && 
           <img
             src={fieldValue}
             alt="Logo"
@@ -171,14 +185,42 @@ export default function EditableField({
               borderRadius: "4px",
             }}
           />
-        ) : (
-          <span style={{ width: "20%", height: "25px", overflow: "hidden" }}>
+        }
+        {type == 'select' &&
+          <Autocomplete
+            size="small"
+            options={options}
+            getOptionLabel={(option) => option[Object.keys(option)[0]] || ""}
+            value={options.find(o => Object.keys(o)[0] == value )}
+            onChange={(event, newValue) => handleChange(newValue,fieldKey)}
+            renderInput={(params) => (
+              <TextField 
+                {...params} 
+                placeholder="Select" 
+                label="Select" 
+                style={{
+                  height: "50px",
+                  width:"200px",
+                  maxWidth: "200px",
+                  color:"#000"
+                }}
+              />
+            )}
+          />
+        } 
+
+
+        {(fieldKey !== "logoImg" &&
+        type != "color" && 
+        !editMode &&
+        type != 'select') &&
+        <span style={{ width: "20%", height: "25px", overflow: "hidden" }}>
             {fieldValue || "N/A"}
-          </span>
-        )}
+        </span>}
+      
 
         <div>
-          {isEditable ? (
+          {isEditable && type != 'select' ? (
             editMode && fieldKey !== "logoImg" ? (
               <>
                 <IconButton onClick={handleSave} disabled={loading}>

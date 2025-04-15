@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import configs, { getParameterByName } from "../Constants";
 import axios from "axios";
 import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
 
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
@@ -21,11 +22,43 @@ const Dashboard = () => {
   const [toDate, setToDate] = useState();
   const [report, setReport] = useState();
   const [value, setValue] = React.useState(1);
+  const [selectedBranch, setSelectedBranch] = useState("Main Branch");
+  const [branchId, setBranchId] = useState("main");
+  const [branchData, setBranchData] = useState({
+    totalBranches: 0,
+    newBranchesLastMonth: 0,
+    newBranchesLast3Months: 0
+  });
   const { formatMessage: t, locale, setLocale } = useIntl();
+  const navigate = useNavigate();
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
+
+  useEffect(() => {
+    // Listen for branch selection changes from localStorage or sessionStorage
+    const checkBranchChanges = () => {
+      const storedBranch = sessionStorage.getItem("selectedBranch");
+      const storedBranchId = sessionStorage.getItem("selectedBranchId");
+      
+      if (storedBranch && storedBranch !== selectedBranch) {
+        setSelectedBranch(storedBranch);
+      }
+      
+      if (storedBranchId && storedBranchId !== branchId) {
+        setBranchId(storedBranchId);
+      }
+    };
+
+    // Initial check
+    checkBranchChanges();
+    
+    // Setup an interval to check for changes
+    const interval = setInterval(checkBranchChanges, 1000);
+    
+    return () => clearInterval(interval);
+  }, [selectedBranch, branchId]);
 
   useEffect(() => {
     const today = new Date();
@@ -106,6 +139,96 @@ const Dashboard = () => {
     }
   }, [fromDate, toDate, baseURL, merchCode]);
 
+  useEffect(() => {
+    // Fetch branch data when component mounts
+    const fetchBranchData = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        const authApiServer = configs.authapi;
+        const userId = userData ? userData.sub : " ";
+
+        if (userId && userId !== " ") {
+          const response = await axios.get(`${authApiServer}/user/members?userid=${userId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          // Filter out IAM users to get only branches
+          const branches = response.data.filter(member => !member.isIAM);
+          
+          // Calculate metrics
+          const totalBranches = branches.length;
+          
+          // Calculate branches added last month
+          const lastMonthDate = new Date();
+          lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+          
+          const branchesLastMonth = branches.filter(branch => {
+            const createdDate = new Date(branch.createdDate);
+            return createdDate >= lastMonthDate;
+          }).length;
+          
+          // Calculate branches added in last 3 months
+          const last3MonthsDate = new Date();
+          last3MonthsDate.setMonth(last3MonthsDate.getMonth() - 3);
+          
+          const branchesLast3Months = branches.filter(branch => {
+            const createdDate = new Date(branch.createdDate);
+            return createdDate >= last3MonthsDate;
+          }).length;
+          
+          setBranchData({
+            totalBranches,
+            newBranchesLastMonth: branchesLastMonth,
+            newBranchesLast3Months: branchesLast3Months
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching branch data:", error);
+      }
+    };
+    
+    if(userData && userData.role.toUpperCase() === "FRANCHISE-ADMIN"){
+    fetchBranchData();
+    }
+   
+  }, []);
+
+  const handleCloneMenu = async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      
+      const merchantDataObj = JSON.parse(sessionStorage.getItem("merchantData"));
+      const merchantcode = merchantDataObj ? merchantDataObj.merchantCode : "";
+      // console.log("Merchant code for cloning:", merchantcode);
+      const cloneData = {
+        sourceFranchiseId: merchantcode,
+        targetFranchiseId: ""
+      };
+      
+      const response = await axios.post(
+        `${baseURL}/api/franchise/clone-menu/`,
+        cloneData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (response.status === 200) {
+        alert("Menu cloned successfully!");
+      } else {
+        alert("Failed to clone menu. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error cloning menu:", error);
+      alert("An error occurred while cloning the menu.");
+    }
+  };
+
   const totalOrders = report ? report.length : 0;
   const totalAmount = report
     ? report.reduce((sum, item) => sum + item.totalPrice, 0)
@@ -116,16 +239,98 @@ const Dashboard = () => {
 
   return (
     <div className="main_dash">
-      <h4
-        style={{
-          marginBottom: "0px",
-          fontSize: "25px",
-          fontWeight: "bolder",
-          letterSpacing: "2px",
-        }}
-      >
-        Welcome!
-      </h4>
+      <div className="welcome-container">
+        <h4 className="welcome-heading">Welcome!</h4>
+        {userData && userData.role.toUpperCase() === "FRANCHISE-ADMIN" && (
+          <button className="member-btn" onClick={() => navigate('/members')}>
+            + add member
+          </button>
+        )}
+      </div>
+      
+     {userData && userData.role.toUpperCase() === "FRANCHISE-ADMIN" && <div className="item_list branch-info-container">
+        <div className="branch-info-header">
+          <h3>FRANCHISE SUMMARY </h3>
+          <button className="member-btn" onClick={handleCloneMenu}>
+            Clone Menu
+          </button>
+        </div>
+        <div
+          className="branch-info-wrapper"
+          style={{
+            display: "flex",
+            gap: "2%",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "5px",
+          }}
+        >
+          <Card className="list branch-metric-card" sx={{ minWidth: "20%" }}>
+            <CardContent>
+              <Typography
+                sx={{ fontSize: 16 }}
+                color="text.secondary"
+                gutterBottom
+                className="branch-metric-label"
+              >
+                Total Branches
+              </Typography>
+              <Typography 
+                variant="h5" 
+                component="div" 
+                sx={{ fontSize: 36 }}
+                className="branch-metric-value"
+              >
+                {branchData.totalBranches}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card className="list branch-metric-card" sx={{ minWidth: "20%" }}>
+            <CardContent>
+              <Typography
+                sx={{ fontSize: 16 }}
+                color="text.secondary"
+                gutterBottom
+                className="branch-metric-label"
+              >
+                Added previous month
+              </Typography>
+              <Typography 
+                variant="h5" 
+                component="div" 
+                sx={{ fontSize: 36 }}
+                className="branch-metric-value"
+              >
+                {branchData.newBranchesLastMonth}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card className="list branch-metric-card" sx={{ minWidth: "20%" }}>
+            <CardContent>
+              <Typography
+                sx={{ fontSize: 16 }}
+                color="text.secondary"
+                gutterBottom
+                className="branch-metric-label"
+              >
+                Added In 3 Months
+              </Typography>
+              <Typography 
+                variant="h5" 
+                component="div" 
+                sx={{ fontSize: 36 }}
+                className="branch-metric-value"
+              >
+                {branchData.newBranchesLast3Months}
+              </Typography>
+            </CardContent>
+          </Card>
+        </div>
+      </div>}
+
       <div className="item_list">
         <h3>SALES REPORT</h3>
 

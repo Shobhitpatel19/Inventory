@@ -41,47 +41,47 @@ function Help() {
         {
             title: "Introduction",
             description: "Introduction And Overview",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/intro-and-overview.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/intro-and-overview.mp4"
         },
         {
             title: "Category and Varieties",
             description: "How to Create Categories And Varieties",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Two-1-categories-and-variety-point.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Two-1-categories-and-variety-point.mp4"
         },
         {
             title: "Add on Category",
             description: "Creating Addons Category And its Items",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Two-2-create-add-on-categories-and-item.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Two-2-create-add-on-categories-and-item.mp4"
         },
         {
             title: "Creating Items",
             description: "Creating Items / Products",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Three-creating-items-with-varieties-and-add-ons.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Three-creating-items-with-varieties-and-add-ons.mp4"
         },
         {
             title: "Manage Order",
             description: "How to Manage Order",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Five-Manage-orders.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Five-Manage-orders.mp4"
         },
         {
             title: "Staff Login",
             description: "Responsive Member Login",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Four-1-how-to-login-to-pos-using-tablet-and-mobile.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Four-1-how-to-login-to-pos-using-tablet-and-mobile.mp4"
         },
         {
             title: "Dine In Order",
             description: "How to Order For Dine In",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Four-2-how-to-place-order-for-dine-in-using-admin.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Four-2-how-to-place-order-for-dine-in-using-admin.mp4"
         },
         {
             title: "Delivery Order",
             description: "How to Order For Delivery",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Four-3-how-to-place-order-for-delivery.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Four-3-how-to-place-order-for-delivery.mp4"
         },
         {
             title: "Reports",
             description: "Reports Section with Download Feature",
-            src: "https://digisign24.s3.ap-south-1.amazonaws.com/common/pos-help/Six-Reports.mp4"
+            src: "https://signage-common-assets.s3.ap-south-1.amazonaws.com/common/pos-help/Six-Reports.mp4"
         },
     ];
 

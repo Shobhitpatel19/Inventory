@@ -43,21 +43,16 @@ import html2pdf from "html2pdf.js";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import axios from "axios";
-import { Dialog } from "@mui/material";
+import { Dialog, Divider } from "@mui/material";
 import { useIntl } from "react-intl";
 
 function Nav(props) {
   const [open1, setOpen1] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [franchiseAnchorEl, setFranchiseAnchorEl] = React.useState(null);
-  const [selectedFranchise, setSelectedFranchise] = React.useState("Main Branch");
-  const [franchises, setFranchises] = React.useState([
-    { id: 1, name: "Main Branch" },
-    { id: 2, name: "Downtown Location" },
-    { id: 3, name: "Uptown Location" },
-    { id: 4, name: "West Side Branch" },
-    { id: 5, name: "East Side Branch" }
-  ]);
+  const [selectedFranchise, setSelectedFranchise] = React.useState("");
+  const [selectedFranchiseId, setSelectedFranchiseId] = React.useState("");
+  const [members, setMembers] = React.useState([]);
   
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
@@ -83,9 +78,36 @@ function Nav(props) {
   // const closeModal = () => setPopUpOpen(false);
 
   let baseURL = configs.baseURL;
+  let authApiServer = configs.authapi;
   const getTabByUser = baseURL + "/api/tables?merchantCode=" + merchCode;
 
-  const token = getParameterByName("token");
+  const token = getParameterByName("token") || sessionStorage.getItem("token");
+
+  useEffect(() => {
+    if (userId && userId !== " ") {
+      const token = sessionStorage.getItem("token");
+      
+      axios.get(`${authApiServer}/user/members?userid=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+        .then(response => {
+          const filteredMembers = response.data.filter(member => !member.isIAM);
+          setMembers(filteredMembers);
+          
+          // const mainBranch = filteredMembers.find(member => member.role === "FRANCHISE-ADMIN");
+          if (filteredMembers.length > 0) {
+            setSelectedFranchise(filteredMembers[0].firstName || "Branch");
+            setSelectedFranchiseId(filteredMembers[0].id);
+          }
+          
+        })
+        .catch(error => {
+          console.error("Error fetching members:", error);
+        });
+    }
+  }, [userId, authApiServer]);
 
   const paramPath = merchantInParam ? "merchantCode=" + merchCode : "";
   const catPath = `/categories?${paramPath}`;
@@ -161,8 +183,15 @@ function Nav(props) {
     setFranchiseAnchorEl(null);
   };
 
-  const handleFranchiseSelect = (franchise) => {
-    setSelectedFranchise(franchise.name);
+  const handleFranchiseSelect = (member) => {
+    setSelectedFranchise(member.firstName || member.branchName || member.name);
+    setSelectedFranchiseId(member.id);
+      
+    // Store branch information in sessionStorage for Dashboard component
+    sessionStorage.setItem("selectedBranch", member.firstName || member.branchName || member.name);
+    sessionStorage.setItem("selectedBranchId", member.id);
+    
+    // You can add code here to switch to the selected franchise/branch
     handleFranchiseClose();
   };
 
@@ -477,7 +506,7 @@ const handleDashboard = () => {
       </div>
           {/*  */}
       <span className="nav-links">
-        {userData && userData.role === "FRANCHISE-ADMIN" && (
+        {userData && userData.role === "FRANCHISE-ADMIN" && members.length > 0 && (
           <div className="franchise-dropdown">
             <Button 
               className="franchise-selector"
@@ -487,7 +516,7 @@ const handleDashboard = () => {
               aria-expanded={franchiseMenuOpen ? "true" : undefined}
               endIcon={<KeyboardArrowDownIcon />}
             >
-              {selectedFranchise}
+              {selectedFranchise || "Select Branch"}
             </Button>
             <Menu
               id="franchise-menu"
@@ -498,13 +527,38 @@ const handleDashboard = () => {
                 "aria-labelledby": "franchise-selector",
               }}
             >
-              {franchises.map((franchise) => (
+              <MenuItem 
+                onClick={() => {
+                  setSelectedFranchise("Main Branch");
+                  setSelectedFranchiseId("main");
+                  
+                  // Store main branch information in sessionStorage for Dashboard component
+                  sessionStorage.setItem("selectedBranch", "Main Branch");
+                  sessionStorage.setItem("selectedBranchId", "main");
+                  
+                  handleFranchiseClose();
+                }}
+                selected={selectedFranchiseId === "main"}
+              >
+                Main Branch
+              </MenuItem>
+              {members.length > 0 && (
+                <Divider sx={{ my: 1 }} />
+              )}
+              {members.length > 0 && (
+                <MenuItem disabled sx={{ opacity: 1, fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>
+                  
+                </MenuItem>
+              )}
+              
+              {members.map((member) => (
                 <MenuItem 
-                  key={franchise.id} 
-                  onClick={() => handleFranchiseSelect(franchise)}
-                  selected={selectedFranchise === franchise.name}
+                  key={member.id} 
+                  onClick={() => handleFranchiseSelect(member)}
+                  selected={selectedFranchiseId === member.id}
+                  sx={{ pl: 2 }}
                 >
-                  {franchise.name}
+                  {member.firstName || "Branch"}
                 </MenuItem>
               ))}
             </Menu>

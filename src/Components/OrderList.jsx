@@ -792,7 +792,7 @@ const OrderList = (props) => {
     console.log("id for temp", orderId);
     try {
       const res = await axios.put(
-        `https://inventory-service-gthb.onrender.com/api/temporders/${orderId}`,
+        `${baseURL}/api/temporders/${orderId}`,
         { orderStatus: "ACCEPTED" },
         {
           headers: {
@@ -812,7 +812,7 @@ const OrderList = (props) => {
     console.log("id for temp", orderId);
     try {
       const res = await axios.put(
-        `https://inventory-service-gthb.onrender.com/api/temporders/${orderId}`,
+        `${baseURL}/api/temporders/${orderId}`,
         { orderStatus: "REJECTED" },
         {
           headers: {

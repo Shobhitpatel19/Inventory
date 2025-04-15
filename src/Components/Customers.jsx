@@ -73,7 +73,7 @@ const Customers = () => {
   const handleSubmit = () => {
     console.log(mobileNo);
     axios
-      .put(`https://authapi.digitallive24.com/customer/${editedData.id}`, {
+      .put(`${authApi}/customer/${editedData.id}`, {
         phone: mobileNo !== 0 ? mobileNo : editedData.phone,
         firstName: name !== "" ? name : editedData.firstName,
         address: address !== "" ? address : editedData.address,
@@ -101,7 +101,7 @@ const Customers = () => {
   const handleConfirmDelete = () => {
     if (deleteItemId) {
       axios
-        .delete(`https://authapi.digitallive24.com/customer/${deleteItemId}`)
+        .delete(`${authApi}/customer/${deleteItemId}`)
         .then((response) => {
           getCustomerList();
         });
@@ -123,7 +123,7 @@ const Customers = () => {
     try{
       if (id) {
         await axios
-          .get(`https://authapi.digitallive24.com/customer/${id}`)
+          .get(`${authApi}/customer/${id}`)
           .then((res) => {
             console.log(res.data);
             const data = res.data;

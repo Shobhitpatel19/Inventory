@@ -1052,6 +1052,109 @@ padding: 5px;
   color:#162033 ;
 }
 
+.welcome-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.welcome-heading {
+  margin-bottom: 0px;
+  font-size: 25px;
+  font-weight: bolder;
+  letter-spacing: 2px;
+}
+
+.member-btn {
+  background-color: #000000;
+  color: #f7bc0f;
+  border: none;
+  border-radius: 50px;
+  padding: 8px 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.member-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.franchise-dropdown {
+  display: inline-block;
+  margin-right: 10px;
+  position: relative;
+}
+
+.franchise-selector {
+  background-color: #f7c919 !important;
+  color: #000 !important;
+  font-weight: bold !important;
+  border-radius: 50px !important;
+  padding: 6px 20px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px;
+  min-width: 180px !important;
+  text-align: center;
+}
+
+#franchise-menu {
+  border-radius: 10px;
+  margin-top: 5px;
+}
+
+#franchise-menu .MuiMenuItem-root {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+#franchise-menu .MuiMenuItem-root.Mui-selected {
+  background-color: rgba(247, 201, 25, 0.2);
+  color: #000;
+  font-weight: bold;
+}
+
+#franchise-menu .MuiMenuItem-root:hover {
+  background-color: rgba(247, 201, 25, 0.1);
+}
+
+.welcome-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.welcome-heading {
+  margin-bottom: 0px;
+  font-size: 25px;
+  font-weight: bolder;
+  letter-spacing: 2px;
+}
+
+.member-btn {
+  background-color: #000000;
+  color: #f7bc0f;
+  border: none;
+  border-radius: 50px;
+  padding: 8px 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.member-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
 .cat_epos_icon{
   width: 80px;
   height: 80px;
@@ -1879,6 +1982,13 @@ flex-wrap: wrap;
   .logo-holder {
     display: none;
   }
+
+  .settings{
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+  }
 }
 @media print {
 
@@ -2059,6 +2169,24 @@ flex-wrap: wrap;
 
 .table-Select.red{
   border: 2px solid red;
+}
+
+.branch-info-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.branch-info-header h3 {
+  margin: 10px 0;
+}
+
+.branch-info-header .member-btn {
+  white-space: nowrap;
 }
 
 .custom-table {

@@ -280,7 +280,7 @@ const handleAddInvItem = () => {
           <div><Button 
         variant="outlined" 
         size="small"
-        style={{right: "20px",position:"absolute",marginTop:"10px",maxWidth:"200px"}}
+        style={{right: "25px",position:"absolute",marginTop:"10px",maxWidth:"200px"}}
         startIcon={<AddIcon />}
         onClick={handleAddInvItem}
       >

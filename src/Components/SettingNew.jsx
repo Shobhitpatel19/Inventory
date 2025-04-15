@@ -9,6 +9,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AddIcon from "@mui/icons-material/Add";
 import Chip from "@mui/material/Chip";
+import { useMediaQuery } from "@mui/material";
+
 import {
   Edit as EditIcon,
   Check as CheckIcon,
@@ -21,6 +23,7 @@ export default function App() {
   const [providerDetail, setProviderDetail] = useState([]);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const isMobile = useMediaQuery("(max-width:768px)");
 
   const [dialogOPen, setDialogOPen] = useState(false);
   const [provider, setProvider] = useState("");
@@ -204,14 +207,14 @@ export default function App() {
 
   return (
     <div>
-      <div className="header">
-        <h4 align="center">Settings</h4>
+      <div className=" settings header">
+        <h4 align="start">Settings</h4>
         <Box
           sx={{
             width: "60%",
             display: "flex",
             alignItems: "center",
-            justifyContent: "start",
+            justifyContent: "start"
           }}
         >
           <ButtonGroup aria-label="Basic button group">
@@ -244,22 +247,22 @@ export default function App() {
       {tabValue === 0 && userInfo && (
         <div
           style={{
-            padding: "24px",
+            margin: "20px",
             display: "flex",
             flexDirection: "column",
-            gap: "24px",
-            overflowY: "auto",
-            maxHeight: "80vh",
+            overflowY: "scroll",
+            height:"calc(100vh - 144px)"
           }}
         >
           {/* Merchant Info */}
           <div
             style={{
-              padding: "16px",
+              padding: "0px 16px",
               border: "1px solid #ddd",
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
+              marginBottom:"20px"
             }}
           >
             <h2
@@ -274,8 +277,9 @@ export default function App() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "16px",
+                padding: "10px 20px"
               }}
             >
               <EditableField
@@ -285,7 +289,6 @@ export default function App() {
                 userInfo={userInfo}
                 setUserInfo={setUserInfo}
                 onUpdate={handleFieldUpdate}
-                isEditable={false}
               />
               <EditableField
                 label="Merchant Code"
@@ -336,11 +339,12 @@ export default function App() {
           {/* Common Info */}
           <div
             style={{
-              padding: "16px",
+              padding: "0px 16px",
               border: "1px solid #ddd",
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
+              marginBottom:"20px"
             }}
           >
             <h2
@@ -356,28 +360,17 @@ export default function App() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "16px",
+                padding: "10px 20px"
               }}
             >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <label style={{ fontWeight: "bold", width: "40%" }}>
-                  Show Order Panel (in Left)
-                </label>
-                <input
-                  type="checkbox"
-                  checked={!!userInfo.isLeftAlign}
-                  onChange={() => handleCheckboxChange("isLeftAlign")}
-                  style={{ width: "20px", height: "20px" }}
-                />
-              </div>
+              
 
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <label style={{ fontWeight: "bold", width: "40%" }}>
+                <label style={{ color:"#726e6e", width: "40%" }}>
                   Veg/Non-Veg Filter:
                 </label>
                 <input
@@ -391,7 +384,7 @@ export default function App() {
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <label style={{ fontWeight: "bold", width: "40%" }}>
+                <label style={{ color:"#726e6e", width: "40%" }}>
                   Only Take Away
                 </label>
                 <input
@@ -405,7 +398,7 @@ export default function App() {
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <label style={{ fontWeight: "bold", width: "40%" }}>
+                <label style={{ color:"#726e6e", width: "40%" }}>
                   Customize In Wizard
                 </label>
                 <input
@@ -415,158 +408,91 @@ export default function App() {
                   style={{ width: "20px", height: "20px" }}
                 />
               </div>
-            </div>
-
-            <div
-              className="row"
-              style={{ marginBottom: "20px", marginTop: "20px" }}
-            >
-              <div className="col" style={{ paddingRight: "10px" }}>
-                <Box
-                  sx={{
-                    width: 400,
-                    maxWidth: "100%",
-                  }}
-                  noValidate
-                  autoComplete="off"
-                >
-                  <TextField
-                    fullWidth
-                    label="Dine-In Tax(%) "
-                    type="number"
-                    value={userInfo.dineinTax}
-                    onChange={(e) =>
-                      setUserInfo((prev) => ({
-                        ...prev,
-                        dineinTax: e.target.value,
-                      }))
-                    }
-                  />
-                </Box>
-              </div>
-              <div className="col" style={{ paddingLeft: "10px" }}>
-                <Box
-                  sx={{
-                    width: 400,
-                    maxWidth: "100%",
-                  }}
-                  noValidate
-                  autoComplete="off"
-                >
-                  <TextField
-                    fullWidth
-                    label="Default Tax %"
-                    type="number"
-                    value={userInfo.takeAwayTax}
-                    onChange={(e) =>
-                      setUserInfo((prev) => ({
-                        ...prev,
-                        takeAwayTax: e.target.value,
-                      }))
-                    }
-                  />
-                </Box>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+               <EditableField
+                label="Locale"
+                value={localStorage.getItem('locale')}
+                type="select"
+                fieldKey={'locale'}
+                options={[{'en':"English"},{'hi':"Hindi"},{'de-ch':"German"}]}
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
               </div>
             </div>
 
             <div
-              className="row"
-              style={{ marginBottom: "20px", marginTop: "20px" }}
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                gap: "16px",
+                marginTop: "16px",
+                padding: "10px 20px",
+                marginBottom:"10px"
+              }}
             >
-              <div className="col" style={{ paddingRight: "10px" }}>
-                <Box
-                  sx={{
-                    width: 400,
-                    maxWidth: "100%",
-                  }}
-                  noValidate
-                  autoComplete="off"
-                >
-                  <TextField
-                    fullWidth
-                    id="fullWidth"
-                    label="Latitude"
-                    type="number"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                  />
-                </Box>
-              </div>
-              <div className="col" style={{ paddingLeft: "10px" }}>
-                <Box
-                  sx={{
-                    width: 400,
-                    maxWidth: "100%",
-                  }}
-                  noValidate
-                  autoComplete="off"
-                >
-                  <TextField
-                    fullWidth
-                    id="fullWidth"
-                    label="Longitude"
-                    type="number"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                  />
-                </Box>
-              </div>
-            </div>
+              <EditableField
+                label="Default Tax (%)"
+                value={userInfo.takeAwayTax}
+                type="number"
+                fieldKey="takeAwayTax"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
+              <EditableField
+                label="Dine-In Tax (%)"
+                value={userInfo.dineinTax}
+                type="number"
+                fieldKey="dineinTax"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
+              
+              <EditableField
+                label="Latitude"
+                value={userInfo.location.coordinates[1] ?? ""}
+                type="number"
+                fieldKey="latitude"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+              />
 
-            <div
-              className="row"
-              style={{ marginBottom: "20px", marginTop: "20px" }}
-            >
-              <div className="col" style={{ paddingRight: "10px" }}>
-                <Box
-                  sx={{
-                    width: 400,
-                    maxWidth: "100%",
-                  }}
-                  noValidate
-                  autoComplete="off"
-                >
-                  <TextField
-                    fullWidth
-                    label="Open Time"
-                    type="number"
-                    value={userInfo.openTime}
-                    onChange={(e) =>
-                      setUserInfo((prev) => ({
-                        ...prev,
-                        openTime: e.target.value,
-                      }))
-                    }
-                  />
-                </Box>
-              </div>
-              <div className="col" style={{ paddingLeft: "10px" }}>
-                <Box
-                  sx={{
-                    width: 400,
-                    maxWidth: "100%",
-                  }}
-                  noValidate
-                  autoComplete="off"
-                >
-                  <TextField
-                    fullWidth
-                    label="Close Time"
-                    type="number"
-                    value={userInfo.closeTime}
-                    onChange={(e) =>
-                      setUserInfo((prev) => ({
-                        ...prev,
-                        closeTime: e.target.value,
-                      }))
-                    }
-                  />
-                </Box>
-              </div>
+              <EditableField
+                label="Longitude"
+                value={userInfo.location.coordinates[0] ?? ""}
+                type="number"
+                fieldKey="longitude"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+              />
+
+              <EditableField
+                label="Open Time"
+                value={userInfo.openTime}
+                type="number"
+                fieldKey="openTime"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
+              <EditableField
+                label="Close Time"
+                value={userInfo.closeTime}
+                type="number"
+                fieldKey="closeTime"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
             </div>
 
             {/* Save Button */}
-            <div style={{ marginTop: "16px",float:"right" }}>
+            <div style={{ marginBottom: "16px", float: "right" }}>
               <Button
                 variant="outlined"
                 color="primary"
@@ -580,11 +506,12 @@ export default function App() {
           {/* POS  Settings */}
           <div
             style={{
-              padding: "16px",
+              padding: "0px 16px",
               border: "1px solid #ddd",
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
+              marginBottom:"20px"
             }}
           >
 
@@ -597,17 +524,41 @@ export default function App() {
             >
               POS Settings
             </h2>
-              coming soon...
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                gap: "16px",
+                padding: "10px 20px",
+                marginBottom:"10px"
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <label style={{ color:"#726e6e", width: "40%" }}>
+                 Left Aligned Order Panel  
+                </label>
+                <input
+                  type="checkbox"
+                  checked={!!userInfo.isLeftAlign}
+                  onChange={() => handleCheckboxChange("isLeftAlign")}
+                  style={{ width: "20px", height: "20px" }}
+                />
+              </div>
+              </div>
           </div>
 
           {/* SOK  Settings */}
           <div
             style={{
-              padding: "16px",
+              padding: "0px 16px",
               border: "1px solid #ddd",
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
+              marginBottom: "16px",
             }}
           >
 
@@ -626,11 +577,12 @@ export default function App() {
           {/* TTO  Settings */}
           <div
             style={{
-              padding: "16px",
+              padding: "0px 16px",
               border: "1px solid #ddd",
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
+              marginBottom: "16px"
             }}
           >
 
@@ -649,11 +601,12 @@ export default function App() {
           {/* Online Order  Settings */}
           <div
             style={{
-              padding: "16px",
+              padding: "0px 16px",
               border: "1px solid #ddd",
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
+              marginBottom: "16px"
             }}
           >
 
