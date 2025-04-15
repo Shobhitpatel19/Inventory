@@ -74,10 +74,10 @@ const Customers = () => {
     console.log(mobileNo);
     axios
       .put(`https://authapi.digitallive24.com/customer/${editedData.id}`, {
-        phone: mobileNo || editedData.phone,
-        firstName: name || editedData.firstName,
-        address: address || editedData.address,
-        email: email || editedData.email,
+        phone: mobileNo !== 0 ? mobileNo : editedData.phone,
+        firstName: name !== "" ? name : editedData.firstName,
+        address: address !== "" ? address : editedData.address,
+        email: email !== "" ? email : editedData.email,
       })
       .then((res) => {
         console.log(res.data);
@@ -117,16 +117,28 @@ const Customers = () => {
     setPage(newPage);
   };
 
-  const handleEdit = (id) => {
-    setEdit(true);
+  const handleEdit = async (id) => {
+    // setEdit(true);
     console.log(id);
-    if (id) {
-      axios
-        .get(`https://authapi.digitallive24.com/customer/${id}`)
-        .then((res) => {
-          console.log(res.data);
-          setEditedData(res.data);
-        });
+    try{
+      if (id) {
+        await axios
+          .get(`https://authapi.digitallive24.com/customer/${id}`)
+          .then((res) => {
+            console.log(res.data);
+            const data = res.data;
+            setEditedData(data);
+  
+            setName(data.firstName || "");
+            setMoblileNo(data.phone || "");
+            setAddress(data.address || "");
+            setEmail(data.email || "");
+          });
+      }
+    }catch (e){
+      console.log(e);
+    }finally{
+      setEdit(true);
     }
   };
   const filterCustomers = (e) => {
@@ -294,7 +306,8 @@ const Customers = () => {
                       fullWidth
                       id="fullWidth"
                       onChange={handleName}
-                      value={name ? name : editedData.firstName || ""}
+                      // value={name ? name : editedData.firstName || ""}
+                      value={name}
                     />
                   </Box>
                 </div>
@@ -316,7 +329,8 @@ const Customers = () => {
                         type="number"
                         onChange={handleMobileNo}
                         name="Mobile Number"
-                        value={mobileNo ? mobileNo : editedData.phone || 0}
+                        // value={mobileNo ? mobileNo : editedData.phone || 0}
+                        value={mobileNo}
                       />
                     </div>
                   </Box>
@@ -337,7 +351,8 @@ const Customers = () => {
                       fullWidth
                       id="fullWidth"
                       onChange={handleAddress}
-                      value={address ? address : editedData.address || ""}
+                      // value={address ? address : editedData.address || ""}
+                      value={address}
                     />
                   </Box>
                 </div>
@@ -358,7 +373,8 @@ const Customers = () => {
                         id="fullWidth"
                         onChange={handleEmail}
                         name="description"
-                        value={email ? email : editedData.email || ""}
+                        // value={email ? email : editedData.email || ""}
+                        value={email}
                       />
                     </div>
                   </Box>
