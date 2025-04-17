@@ -6,6 +6,7 @@ import TablePagination from "@mui/material/TablePagination";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
 import { Table, Thead, Tbody, Tr, Th, Td } from "react-responsive-list";
 import {
   Dialog,
@@ -230,7 +231,19 @@ const Inventories = () => {
         <DialogTitle>
           {isEditing ? "Edit Inventory" : "Add New Inventory"}
         </DialogTitle>
-        <DialogContent>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+        <DialogContent dividers>
           <TextField
             fullWidth
             margin="dense"
@@ -306,7 +319,11 @@ const Inventories = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button style={{marginRight:"20px"}} onClick={handleClose} color="secondary">
+          <Button
+            style={{ marginRight: "20px" }}
+            onClick={handleClose}
+            color="secondary"
+          >
             Close
           </Button>
           <Button
@@ -347,41 +364,43 @@ const Inventories = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {products.length
-              ? products
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((p) => (
-                    <Tr
-                      key={p.id}
-                      style={{ borderBottom: "1px solid #f0eeee" }}
-                    >
-                      <Td>{p.name}</Td>
-                      <Td>{p.unitType}</Td>
-                      <Td>{p.availableQnty}</Td>
-                      <Td>{p.minLimit}</Td>
-                      <Td>
-                        {p.expiryDate
-                          ? new Date(p.expiryDate).toLocaleDateString()
-                          : ""}
-                      </Td>
-                      <Td>
-                        <Checkbox checked={p.isOrderedNewStock} readOnly />
-                      </Td>
-                      <Td>{p.note}</Td>
-                      <Td>
-                        <IconButton color="info" onClick={() => handleEdit(p)}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDelete(p.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Td>
-                    </Tr>
-                  ))
-              : <Tr><Td></Td><Td style={{width:"100px"}}>No products available</Td></Tr>}
+            {products.length ? (
+              products
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((p) => (
+                  <Tr key={p.id} style={{ borderBottom: "1px solid #f0eeee" }}>
+                    <Td>{p.name}</Td>
+                    <Td>{p.unitType}</Td>
+                    <Td>{p.availableQnty}</Td>
+                    <Td>{p.minLimit}</Td>
+                    <Td>
+                      {p.expiryDate
+                        ? new Date(p.expiryDate).toLocaleDateString()
+                        : ""}
+                    </Td>
+                    <Td>
+                      <Checkbox checked={p.isOrderedNewStock} readOnly />
+                    </Td>
+                    <Td>{p.note}</Td>
+                    <Td>
+                      <IconButton color="info" onClick={() => handleEdit(p)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDelete(p.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Td>
+                  </Tr>
+                ))
+            ) : (
+              <Tr>
+                <Td></Td>
+                <Td style={{ width: "100px" }}>No products available</Td>
+              </Tr>
+            )}
           </Tbody>
         </Table>
         {products.length > 0 && (
