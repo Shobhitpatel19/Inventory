@@ -3,7 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, B
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 
-const DeleteDiaologue = ({ msg, open, onClose, onConfirm }) => {
+const DeleteDiaologue = ({ msg, open, onClose, onConfirm, itemName }) => {
   return (
     <Dialog
       open={open}
@@ -27,7 +27,8 @@ const DeleteDiaologue = ({ msg, open, onClose, onConfirm }) => {
         </IconButton>
       <DialogContent dividers>
         <DialogContentText>
-          Are you sure you want to {msg === "cancel" ? <span>Cancel</span> : <span>delete</span>} this item?
+        Are you sure you want to {msg === "cancel" ? "cancel" : "delete"}{" "}
+        {msg !== "" ? <strong>{itemName}</strong> : <span>this item</span>}{" "}?
         </DialogContentText>
       </DialogContent>
       <DialogActions>

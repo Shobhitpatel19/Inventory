@@ -10,7 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import AddIcon from "@mui/icons-material/Add";
 import Chip from "@mui/material/Chip";
 import { useMediaQuery } from "@mui/material";
-
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Edit as EditIcon,
   Check as CheckIcon,
@@ -20,12 +20,13 @@ import {
 export default function App() {
   const [tabValue, setTabValue] = useState(0);
   const [userInfo, setUserInfo] = useState(null);
-  const [providerDetail, setProviderDetail] = useState([]);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const isMobile = useMediaQuery("(max-width:768px)");
-
+  let userToken = sessionStorage.getItem("token") || "";
   const [dialogOPen, setDialogOPen] = useState(false);
+  const [providerDetail, setProviderDetail] = useState([]);
+  const [providerId, setProviderId] = useState("");
   const [provider, setProvider] = useState("");
   const [providerTitle, setProviderTitle] = useState("");
   const [providerCode, setProviderCode] = useState("");
@@ -47,7 +48,9 @@ export default function App() {
     if (!userId) return; // Prevent API call if userId is missing
 
     axios
-      .get(`${baseURL}/api/settings/${userId}`)
+      .get(`${baseURL}/api/settings/${userId}`,{
+          headers: { Authorization: `Bearer ${userToken}` },
+        })
       .then((res) => {
         console.log("Fetched user info:", res.data[0]);
         setLongitude(res.data[0].location.coordinates[0]);
@@ -55,11 +58,22 @@ export default function App() {
         setUserInfo(res.data[0]);
       })
       .catch((error) => {
-        console.error("Error fetching user info:", error);
-      });
-  }, [userId]);
+        
+         let newMerchCode = randomString(10, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+         handleSaveSettings(newMerchCode);
+         console.log("User settings not found", error);
 
-  console.log("userInfo", userInfo);
+      });
+  }, []);
+
+
+  useEffect(() => {
+    axios.get(baseURL + "/api/thp-source?userId=" + userId,{
+          headers: { Authorization: `Bearer ${userToken}` },
+        }).then((res) => {
+      setProviderDetail(res.data);
+    });
+  }, []);
 
   // Handle field update
   const handleFieldUpdate = (key, newValue) => {
@@ -70,46 +84,56 @@ export default function App() {
   };
 
   const handleCheckboxChange = (key) => {
-    setUserInfo((prev) => ({
-      ...prev,
-      [key]: !prev[key], // Toggle value
-    }));
+    const updatedUserInfo = {
+      ...userInfo,
+      [key]: !userInfo[key],
+    };
+    setUserInfo(updatedUserInfo);
+    handleSaveSettings(updatedUserInfo); // pass updated object
   };
 
-  const handleSaveSettings = async () => {
-    if (!userInfo) return;
+   const randomString = (length, chars)=> {
+    var result = "";
+    for (var i = length; i > 0; --i)
+      result += chars[Math.floor(Math.random() * chars.length)];
+    return result;
+  }
+
+  const handleSaveSettings = async (newMerchCode) => {
+    if (!userId) return;
 
     try {
-      await axios.put(`${baseURL}/api/settings/${userInfo.id}`, {
-        userId: userInfo.userId,
-        merchantCode: userInfo.merchantCode,
-        activeProviderId: userInfo.providerId,
-        sokBGImg: userInfo.bgImage,
-        activePaymentGateway: userInfo.activePaymentGateway,
-        activeDeliveryPartner: userInfo.delivaryPartner,
-        currency: userInfo.currency,
-        logoImg: userInfo.logoImg,
-        id: userInfo.id,
-        onlyTakeAway: userInfo.onlyTakeAway,
-        isLeftAlign: userInfo.isLeftAlign,
-        filterVegNonVeg: userInfo.filterVegNonVeg,
-        themeColor: userInfo.themeColor,
-        themeTxtColor: userInfo.themeTxtColor,
-        customizeInWizard: userInfo.customizeInWizard,
-        dineinTax: userInfo.dineinTax,
-        takeAwayTax: userInfo.takeAwayTax,
-        notes: userInfo.notes,
+      await axios.post(`${baseURL}/api/settings/${userId}`, {
+        userId: userId,
+        merchantCode: newMerchCode,
+        activeProviderId: "",
+        sokBGImg: "",
+        activePaymentGateway: "",
+        activeDeliveryPartner: "",
+        currency: "INR",
+        logoImg: "",
+        onlyTakeAway: "",
+        isLeftAlign: true,
+        filterVegNonVeg: true,
+        themeColor: "#f71919",
+        themeTxtColor: "#f71919",
+        customizeInWizard: true,
+        dineinTax: 0,
+        takeAwayTax: 5,
+        notes: "",
         location: {
           type: "Point",
-          coordinates: [longitude, latitude],
+          coordinates: [12.2, 77.7],
         },
-        openTime: userInfo.openTime,
-        closeTime: userInfo.closeTime,
-        taxPerc: userInfo.taxPerc,
-      });
+        openTime: "10:10",
+        closeTime: "23:00"
+       
+      },{
+          headers: { Authorization: `Bearer ${userToken}` },
+        });
 
       console.log("Settings updated successfully!");
-      toast.success("Setting updated successfully!");
+      toast.success(" New settings added successfully!");
     } catch (error) {
       console.error("Error updating settings:", error);
     }
@@ -133,6 +157,8 @@ export default function App() {
           userId: userId,
           provider: provider,
           merchantDetails: JSON.stringify(merchantDetails),
+        },{
+          headers: { Authorization: `Bearer ${userToken}` },
         })
         .then((res) => {
           console.log(res);
@@ -146,7 +172,9 @@ export default function App() {
           setRegion("");
 
           axios
-            .get(baseURL + "/api/thp-source?userId=" + userId)
+            .get(baseURL + "/api/thp-source?userId=" + userId,{
+          headers: { Authorization: `Bearer ${userToken}` },
+        })
             .then((res) => {
               console.log(res.data);
               setProviderDetail(res.data);
@@ -154,12 +182,15 @@ export default function App() {
               setOpen(false);
             });
         });
+      setDialogOPen(false);
     } else if (providerCode && providerTitle) {
       axios
         .post(baseURL + "/api/thp-source", {
           userId: userId,
           provider: provider,
           merchantDetails: JSON.stringify(merchantDetails),
+        },{
+          headers: { Authorization: `Bearer ${userToken}` },
         })
         .then((res) => {
           console.log(res);
@@ -171,13 +202,16 @@ export default function App() {
           setRegion("");
 
           axios
-            .get(baseURL + "/api/thp-source?userId=" + userId)
+            .get(baseURL + "/api/thp-source?userId=" + userId,{
+          headers: { Authorization: `Bearer ${userToken}` },
+        })
             .then((res) => {
               console.log(res.data);
               setProviderDetail(res.data);
               setOpen(false);
             });
         });
+      setDialogOPen(false);
     } else {
       console.log("errr");
     }
@@ -199,6 +233,20 @@ export default function App() {
     setProvider(filterData[0].provider);
     setIsTest(data.isTestAccount);
     setRegion(data.region);
+  };
+
+  const handleDelete = (cloverId) => {
+    axios.delete(baseURL + "/api/thp-source/" + cloverId,{
+          headers: { Authorization: `Bearer ${userToken}` },
+        }).then((res) => {
+      console.log(res);
+      axios.get(baseURL + "/api/thp-source?userId=" + userId,{
+          headers: { Authorization: `Bearer ${userToken}` },
+        }).then((res) => {
+        console.log(res.data);
+        setProviderDetail(res.data);
+      });
+    });
   };
 
   if (!userInfo) {
@@ -282,14 +330,35 @@ export default function App() {
                 padding: "10px 20px"
               }}
             >
-              <EditableField
-                label="Provider Name"
-                value={userInfo.firstName + userInfo.lastName || ""}
-                fieldKey="firstName"
-                userInfo={userInfo}
-                setUserInfo={setUserInfo}
-                onUpdate={handleFieldUpdate}
-              />
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <label style={{ width: "40%", color: "#726e6e" }}>
+                  Activate Provider :
+                </label>
+                <select
+                  className="select_input"
+                  value={userInfo.activeProviderId || ""}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    setUserInfo((prev) => ({
+                      ...prev,
+                      activeProviderId: selectedId,
+                    }));
+                    handleSaveSettings({
+                      ...userInfo,
+                      activeProviderId: selectedId,
+                    });
+                  }}
+                >
+                  <option value="">CUSTOM</option>
+                  {providerDetail.map((pro) => (
+                    <option key={pro.id} value={pro.id}>
+                      {pro.provider}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <EditableField
                 label="Merchant Code"
                 value={userInfo.merchantCode}
@@ -411,16 +480,20 @@ export default function App() {
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-               <EditableField
-                label="Locale"
-                value={localStorage.getItem('locale')}
-                type="select"
-                fieldKey={'locale'}
-                options={[{'en':"English"},{'hi':"Hindi"},{'de-ch':"German"}]}
-                userInfo={userInfo}
-                setUserInfo={setUserInfo}
-                onUpdate={handleFieldUpdate}
-              />
+                <EditableField
+                  label="Locale"
+                  value={localStorage.getItem("locale")}
+                  type="select"
+                  fieldKey={"locale"}
+                  options={[
+                    { en: "English" },
+                    { hi: "Hindi" },
+                    { ch: "German" },
+                  ]}
+                  userInfo={userInfo}
+                  setUserInfo={setUserInfo}
+                  onUpdate={handleFieldUpdate}
+                />
               </div>
             </div>
 
@@ -489,17 +562,6 @@ export default function App() {
                 setUserInfo={setUserInfo}
                 onUpdate={handleFieldUpdate}
               />
-            </div>
-
-            {/* Save Button */}
-            <div style={{ marginBottom: "16px", float: "right" }}>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleSaveSettings}
-              >
-                Save Changes
-              </Button>
             </div>
           </div>
 
@@ -767,7 +829,6 @@ export default function App() {
               <tbody>
                 {providerDetail.map((pro, i) => {
                   let detail = JSON.parse(pro.merchantDetails);
-                  console.log(detail.isTestAccount);
                   return (
                     <tr>
                       <td>{i + 1}</td>
@@ -779,12 +840,19 @@ export default function App() {
                       <td>{detail.region}</td>
                       <td>
                         <IconButton
-                          aria-label="delete"
-                          color="info"
                           onClick={() => handleEdit(pro.id)}
-                          className="btn bg-light mx-2"
+                          aria-label="edit"
+                          color="primary"
                         >
                           <EditIcon />
+                        </IconButton>
+
+                        <IconButton
+                          onClick={() => handleDelete(pro.id)}
+                          aria-label="delete"
+                          color="error"
+                        >
+                          <DeleteIcon />
                         </IconButton>
                       </td>
                     </tr>

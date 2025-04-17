@@ -90,6 +90,7 @@ const OrderList = (props) => {
   const [tempOrderView, setTempOrderView] = useState(1);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
+  const [deleteitemName, setDeleteItemName] = useState("");
   const [orderStatus, setOrderStatus] = useState("");
   const [tempOrders, setTempOrders] = useState([]);
   const [orderCancel, setOrderCancel] = useState(true);
@@ -214,7 +215,7 @@ const OrderList = (props) => {
     if (customerId) {
       console.log(customerId);
       axios
-        .get(`${authApi}/user/customers/${customerId}`)
+        .get(`${authApi}/customer/${customerId}`)
         .then((response) => {
           console.log(response.data);
           if (!response.data) {
@@ -251,61 +252,7 @@ const OrderList = (props) => {
     setCustomerOrderPop(false);
   };
 
-  // const handleOrderStatus = (orderStatus, order_id, order_payment, order) => {
-  //   console.log(order_id, order_payment);
-  //   // const orderStatus = event.target.value;
-  //   const SelectedorderItem = orderList.length
-  //     ? orderList.filter((order) => order.id === order_id)
-  //     : [];
-  //   console.log(SelectedorderItem);
-  //   setSelectedOrd(SelectedorderItem);
-
-  //   if (
-  //     orderStatus.toLowerCase() === "ready" ||
-  //     orderStatus.toLowerCase() === "deliver"
-  //   ) {
-  //     if (order_payment) {
-  //       console.log(order_payment);
-  //       axios
-  //         .put(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
-  //           action: orderStatus,
-  //         })
-  //         .then((response) => {
-  //           console.log("response data", response.data);
-  //           let today = new Date();
-  //           console.log(moment(today).format("DD/MMM/YYYY"));
-  //           axios.get(getOrderList).then((response) => {
-  //             //setTotalOrders(response.data);
-  //             console.log("order list", response.data);
-  //             setOrderList(response.data);
-  //           });
-  //           if (order && orderStatus.toLowerCase() === "ready") {
-  //             HandleReady([order]);
-  //           } else if (order && orderStatus === "deliver") {
-  //             HandleServed([order]);
-  //           }
-  //         });
-  //     } else {
-  //       setAlertOpen(true);
-  //     }
-  //   } else {
-  //     axios
-  //       .delete(`${baseURL}/api/orders/${order_id}?merchantCode=${merchCode}`, {
-  //         action: orderStatus,
-  //       })
-  //       .then((response) => {
-  //         console.log(response.data);
-  //         let today = new Date();
-  //         console.log(moment(today).format("DD/MMM/YYYY"));
-  //         axios.get(getOrderList).then((response) => {
-  //           //setTotalOrders(response.data);
-  //           console.log("response for orders", response.data);
-  //           setOrderList(response.data);
-  //         });
-  //       });
-  //     console.log(orderStatus);
-  //   }
-  // };
+  
 
   const handleOrderStatus = (order_Status, order_id, order_payment, order) => {
     console.log(order_id, order_payment);
@@ -411,10 +358,11 @@ const OrderList = (props) => {
     setDeleteItemId(null);
   };
 
-  const handleCancel = async (order_id, order_cancel, tableId) => {
+  const handleCancel = async (order_id, order_cancel, tableId, orderNum) => {
     setOrderId(order_id);
     setOrderCancel(order_cancel);
     setTableId(tableId);
+    setDeleteItemName(`Order Token/Table#: ${orderNum}`);
     setOpenDeleteDialog(true);
   };
 
@@ -434,20 +382,8 @@ const OrderList = (props) => {
           }
         );
         if(tableId){
-        // Step 2: Fetch the table details directly from the API
-        const tableResponse = await axios.get(
-          `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`
-        );
-        console.log(tableResponse.data);
-        const tableToUpdate = tableResponse.data;
-
-        // Step 3: Free the table (only update isAvailable to true)
-        await axios.put(
-          `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`,
-          {
-            ...tableToUpdate,
-            isAvailable: true,
-          }
+        await axios.patch(
+          `${baseURL}/api/tables/${tableId}/availability?merchantCode=${merchCode}`
         );
         }
         fetchOrdersAndNoti();
@@ -591,6 +527,9 @@ const OrderList = (props) => {
 
   const handleDelete = (name, price, quantity, itemId) => {
     console.log(itemId);
+    setDeleteItemName(name); 
+    setDeleteItemId(itemId); 
+    setOpenDeleteDialog(true); 
   };
 
   const fetchOrdersAndNoti = () => {
@@ -946,9 +885,11 @@ const OrderList = (props) => {
 
       {openDeleteDialog === true ? (
         <DeleteDiaologue
+          msg="delete"
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
+          itemName={deleteitemName}
         />
       ) : (
         <div />
@@ -960,6 +901,7 @@ const OrderList = (props) => {
           open={openDeleteDialog}
           onClose={handleCancelClose}
           onConfirm={handleConfirmCancel}
+          itemName={deleteitemName}
         />
       ) : (
         <div />
@@ -1584,7 +1526,8 @@ const OrderList = (props) => {
                                     handleCancel(
                                       orderLists.id,
                                       orderLists.isCanceled,
-                                      orderLists.tableId
+                                      orderLists.tableId,
+                                      orderLists.number
                                     )
                                   }
                                 >

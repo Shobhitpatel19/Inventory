@@ -20,6 +20,9 @@ import FormGroup from "@mui/material/FormGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import TextField from "@mui/material/TextField";
+import { DialogContent, DialogActions } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { useIntl } from "react-intl";
 import DeleteDiaologue from "./sub_comp/Delete";
 //import { db } from "./../root/util";
@@ -35,6 +38,7 @@ function TableView(props) {
   const [logo, setLogo] = useState("");
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
+  const [deleteitemName, setDeleteItemName] = useState("");
   const { formatMessage: t, locale, setLocale } = useIntl();
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
@@ -47,27 +51,9 @@ function TableView(props) {
     ? JSON.parse(sessionStorage.getItem("merchantData"))
     : null;
   const merchCode = merchantData ? merchantData.merchantCode : "";
+  const getTabByUser = `${baseURL}/api/tables?merchantCode=${merchCode}`;
+  let companyLogo = "/images/logo.png";
   let fbShouldCall = false;
-  useEffect(() => {
-    fetchTableData();
-
-    //fb listener for tables request
-    // const tbquery = ref(db, "tables/"+merchCode);
-    //   return onValue(tbquery, (snapshot) => {
-    //  const data = snapshot.val();
-
-    //   var promise2 = document.querySelector('#tbl_call_sound').play();
-    //  if (promise2 !== undefined) {
-    //    promise2.then(_ => {
-    //      // Autoplay started!
-    //    }).catch(error => {
-    //      // Autoplay was prevented.
-    //      // Show a "Play" button so that user can start playback.
-    //    });
-    //  }
-
-    //    });
-  }, []);
 
   const fetchTableData = async () => {
     await axios.get(getTabByUser).then((response) => {
@@ -75,41 +61,27 @@ function TableView(props) {
     });
   };
 
+    useEffect(() => {
+    fetchTableData();
+  }, []);
+
   // Function to toggle availability
   const handleToggleAvailability = async (tableId) => {
     try {
-      // Find the table to update
-      const tableToUpdate = tableData.find((table) => table.id === tableId);
-      if (!tableToUpdate) return;
-
-      const newAvailability = !tableToUpdate.isAvailable;
-
-      console.log("isAvailable", newAvailability);
-
       // Call backend API
-      await axios.put(
-        `${baseURL}/api/tables/${tableId}?merchantCode=${merchCode}`,
-        {
-          ...tableToUpdate,
-          isAvailable: newAvailability,
-        }
-      );
-
-      // Update state only after API call succeeds
-      setTableData((prevData) =>
-        prevData.map((table) =>
-          table.id === tableId
-            ? { ...table, isAvailable: newAvailability }
-            : table
-        )
-      );
+      await axios.patch(
+        `${baseURL}/api/tables/${tableId}/availability?merchantCode=${merchCode}`
+      ).then((response) => {
+          fetchTableData();
+          setTableId("");
+        });
+      
     } catch (error) {
       console.error("Failed to update availability:", error);
     }
   };
 
-  const getTabByUser = `${baseURL}/api/tables?merchantCode=${merchCode}`;
-  let companyLogo = "/images/logo.png";
+  
 
   function base64Converter(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -137,11 +109,19 @@ function TableView(props) {
   const [tableId, setTableId] = useState("");
 
   const handleTabNum = (event) => {
-    setTabNum(event.target.value);
+    const value = event.target.value;
+    if (/^\d*$/.test(value)) {
+      setTabNum(value);
+    }
+    // setTabNum(event.target.value);
   };
 
   const handleCapacity = (e) => {
-    setTabCapcity(e.target.value);
+    const value = e.target.value;
+    if (/^\d*$/.test(value)) {
+      setTabCapcity(value);
+    }
+    // setTabCapcity(e.target.value);
   };
 
   const downloadQr = (element_id) => {
@@ -189,11 +169,7 @@ function TableView(props) {
           notes: notes,
         })
         .then((response) => {
-          console.log(response.data);
-          axios.get(getTabByUser).then((response) => {
-            console.log(response.data);
-            setTableData(response.data);
-          });
+          fetchTableData();
           setDialogOpen(false);
           setTableId("");
         });
@@ -207,11 +183,7 @@ function TableView(props) {
           notes: notes,
         })
         .then((response) => {
-          console.log(response.data);
-          axios.get(getTabByUser).then((response) => {
-            console.log(response.data);
-            setTableData(response.data);
-          });
+          fetchTableData();
           setDialogOpen(false);
           setIsAvailable(false);
           setNotes("");
@@ -222,23 +194,9 @@ function TableView(props) {
     }
   };
 
-  const handleDelete = (id) => {
-    // console.log(id);
-    // axios
-    //   .delete(
-    //     `${baseURL}/api/tables/${id}?merchantCode=${
-    //       merchantData.length ? merchantData[0].merchantCode : " "
-    //     }`
-    //   )
-    //   .then((response) => {
-    //     console.log(response.data);
-    //     axios.get(getTabByUser).then((response) => {
-    //       console.log(response.data);
-    //       setTableData(response.data);
-    //     });
-    //   });
-
+  const handleDelete = (id,number) => {
     setDeleteItemId(id);
+    setDeleteItemName(`Table #${number}`);
     setOpenDeleteDialog(true);
   };
 
@@ -260,23 +218,11 @@ function TableView(props) {
       )
       .then((response) => {
         console.log(response.data);
-        axios.get(getTabByUser).then((response) => {
-          console.log(response.data);
-          setTableData(response.data);
-        });
+        fetchTableData();
       });
     setOpenDeleteDialog(false);
     setDeleteItemId(null);
   };
-
-  const getData = async () => {
-    await axios.get(getTabByUser).then((response) => {
-      setTableData(response.data);
-    });
-  };
-  useEffect(() => {
-    getData();
-  }, []);
 
   const handleNote = (event) => {
     setNotes(event.target.value);
@@ -299,311 +245,100 @@ function TableView(props) {
     setTabNum(fltData[0].number);
     setDialogOpen(true);
   };
-  function openCanvas() {
-    const tableContainer = document.querySelector(".category-list");
-    const table = tableContainer.querySelector("table");
-
-    // Create canvas and set initial size
-    const canvas = document.createElement("canvas");
-    canvas.width = tableContainer.offsetWidth;
-    canvas.height = tableContainer.offsetHeight;
-    tableContainer.appendChild(canvas);
-
-    const ctx = canvas.getContext("2d");
-
-    const rectangleWidth = 250;
-    const rectangleHeight = 100;
-    const borderWidth = 2;
-    const spacing = 50;
-
-    let isDragging = false;
-    let clickedIndex = null;
-    let isFrozen = false;
-
-    function drawRectangle(index, tableInfo) {
-      const x = tableInfo.x;
-      const y = tableInfo.y;
-
-      ctx.strokeStyle = "black";
-      ctx.lineWidth = borderWidth;
-      ctx.strokeRect(x, y, rectangleWidth, rectangleHeight);
-
-      ctx.fillStyle = tableInfo.isAvailable ? "lightgreen" : "red";
-      ctx.fillRect(
-        x + borderWidth,
-        y + borderWidth,
-        rectangleWidth - borderWidth * 2,
-        rectangleHeight - borderWidth * 2
-      );
-
-      ctx.fillStyle = "black";
-      ctx.font = "24px Arial bold";
-      const textWidth = ctx.measureText(tableInfo.capacity).width;
-      const textX = x + (rectangleWidth - textWidth) / 2;
-      const textY = y + rectangleHeight / 2;
-      ctx.fillText(tableInfo.capacity, textX, textY);
-
-      ctx.font = "24px Arial bold";
-      ctx.fillText(
-        `Table ${tableInfo.number}`,
-        x + borderWidth + 20,
-        y + borderWidth + 20
-      );
-
-      const buttonWidth = 80;
-      const buttonHeight = 30;
-      const buttonX = x + rectangleWidth - buttonWidth - 10;
-      const buttonY = y + rectangleHeight - buttonHeight - 10;
-
-      ctx.fillStyle = "#007BFF";
-      ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
-      ctx.fillStyle = "white";
-      ctx.font = "14px Arial";
-      ctx.fillText("New Order", buttonX + 10, buttonY + 20);
-
-      const toggleWidth = 80;
-      const toggleHeight = 30;
-      const toggleX = x + 10;
-      const toggleY = y + rectangleHeight - toggleHeight - 10;
-
-      ctx.fillStyle = tableInfo.isAvailable ? "green" : "gray";
-      ctx.fillRect(toggleX, toggleY, toggleWidth, toggleHeight);
-      ctx.fillStyle = "white";
-      ctx.font = "14px Arial";
-      ctx.fillText(
-        tableInfo.isAvailable ? "Yes" : "No",
-        toggleX + 5,
-        toggleY + 20
-      );
-    }
-
-    function adjustCanvasSize() {
-      canvas.width = tableContainer.offsetWidth;
-      canvas.height = tableContainer.offsetHeight;
-
-      // Redraw rectangles after resizing
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      layoutCards();
-    }
-
-    function layoutCards() {
-      let currentX = borderWidth;
-      let currentY = borderWidth;
-
-      tableData.forEach((tableInfo, index) => {
-        if (currentX + rectangleWidth > canvas.width) {
-          currentX = borderWidth;
-          currentY += rectangleHeight + borderWidth * 2 + spacing;
-        }
-
-        tableInfo.x = currentX;
-        tableInfo.y = currentY;
-        drawRectangle(index, tableInfo);
-
-        currentX += rectangleWidth + borderWidth * 2 + spacing;
-      });
-    }
-
-    // API call to update table availability
-    function updateTableAvailability(tableInfo) {
-      const newAvailability = !tableInfo.isAvailable;
-
-      // Update the API
-      axios
-        .put(
-          `${baseURL}/api/tables/${tableInfo.id}?merchantCode=${merchCode}`,
-          {
-            number: tableInfo.number,
-            capacity: tableInfo.capacity,
-            isAvailable: newAvailability,
-            userId: merchCode,
-            notes: tableInfo.notes,
-          }
-        )
-        .then((response) => {
-          console.log(response.data);
-
-          // Update local state
-          tableInfo.isAvailable = newAvailability;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          layoutCards();
-        })
-        .catch((error) => {
-          console.error("Error updating table availability:", error);
-        });
-    }
-
-    // Initial layout of cards
-    layoutCards();
-
-    // Mouse event handling
-    canvas.addEventListener("mousedown", (event) => {
-      if (!isFrozen) {
-        const clickX = event.offsetX;
-        const clickY = event.offsetY;
-
-        tableData.forEach((tableInfo, index) => {
-          const x = tableInfo.x;
-          const y = tableInfo.y;
-
-          if (
-            clickX >= x &&
-            clickX <= x + rectangleWidth &&
-            clickY >= y &&
-            clickY <= y + rectangleHeight
-          ) {
-            isDragging = true;
-            clickedIndex = index;
-          }
-        });
-      }
-    });
-
-    canvas.addEventListener("mousemove", (event) => {
-      if (isDragging && !isFrozen) {
-        const newX = event.offsetX - rectangleWidth / 2;
-        const newY = event.offsetY - rectangleHeight / 2;
-        tableData[clickedIndex].x = newX;
-        tableData[clickedIndex].y = newY;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        layoutCards();
-      }
-    });
-
-    canvas.addEventListener("mouseup", () => {
-      isDragging = false;
-      clickedIndex = null;
-    });
-
-    canvas.addEventListener("click", (event) => {
-      const clickX = event.offsetX;
-      const clickY = event.offsetY;
-
-      tableData.forEach((tableInfo, index) => {
-        const x = tableInfo.x;
-        const y = tableInfo.y;
-
-        const buttonWidth = 80;
-        const buttonHeight = 30;
-        const buttonX = x + rectangleWidth - buttonWidth - 10;
-        const buttonY = y + rectangleHeight - buttonHeight - 10;
-
-        const toggleWidth = 80;
-        const toggleHeight = 30;
-        const toggleX = x + 10;
-        const toggleY = y + rectangleHeight - toggleHeight - 10;
-
-        if (
-          clickX >= buttonX &&
-          clickX <= buttonX + buttonWidth &&
-          clickY >= buttonY &&
-          clickY <= buttonY + buttonHeight
-        ) {
-          console.log(`New Order clicked for Table ${tableInfo.number}`);
-        }
-
-        if (
-          clickX >= toggleX &&
-          clickX <= toggleX + toggleWidth &&
-          clickY >= toggleY &&
-          clickY <= toggleY + toggleHeight
-        ) {
-          // Call the API to update availability
-          updateTableAvailability(tableInfo);
-        }
-      });
-    });
-
-    // Adjust canvas size on window resize
-    window.addEventListener("resize", adjustCanvasSize);
-
-    const freezeButton = document.createElement("button");
-    freezeButton.textContent = "Freeze Tables";
-    freezeButton.addEventListener("click", () => {
-      isFrozen = !isFrozen;
-      freezeButton.textContent = isFrozen ? "Unfreeze Tables" : "Freeze Tables";
-    });
-
-    tableContainer.appendChild(freezeButton);
-
-    // Toggle visibility of canvas and table
-    table.style.display = isTableView ? "block" : "none";
-    canvas.style.display = isTableView ? "none" : "block";
-
-    if (isTableView) {
-      table.style.display = "table";
-    }
-  }
+    
 
   return (
     <div>
-      <Dialog open={dialogOpen} maxWidth="mb" fullWidth={true}>
-        <DialogTitle
-          style={{  fontWeight: "bold" }}
-        >
+      <Dialog open={dialogOpen} maxWidth="md" fullWidth={true}>
+        <DialogTitle style={{ fontWeight: "bold" }}>
           {tableId ? "Edit Table Info" : "Add Table Info"}
         </DialogTitle>
-        <div
-          className="container"
-          style={{ padding: "20px 40px", borderRadius: "10px", margin: "20px" }}
-        >
-          <label>
-            {" "}
-            Table Number <span className="text-danger">*</span>
-          </label>
-          <input
-            className="input_cls"
-            type="text"
-            placeholder="Enter table no"
-            value={tabNum}
-            onChange={handleTabNum}
-          />{" "}
-          <br />
-          <label className="m-2">
-            {" "}
-            Table Capacity <span className="text-danger">*</span>
-          </label>
-          <input
-            className="input_cls"
-            type="number"
-            value={tabCapcity}
-            onChange={handleCapacity}
-          />
-          <span
-            style={{
-              display: "flex",
-              justifyContent: "left",
-              alignItems: "center",
-              marginTop: "12px",
-            }}
+
+        <DialogContent dividers>
+          <div
+            className="container"
+            style={{ padding: "20px 40px", borderRadius: "10px" }}
           >
-            Available:
-            <input
-              type="checkbox"
-              style={{
-                height: "25px",
-                width: "25px",
-                marginLeft: "5px",
-                accentColor: "#3622cc",
-              }}
-              checked={isAvailable}
-              onChange={handleAvail}
+            <TextField
+              className="input_cls"
+              fullWidth
+              label="Enter table no."
+              defaultValue=""
+              onChange={handleTabNum}
+              name="table_number"
+              value={tabNum}
             />
-          </span>
-          <label className="m-2"> Notes (optional)</label>
-          <input
-            className="input_cls"
-            type="text"
-            placeholder="Enter notes"
-            value={notes}
-            onChange={handleNote}
-          />
-          <br />
+            <br />
+            <TextField
+              className="input_cls"
+              fullWidth
+              label="Table Capacity"
+              defaultValue=""
+              onChange={handleCapacity}
+              name="table_capacity"
+              value={tabCapcity}
+              sx={{ mt: 2 }}
+            />
+            <span
+              style={{
+                display: "flex",
+                justifyContent: "left",
+                alignItems: "center",
+                marginTop: "12px",
+              }}
+            >
+              Available:
+              <input
+                type="checkbox"
+                style={{
+                  height: "25px",
+                  width: "25px",
+                  marginLeft: "5px",
+                  accentColor: "#3622cc",
+                }}
+                checked={isAvailable}
+                onChange={handleAvail}
+              />
+            </span>
+            <TextField
+              className="input_cls"
+              fullWidth
+              label="Enter notes"
+              defaultValue=""
+              onChange={handleNote}
+              name="notes"
+              value={notes}
+              sx={{ mt: 2 }}
+            />
+            <br />
+          </div>
+        </DialogContent>
+
+        <IconButton
+          aria-label="close"
+          onClick={() => {
+            setDialogOpen(false);
+            setIsAvailable(false);
+            setNotes("");
+            setTabCapcity("");
+            setTabNum("");
+            setTableId("");
+          }}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+
+        <DialogActions>
           <Button
-            variant="contained"
             color="error"
-            style={{ margin: "15px" }}
+            style={{ margin: "10px" }}
+            className="close-btn"
             onClick={() => {
               setDialogOpen(false);
               setIsAvailable(false);
@@ -613,17 +348,18 @@ function TableView(props) {
               setTableId("");
             }}
           >
-            Close{" "}
+            Close
           </Button>
           <Button
+            className="save-btn btnDialog-Fill"
             variant="contained"
-            style={{ margin: "15px" }}
             color="success"
+            style={{ margin: "10px" }}
             onClick={(e) => handleSubmit(e)}
           >
             Save
           </Button>
-        </div>
+        </DialogActions>
       </Dialog>
 
       {openDeleteDialog === true ? (
@@ -631,6 +367,8 @@ function TableView(props) {
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
+          itemName={deleteitemName}
+          msg="delete"
         />
       ) : (
         <div />
@@ -670,7 +408,9 @@ function TableView(props) {
             <AddIcon /> Add Table
           </button>
         ) : (
-          <span></span>
+          <button className="add_btn" onClick={() => setDialogOpen(true)}>
+            <AddIcon /> Add Table
+          </button>
         )}
       </div>
       {/* Edited By Sk */}
@@ -789,7 +529,7 @@ function TableView(props) {
                         aria-label="delete"
                         size="large"
                         color="error"
-                        onClick={() => handleDelete(tabInfo.id)}
+                        onClick={() => handleDelete(tabInfo.id, tabInfo.number)}
                       >
                         <DeleteIcon />
                       </IconButton>

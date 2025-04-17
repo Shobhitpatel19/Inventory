@@ -30,6 +30,7 @@ const Inventories = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
+  const [deleteItemName, setDeleteItemName] = useState("");
 
   const [newProduct, setNewProduct] = useState({
     id: "",
@@ -106,6 +107,8 @@ const Inventories = () => {
     //   console.error("Error deleting product", error);
     // }
 
+    const product = products.find((p) => p.id === id);
+    setDeleteItemName(product?.name || "this item");
     setDeleteItemId(id);
     setOpenDeleteDialog(true);
   };
@@ -322,6 +325,7 @@ const Inventories = () => {
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
+          itemName={deleteItemName}
         />
       ) : (
         <div />

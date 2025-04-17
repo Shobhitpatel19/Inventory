@@ -1091,7 +1091,7 @@ padding: 5px;
 }
 
 .franchise-selector {
-  background-color: #f7c919 !important;
+  border: 1px solid #f7c919 !important;
   color: #000 !important;
   font-weight: bold !important;
   border-radius: 50px !important;

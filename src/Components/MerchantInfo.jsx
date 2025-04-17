@@ -28,6 +28,7 @@ const MarchentInfo = () => {
   const [marchentUPI, setMarchentUPI] = useState();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
+  const [deleteItemName, setDeleteItemName] = useState("");
   const handleZomataAccordian = () => {
     setShowZmta(!showZmta);
   };
@@ -124,6 +125,9 @@ const MarchentInfo = () => {
     //   });
     // });
 
+    const merchant = marchentDtails.find((m) => m._id === deleteId);
+    const merchantName = merchant ? JSON.parse(merchant.loc_name).name : "this merchant";
+    setDeleteItemName(merchantName);
     setDeleteItemId(deleteId);
     setOpenDeleteDialog(true);
   };
@@ -301,6 +305,7 @@ const MarchentInfo = () => {
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
+          itemName={deleteItemName}
         />
       ) : (
         <div />

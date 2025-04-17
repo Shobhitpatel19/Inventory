@@ -57,7 +57,8 @@ function Category(props) {
   const [onlyAtPos, setOnlyAtPos] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
-
+ const token = getParameterByName("token") || sessionStorage.getItem("token");
+ const [deleteItemName, setDeleteItemName] = useState("");
   Array.prototype.move = function (from, to) {
     this.splice(to, 0, this.splice(from, 1)[0]);
   };
@@ -98,6 +99,7 @@ function Category(props) {
     axios.post(postQueriesUrl, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
+        'Authorization': `Bearer ${token}`
       },
     });
     setImageURL(`${configs.staticSer}/INVENTORY_ITEM/${fileName}`);
@@ -127,7 +129,12 @@ function Category(props) {
             userId: userData.sub,
             isOrderableAlone: orderableAlone,
             onlyAtPos: onlyAtPos,
-          }
+          },
+          {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
         )
         .then((response) => {
           fetchCatData();
@@ -146,7 +153,11 @@ function Category(props) {
           isOrderableAlone: orderableAlone,
           userId: userData.sub,
           onlyAtPos: onlyAtPos,
-        })
+        },{
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
         .then((response) => {
           fetchCatData();
         });
@@ -159,6 +170,8 @@ function Category(props) {
     // axios.delete(baseURL + "/api/categories/" + id).then((response) => {
     //   fetchCatData();
     // });
+    const category = categories.find((cat) => cat.id === id);
+    setDeleteItemName(category?.name || "this item");
     setDeleteItemId(id);
     setOpenDeleteDialog(true);
   };
@@ -170,7 +183,11 @@ function Category(props) {
 
   const handleConfirmDelete = () => {
     if (deleteItemId) {
-      axios.delete(baseURL + "/api/categories/" + deleteItemId).then((response) => {
+      axios.delete(baseURL + "/api/categories/" + deleteItemId,{
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).then((response) => {
         fetchCatData();
       });
     }
@@ -179,7 +196,11 @@ function Category(props) {
   };
 
   const fetchCatData = () => {
-    axios.get(getCatByUserUrl).then((response) => {
+    axios.get(getCatByUserUrl,{
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).then((response) => {
       //  console.log("responseData", response.data);
       setCategories(response.data);
       setDialogOpen(false);
@@ -217,6 +238,7 @@ function Category(props) {
     axios.post(postQueriesUrl, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
+        'Authorization': `Bearer ${token}`
       },
     });
     setImageURL(`${configs.staticSer}/INVENTORY_ITEM/${fileName}`);
@@ -249,7 +271,11 @@ function Category(props) {
     console.log("Selected Category:", cat);
 
     axios
-      .get(`${baseURL}/api/products?merchantCode=${merchCode}`)
+      .get(`${baseURL}/api/products?merchantCode=${merchCode}`,{
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       .then((response) => {
         const fetchedProducts = response.data;
         setProducts(fetchedProducts);
@@ -329,7 +355,11 @@ function Category(props) {
       axios
         .put(
           baseURL + "/api/categories/update_by_prop?propName=serialNumber",
-          reorderCatIds
+          reorderCatIds,{
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
         )
         .then(async (response) => {
           //fetchCatData();

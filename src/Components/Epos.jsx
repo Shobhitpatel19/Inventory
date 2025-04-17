@@ -120,7 +120,7 @@ const Epos = (props) => {
   );
   const [tableData, setTableData] = useState([]);
   const [customerData, setCustomerData] = useState([]);
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTable, setSelectedTable] = useState("");
   const [editPriceDialog, setEditPriceDialog] = useState(null);
   const [ordId, setOrdId] = useState("");
   const [searchAttempted, setSearchAttempted] = useState(false);
@@ -136,7 +136,6 @@ const Epos = (props) => {
   const handleTableChange = (tabNum) => {
     setSelectedTable(tabNum);
     let tabId = tableData.filter((tab) => tab.number === tabNum);
-    // console.log(tabId);
     localStorage.setItem("tableId", tabId[0].id);
     setTableDetail(false);
   };
@@ -147,11 +146,7 @@ const Epos = (props) => {
     // setIsDropdownOpen(false)
   };
   const randomNumber = Math.floor(Math.random() * 1000000000);
-  const customerID = custId
-    ? custId.toString()
-    : mobileNo
-    ? mobileNo
-    : randomNumber.toString();
+  const customerID = custId;
 
   const handleClose = () => {
     setAnchorEl(false);
@@ -257,12 +252,6 @@ const Epos = (props) => {
   // console.log(selectedCurrency);
 
   useEffect(() => {
-    // if (!categories.length) {
-    //   axios.get(getCatByUser).then((response) => {
-    //     //console.log(response.data);
-    //     setCategories(response.data);
-    //   });
-    // }
 
     const query = ref(db, "products/" + merchCode);
     return onValue(query, (snapshot) => {
@@ -408,45 +397,6 @@ const Epos = (props) => {
     }
   };
 
-  const handleMobileSubmit = () => {
-    if (phnumber) {
-      // createNewOrder()
-
-      if (existingData != {} && custId != "") {
-        axios
-          .put(`${authApi}/customer/${custId}`, {
-            phone: phnumber,
-            firstName: name,
-            address: address,
-          })
-          .then((res) => {
-            // console.log(res.data);
-            setOpenPhone(false);
-          });
-      } else {
-        let data = {
-          email: `${phnumber}@menulive.in`,
-          phone: phnumber,
-          firstName: name !== "" ? name : phnumber,
-          lastName: "",
-          address: address,
-          password: phnumber,
-          isEmailVerified: false,
-          isPhoneVerified: false,
-          referenceDetails: "",
-          merchantCode: merchCode,
-        };
-        axios
-          .post(`${authApi}/customer/auth-and-register`, { ...data })
-          .then((res) => {
-            setCustId(res.data.user.id);
-            // console.log(res.data);
-          });
-        setOpenPhone(false);
-      }
-    }
-  };
-
   const showVarietyBtn = (variety) => {
     if (!Object.keys(variety).length) return;
     let selectedVarArr = Object.keys(selectedVar);
@@ -530,13 +480,7 @@ const Epos = (props) => {
 
   const handleAdd = (indx) => {
     order.orderItems[indx].quantity += 1;
-    // let item = order.orderItems[indx].map(x => {
-    //   if ((x._id ? x._id : x.id) === itemId) {
-    //     x.quantity = x.quantity + 1;
-    //     subPro.quantity += 1
-    //   }
-    //   return x
-    // });
+    
     setOrderItem(order.orderItems);
   };
   // console.log(order);
@@ -704,31 +648,14 @@ const Epos = (props) => {
       setIsCustomerFound(false);
     }
   };
-
-  const fetchCustomers = async () => {
-    try {
-      const res = await axios.get(
-        `${authApi}/user/customers?merchantCode=${merchCode}`,
-        {
-          headers: { Authorization: `Bearer ${userToken}` },
-        }
-      );
-      setCustomerData(res.data);
-      // console.log("✅ Customers refreshed:", res.data);
-    } catch (err) {
-      console.error("❌ Failed to fetch customers:", err);
-    }
-  };
   // Add this new function to handle radio selection
   const handleCustomerSelect = (customer) => {
-    // console.log("This is  the customer object: " + JSON.stringify(customer));
     setName(customer.firstName);
     setEmail(customer.email);
     setPhnumber(customer.phone);
     setCustId(customer.id);
     setAddress(customer.address);
     setIsCustomerFound(true);
-    // setSearchResults([]);
   };
 
   const handleSaveCustomerSelection = () => {
@@ -771,9 +698,7 @@ const Epos = (props) => {
       console.log("Phone number is required");
       return;
     }
-
     const generatedEmail = email || `${phnumber}@menulive.in`;
-
     try {
       const data = {
         email: generatedEmail,
@@ -798,14 +723,10 @@ const Epos = (props) => {
       });
 
       // console.log("Customer added:", res.data);
-
-      setCustId(res.data.id || res.data.user?.id);
+      if(res?.data?.user?.customer?.id){
+      setCustId(res.data.user.customer.id);
+      }
       setShowAddressDialog(false);
-
-      setPhnumber("");
-      setAddress("");
-      setEmail("");
-      setName("");
       setSearchResults([]);
       setSearchAttempted(false);
       setOpenPhone(false);
@@ -921,43 +842,21 @@ const Epos = (props) => {
 
   const createOrder = async (e, isOrder, isSaveOrder) => {
     if (!order) return;
-
     const currentOrdId = ordId || localStorage.getItem("ordId");
-
-    // 1️⃣ Set order type and table-specific details
-    if (containedIndex === 1) {
+    if (containedIndex === 1) {//table specific
       let tabId = localStorage.getItem("tableId");
-      order.orderType = "Table Order";
       order.number = selectedTable;
-      order.customerId = customerID;
       order.isPaid = false;
       order.isDelivered = false;
       order.tableId = tabId;
       order.invoiceId = invoiceId;
-
-      const tabupdate = tableData.find((tab) => tab.number === selectedTable);
-      if (tabupdate) {
-        tabupdate.isAvailable = !isSaveOrder;
-        axios
-          .put(
-            `${baseURL}/api/tables/${tabupdate.id}?merchantCode=${
-              merchantData?.merchantCode || " "
-            }`,
-            tabupdate
-          )
-          .then((res) => console.log("✅ Table updated:", res.data));
-      }
-    } else if (containedIndex === 2) {
-      order.orderType = "Delivery";
-    } else if (containedIndex === 0) {
-      order.orderType = "Take Away";
-      order.isPaid = true;
-    } else if (containedIndex === 3) {
-      order.orderType = "Eat In";
+      updateTblStatus(selectedTable, !isSaveOrder);
+    } 
+    if (containedIndex === 0 || containedIndex === 3) {
       order.isPaid = true;
     }
-
-    // 2️⃣ Format order items
+    order.orderType=getOrderType();
+    order.customerId = custId;
     order.orderItems = order.orderItems.map((it) => ({
       _id: it._id,
       quantity: it.quantity,
@@ -969,46 +868,16 @@ const Epos = (props) => {
       sub_pro: JSON.stringify(it.sub_pro),
       ...(order.isDelivered && { status: "delivered" }),
     }));
-    console.log('-----------------before invoice------------');
     let invData= await getNewInvoice();
-    console.log('----------inv data--after--',invData);
-    console.log('done')
     order.invoiceId = invData._id;
     order.discountType = selectedDiscountMethod;
     order.discountAmount = parseFloat(discValue);
-    // 3️⃣ Update or create order
+    // Update or create order
     const orderCallback = (resData, isUpdate = false) => {
       const newId = resData.id;
       const savedOrder = { ...resData, localOrderId: newId };
-
-      if (order.orderType === "Table Order" && !order.isPaid) {
-        const holdOrders = JSON.parse(
-          localStorage.getItem("orderOnHold") || "[]"
-        );
-
-        // Remove any existing order with same customerId or localOrderId
-        const filtered = holdOrders.filter(
-          (o) => o.customerId !== order.customerId && o.localOrderId !== newId
-        );
-
-        filtered.push({
-          ...order,
-          localOrderId: newId,
-          timestamp: new Date().toLocaleString(),
-        });
-
-        localStorage.setItem("orderOnHold", JSON.stringify(filtered));
-      }
-
-      // ✅ Remove from hold if payment done
-      if (order.isPaid && order.orderType === "Table Order") {
-        const holdOrders = JSON.parse(
-          localStorage.getItem("orderOnHold") || "[]"
-        );
-        const remaining = holdOrders.filter(
-          (o) => o.customerId !== order.customerId
-        );
-        localStorage.setItem("orderOnHold", JSON.stringify(remaining));
+      if (!order.isPaid) {
+        saveUpdateHoldOrd(order, true);
       }
 
       if (!isOrder) {
@@ -1020,18 +889,7 @@ const Epos = (props) => {
           localStorage.setItem("isPrintCall", "N");
         }
       }
-
-      // Reset UI
-      setOrderItem([]);
-      setOrder(null);
-      setOrdId("");
-      localStorage.removeItem("ordId");
-      setShowOrders(false);
-      setShowProducts(true);
-      setItemCount(0);
-      setPrice();
-      setPercent();
-      setDialogStep(3);
+     resetStates();
     };
 
     if (currentOrdId) {
@@ -1066,121 +924,84 @@ const Epos = (props) => {
     }
   };
 
-  const finishOrder = async () => {
-    if (containedIndex === 1 && mobileNo) {
-      let data = {
-        email: `${mobileNo}@menulive.in`,
-        phone: mobileNo,
-        firstName: name ? name : "No Name",
-        lastName: "",
-        address: address,
-        password: mobileNo,
-        isEmailVerified: false,
-        isPhoneVerified: false,
-        referenceDetails: "",
-        merchantCode: merchCode,
-      };
-      try {
-        const res = await axios.post(
-          `${authApi}/customer/auth-and-register`,
-          data
-        );
-        // console.log(res.data);
-        setCustId(res.data.user.id);
-      } catch (err) {
-        console.error("Registration error:", err);
+  const updateTblStatus = (tblNumber, isAvailable) => {
+      const tabupdate = tableData.find((tab) => tab.number === selectedTable);
+      if(isAvailable== tabupdate.isAvailable){
+        return;
       }
-    }
+      if (tabupdate) {
+        axios
+          .patch(
+            `${baseURL}/api/tables/${tabupdate.id}/availability?merchantCode=${
+              merchantData?.merchantCode || " "
+            }`,
 
+          )
+          .then((res) => console.log("✅ Table updated:", res.data));
+      }
+  }
+
+  const finishOrder = async () => {
     if (order) {
       order.discountType = selectedDiscountMethod;
       order.discountAmount = parseFloat(discValue);
-      order.invoiceId = invoiceId;
+      order.invoiceId = "";
       const timestamp = new Date().toLocaleString();
       order.timestamp = timestamp;
-
-      if (containedIndex === 1 && selectedTable !== "") {
-        tableData.isAvailable = "false";
+      if (containedIndex === 1 && selectedTable) {
         let isOrderwithPrint = true;
         createOrder(null, isOrderwithPrint, true);
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      }
 
-      setOrderItem([]);
-      setOrder();
-      setPrice();
-      setPercent();
-      setIsPayment(false);
-      setPlaceOrder(true);
-      setDialogStep(1);
-      setIsDropdownOpen(false);
-      setSelectedDiscountMethod("");
-      setCustomInstr("");
-      setSelectedVar({});
-    } else {
-      alert("Please Add An Order");
+      }
     }
   };
 
-  const handleHold = () => {
-    if (containedIndex === 1 && mobileNo) {
-      let data = {
-        email: `${mobileNo}@menulive.in`,
-        phone: mobileNo,
-        firstName: name ? name : "No Name",
-        lastName: "",
-        address: address,
-        password: mobileNo,
-        isEmailVerified: false,
-        isPhoneVerified: false,
-        referenceDetails: "",
-        merchantCode: merchCode,
-      };
-      axios
-        .post(`${authApi}/customer/auth-and-register`, {
-          ...data,
-        })
-        .then((res) => {
-          // console.log(res.data);
-          setCustId(res.data.user.id);
-        });
-    }
-    // console.log(order);
+  const saveUpdateHoldOrd =(order,toBeRemoveFrmHold) =>{
+    let HOs = localStorage.getItem("ordersOnHold");
+    if (HOs) {
+        HOs = JSON.parse(HOs);
+        let savedIndx = HOs.findIndex(ho=> ((ho.customerId && ho.customerId== order.customerId)|| (order.number && ho.number== order.number )));
+        if(savedIndx> -1){
+          HOs.splice(savedIndx,1);
+        }
+        !toBeRemoveFrmHold && HOs.push(order);
+        localStorage.setItem("ordersOnHold", JSON.stringify(HOs));
+      } else {
+        localStorage.setItem("ordersOnHold", JSON.stringify([order]));
+      }
+  }
 
-    if (order) {
-      // console.log(order);
-      // console.log(discValue);
+  const getOrderType = () =>{
+      let orderType = "Eat In";
+       if (containedIndex === 0) {
+        orderType = "Take Away";
+      } else if (containedIndex === 1) {
+        orderType = "Table Order";
+      }else if (containedIndex === 2) {
+        orderType = "Delivery";
+      } 
+      return orderType;
+  }
+
+  const handleHold = () => {
+    if(order) {
       order.number = selectedTable;
       order.discountType = selectedDiscountMethod;
       order.discountAmount = parseFloat(discValue);
-      let orderOnHold = localStorage.getItem("orderOnHold");
+      order.customerId= custId;
       const timestamp = new Date().toLocaleString();
       order.timestamp = timestamp;
-      if (containedIndex === 1 && selectedTable != "") {
-        // console.log(tableData);
-        tableData.isAvailable = "false";
+      order.orderType=getOrderType();
+      saveUpdateHoldOrd(order);
+      if (containedIndex === 1 && selectedTable) {
+        updateTblStatus(selectedTable,false);
         let isOrderwithPrint = true;
-        // createOrder(null, isOrderwithPrint, true);
       }
-      if (orderOnHold) {
-        orderOnHold = JSON.parse(orderOnHold);
-        orderOnHold.push(order);
-        localStorage.setItem("orderOnHold", JSON.stringify(orderOnHold));
-      } else {
-        localStorage.setItem("orderOnHold", JSON.stringify([order]));
-      }
-      if (containedIndex === 1) {
-        order.orderType = "Table Order";
-      } else if (containedIndex === 0) {
-        order.orderType = "Take Away";
-      } else if (containedIndex === 2) {
-        order.orderType = "Delivery";
-      } else {
-        order.orderType = "Eat In";
-      }
+      resetStates();
+    }
+  };
 
+  const resetStates = () => {
       setOrderItem([]);
       setOrder();
       setPrice();
@@ -1192,54 +1013,37 @@ const Epos = (props) => {
       setSelectedDiscountMethod("");
       setCustomInstr("");
       setSelectedVar({});
-    } else {
-      alert("Please Add An Order");
-    }
-  };
+      setSelectedTable("");
+      setContainedIndex(3);
+  }
 
   useEffect(() => {
     if (containedIndex === 1) {
       axios
         .get(`${baseURL}/api/tables?merchantCode=${merchCode}`)
         .then((res) => {
-          setTableData(res.data.filter((tab) => tab.isAvailable === true));
-          //setTableData(res.data);
+          setTableData(res.data);
         });
     }
   }, [containedIndex === 1]);
 
  
 
-  const handlepostResume = (customerId, tabNumber) => {
-    // console.log("just checking", customerId, tabNumber);
-    handleClick(1);
-
-    const orderResume = JSON.parse(localStorage.getItem("orderOnHold")) || [];
-    const ppostResume = orderResume.find(
-      (ordRes) => ordRes.customerId === customerId
+  const resumeOrder = (customerId, tblNumber) => {
+    handleOrderTypeTabClick(1);
+    const HOs = JSON.parse(localStorage.getItem("ordersOnHold")) || [];
+    const resumeOrd = HOs.filter(
+      (ho) => ((customerId && ho.customerId == customerId) || (tblNumber && ho.number == tblNumber))
     );
-
-    const index = orderResume.findIndex(
-      (ordRes) => ordRes.customerId === customerId
-    );
-
-    if (ppostResume && index !== -1) {
-      setOrder(ppostResume);
-      setOrderItem(ppostResume.orderItems);
-
-      const restoredOrderId = ppostResume.localOrderId || ppostResume.id;
-      // console.log("Resumed order ID:", restoredOrderId);
-      setOrdId(restoredOrderId);
-
-      setSelectedTable(tabNumber);
+      setOrder(resumeOrd.length?resumeOrd[0]:{});
+      setOrderItem(resumeOrd.length?resumeOrd[0].orderItems:[]);
+      setOrdId(resumeOrd.length?resumeOrd[0].id:"");
+      setSelectedTable(tblNumber);
       setHoldOpen(false);
-    } else {
-      console.error("Unable to find order for user:", customerId);
-    }
-  };
+    };
 
-  const handleCancelord = (customerId) => {
-    const orderResume = JSON.parse(localStorage.getItem("orderOnHold"));
+  const handleCancelOrd = (customerId) => {
+    const orderResume = JSON.parse(localStorage.getItem("ordersOnHold"));
 
     const index = orderResume.findIndex(
       (ordRes) => ordRes.customerId === customerId
@@ -1247,18 +1051,13 @@ const Epos = (props) => {
 
     if (index !== -1) {
       orderResume.splice(index, 1);
-      localStorage.setItem("orderOnHold", JSON.stringify(orderResume));
+      localStorage.setItem("ordersOnHold", JSON.stringify(orderResume));
       setHoldOpen(false);
     } else {
       console.error("Order not found for customerId:", customerId);
     }
   };
 
-  const handleResume = () => {
-    // console.log("resume");
-    // console.log("test data: " + JSON.stringify(orderHoldData));
-    setHoldOpen(true);
-  };
 
   const categoryClickHandler = (catName, catId, isAddOn) => {
     let prodAsPerCat = totalProducts.filter((p) => p.category == catId);
@@ -1515,7 +1314,7 @@ const Epos = (props) => {
       </Box>
     );
   };
-  const handleClick = (index) => {
+  const handleOrderTypeTabClick = (index) => {
     setContainedIndex(index);
     // updateOrderDetails();
   };
@@ -1548,7 +1347,7 @@ const Epos = (props) => {
                     borderColor: "#F7C919",
                   }}
                   onClick={() => {
-                    handleClick(3);
+                    handleOrderTypeTabClick(3);
                   }}
                 >
                   {t({ id: "eat_in" })}
@@ -1563,7 +1362,7 @@ const Epos = (props) => {
                     borderColor: "#F7C919",
                   }}
                   onClick={() => {
-                    handleClick(0);
+                    handleOrderTypeTabClick(0);
                     handleTakeAway();
                   }}
                 >
@@ -1579,7 +1378,7 @@ const Epos = (props) => {
                     borderColor: "#F7C919",
                   }}
                   onClick={() => {
-                    handleClick(1);
+                    handleOrderTypeTabClick(1);
                     handleDineIn();
                     handleTableDetail();
                   }}
@@ -1596,7 +1395,7 @@ const Epos = (props) => {
                     borderColor: "#F7C919",
                   }}
                   onClick={() => {
-                    handleClick(2);
+                    handleOrderTypeTabClick(2);
                     handleDelivery();
                   }}
                 >
@@ -1623,28 +1422,6 @@ const Epos = (props) => {
                     margin: "5px",
                   }}
                 >
-                  {/* <input
-                    type="text"
-                    placeholder="Enter Mobile"
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Allow only digits
-                      if (/^\d*$/.test(value)) {
-                        setPhnumber(value);
-                      }
-                    }}
-                    value={phnumber}
-                    className="number_input"
-                    style={{
-                      padding: "5px",
-                      marginLeft: "10px",
-                      width: "70%",
-                      fontSize: "1.2em",
-                    }}
-                    inputMode="numeric" // for mobile numeric keypad
-                    pattern="[0-9]*"
-                  /> */}
-
                   <input
                     type="text"
                     placeholder="Enter Mobile"
@@ -1664,18 +1441,6 @@ const Epos = (props) => {
                       fontSize: "1.2em",
                     }}
                   />
-
-                  {/* <button
-                    onClick={() => handleSearchCustomer()}
-                    style={{
-                      margin: "10px",
-                      borderRadius: "10px",
-                      background: "#000",
-                      color: "#fff",
-                    }}
-                  >
-                    <SearchIcon />
-                  </button> */}
 
                   <button
                     onClick={handleSearchCustomer}
@@ -1706,12 +1471,14 @@ const Epos = (props) => {
                         <div
                           key={customer.id || customer._id}
                           style={{ display: "flex", alignItems: "center" }}
+                          onClick={() => handleCustomerSelect(customer)}
                         >
                           <input
                             type="radio"
+                            checked={customer.id == custId}
                             id={customer.id || customer._id}
                             name="customerSelect"
-                            onChange={() => handleCustomerSelect(customer)}
+                            style={{fontSize:"1.3em",padding:"4px"}}
                           />
                           <label
                             htmlFor={customer.id || customer._id}
@@ -1799,34 +1566,6 @@ const Epos = (props) => {
                 </div>
               </Dialog>
 
-              {/* <Dialog 
-  open={showAddressDialog} 
-  onClose={() => setShowAddressDialog(false)}
-  maxWidth="xs"
-  fullWidth
->
-  <DialogTitle>Add Delivery Address</DialogTitle>
-  <div style={{ padding: "20px" }}>
-    <TextField
-      fullWidth
-      multiline
-      rows={3}
-      label="Delivery Address"
-      value={address}
-      onChange={(e) => setAddress(e.target.value)}
-      variant="outlined"
-      style={{ marginBottom: "20px" }}
-    />
-    <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-      <Button 
-        variant="outlined" 
-        onClick={() => setShowAddressDialog(false)}
-      >
-        Cancel
-      </Button>
-    </div>
-  </div>
-</Dialog> */}
             </div>
 
             <div>
@@ -2116,6 +1855,7 @@ const Epos = (props) => {
                   </Button>
                 </div>
               )}
+              {custId&&<div>{`Customer: ${name||email||mobileNo}`}</div>}
             </div>
           </div>
 
@@ -2173,7 +1913,7 @@ const Epos = (props) => {
                 <Button
                   variant="outlined"
                   className="btn-border"
-                  onClick={handleResume}
+                  onClick={()=>setHoldOpen(true)}
                 >
                   {t({ id: "resume" })}
                 </Button>
@@ -2193,11 +1933,11 @@ const Epos = (props) => {
               ) : (
                 <Button
                   variant="contained"
-                  disabled={!order || selectedTable === null}
+                  disabled={!order || !selectedTable}
                   id="btn"
                   onClick={finishOrder}
                 >
-                  {containedIndex === 1 ? "Send Order" : "Finish Order"}
+                  {"Send To Kitchen"}
                 </Button>
               )}
             </div>
@@ -2251,12 +1991,8 @@ const Epos = (props) => {
       </div>
     );
   };
-  // console.log(isleftAlign);
-  const orderHold = localStorage.getItem("orderOnHold");
+  const orderHold = localStorage.getItem("ordersOnHold");
   const orderHoldData = orderHold ? JSON.parse(orderHold) : "";
-  // console.log(orderHoldData);
-  // console.log(billPrint);
-  // console.log('selectedTable here',selectedTable);
 
   return (
     <div
@@ -2310,7 +2046,7 @@ const Epos = (props) => {
             <Button
               onClick={handleCustomerDetail}
               id="butt"
-              style={{ display: "flex", fontSize: "10px" }}
+              style={{ display: "flex", fontSize: "1em" }}
             >
               <PermContactCalendarIcon />
               <span> {t({ id: "customer" })}</span>
@@ -2328,29 +2064,10 @@ const Epos = (props) => {
                 : { display: "none", marginLeft: "10px" }
             }
           >
-            <span
-              style={
-                selectedTable
-                  ? { display: "block", fontSize: "10px" }
-                  : { display: "none" }
-              }
-            >
-              {t({ id: "table_number" })} {selectedTable}
-            </span>
+            
             <Button onClick={handleTableDetail} id="butt">
               <TableBarIcon />
-              <span style={{ fontSize: "10px" }}>Table</span>
-            </Button>
-          </div>
-          <div
-            style={
-              containedIndex === 2
-                ? { display: "inline-block", marginLeft: "10px" }
-                : { display: "none", marginLeft: "10px" }
-            }
-          >
-            <Button color="success" onClick={handleEdit}>
-              Edit Customer Info
+              <span style={{ fontSize: "2em" }}> {'#'+selectedTable}</span>
             </Button>
           </div>
 
@@ -2373,47 +2090,7 @@ const Epos = (props) => {
       </span>
       {selectedProduct && showdialogForAddons()}
 
-      <Dialog
-        open={customerDetail}
-        style={{ zIndex: 2132321, width: "50% !important" }}
-      >
-        <div>
-          {customerDetail && (
-            <div style={{ padding: "20px" }}>
-              <header>
-                <h3>{"Customer Details"}</h3>
-              </header>
-              <input
-                type="text"
-                placeholder="Customer"
-                onChange={(e) =>
-                  e.target.value > 3 && setMoblileNo(e.target.value)
-                }
-                value={mobileNo || name}
-                style={{
-                  display: "block",
-                  backgroundColor: "white",
-                  border: "1px solid #ccc",
-                  padding: "5px",
-                  borderRadius: "20px",
-                }}
-              />
-              <footer style={{ margin: "10px", textAlign: "end" }}>
-                <Button
-                  variant="contained"
-                  className={"btnDialog-Fill"}
-                  onClick={() => {
-                    cancelCustomer();
-                  }}
-                >
-                  {"Ok"}
-                </Button>
-              </footer>
-            </div>
-          )}
-        </div>
-      </Dialog>
-
+    
       <Dialog open={tableDetail} fullWidth={true} maxWidth={500}>
         <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
           SELECT TABLE
@@ -2551,58 +2228,14 @@ const Epos = (props) => {
         maxWidth="xs"
         fullWidth={true}
       >
-        <div style={{ padding: "0px", height: "100%" }}>
+        <div style={{ padding: "10px", height: "100%" }}>
           <h4 style={{ margin: "10px", textAlign: "center" }}>
             {" "}
             ORDERS ON HOLD
           </h4>
-          {/* {orderHold && orderHoldData && orderHoldData.length
-            ? orderHoldData
-                .filter((ordHold) => ordHold.isDelivered === false)
-                .map((ordHold) => (
-                  <div className="pro_item" key={ordHold.userId}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-around",
-                        fontSize: "20px",
-                      }}
-                    >
-                      <span>{ordHold.number}</span>
-                      <span>
-                        {selectedCurrency}
-                        {ordHold.discountType === "price" ||
-                        ordHold === "discount"
-                          ? ordHold.totalPrice - ordHold.discountAmount
-                          : ordHold.totalPrice -
-                            (ordHold.totalPrice * ordHold.discountAmount) / 100}
-                      </span>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        onClick={() => handleCancelord(ordHold.customerId)}
-                      >
-                        X
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={() =>
-                          handlepostResume(ordHold.customerId, ordHold.number)
-                        }
-                      >
-                        {t({ id: "resume" })}
-                      </Button>
-                    </div>
-                    <span style={{ fontSize: "small" }}>
-                      {ordHold.timestamp}
-                    </span>
-                  </div>
-                ))
-            : ""} */}
-
           {orderHold && orderHoldData && orderHoldData.length
             ? orderHoldData
-                .filter((ordHold) => ordHold.isDelivered === false)
+                .filter((ordHold) => !ordHold.isDelivered && !ordHold.isPaid)
                 .map((ordHold, index) => (
                   <div className="pro_item" key={index}>
                     <div
@@ -2618,9 +2251,9 @@ const Epos = (props) => {
                     >
                       {/* Customer Name */}
                       <div style={{ flex: 2, fontWeight: "bold" }}>
-                        {ordHold.customerName ||
-                          ordHold.customerPhone ||
-                          "Unnamed Customer"}
+                        {"Table/Customer "}{ordHold.customerName ||
+                          ordHold.customerPhone || ordHold.number ||
+                          index}
                       </div>
 
                       {/* Price */}
@@ -2643,7 +2276,7 @@ const Epos = (props) => {
                           variant="contained"
                           color="error"
                           size="small"
-                          onClick={() => handleCancelord(ordHold.customerId)}
+                          onClick={() => handleCancelOrd(ordHold.customerId)}
                         >
                           X
                         </Button>
@@ -2655,7 +2288,7 @@ const Epos = (props) => {
                           variant="contained"
                           size="small"
                           onClick={() =>
-                            handlepostResume(ordHold.customerId, ordHold.number)
+                            resumeOrder(ordHold.customerId, ordHold.number)
                           }
                         >
                           {t({ id: "resume" })}

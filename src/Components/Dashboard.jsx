@@ -14,6 +14,8 @@ import Tab from "@mui/material/Tab";
 import { Box } from "@mui/material";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import Currencies from "../root/currency";
+import { ToastContainer, toast } from "react-toastify";
+
 const Dashboard = () => {
   const [orderList, setOrderList] = useState([]);
   const [products, setProducts] = useState([]);
@@ -22,8 +24,13 @@ const Dashboard = () => {
   const [toDate, setToDate] = useState();
   const [report, setReport] = useState();
   const [value, setValue] = React.useState(1);
-  const [selectedBranch, setSelectedBranch] = useState("Main Branch");
-  const [branchId, setBranchId] = useState("main");
+  const [branchId, setBranchId] = useState(sessionStorage.getItem("selectedBranchId"));
+  const [inventoryData, setInventoryData] = useState([]);
+  const [inventoryMetrics, setInventoryMetrics] = useState({
+    belowLimit: 0,
+    almostFinished: 0,
+    nearExpiry: 0
+  });
   const [branchData, setBranchData] = useState({
     totalBranches: 0,
     newBranchesLastMonth: 0,
@@ -35,30 +42,6 @@ const Dashboard = () => {
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-
-  useEffect(() => {
-    // Listen for branch selection changes from localStorage or sessionStorage
-    const checkBranchChanges = () => {
-      const storedBranch = sessionStorage.getItem("selectedBranch");
-      const storedBranchId = sessionStorage.getItem("selectedBranchId");
-      
-      if (storedBranch && storedBranch !== selectedBranch) {
-        setSelectedBranch(storedBranch);
-      }
-      
-      if (storedBranchId && storedBranchId !== branchId) {
-        setBranchId(storedBranchId);
-      }
-    };
-
-    // Initial check
-    checkBranchChanges();
-    
-    // Setup an interval to check for changes
-    const interval = setInterval(checkBranchChanges, 1000);
-    
-    return () => clearInterval(interval);
-  }, [selectedBranch, branchId]);
 
   useEffect(() => {
     const today = new Date();
@@ -195,6 +178,55 @@ const Dashboard = () => {
    
   }, []);
 
+  useEffect(() => {
+    // Fetch inventory data when component mounts
+    const fetchInventoryData = async () => {
+      try {
+        const userToken = sessionStorage.getItem("token");
+        const response = await axios.get(
+          `${baseURL}/api/inventories?merchantCode=${merchCode}`,
+          { headers: { Authorization: `Bearer ${userToken}` } }
+        );
+        
+        const inventory = response.data;
+        setInventoryData(inventory);
+        
+        // Calculate inventory metrics based on the actual data structure
+        const belowLimit = inventory.filter(item => item.availableQnty < item.minLimit).length;
+        
+        // Items that are almost finished (less than 20% of minimum limit)
+        const almostFinished = inventory.filter(item => {
+          // If minLimit is very low (close to 0), we'll use a different approach
+          if (item.minLimit < 1) {
+            return item.availableQnty <= 5; // Arbitrary low number for small items
+          }
+          return item.availableQnty <= item.minLimit * 1.2; // 20% more than minimum
+        }).length;
+        
+        // Items expiring in the next 30 days
+        const nearExpiry = inventory.filter(item => {
+          if (!item.expiryDate) return false;
+          
+          const expiryDate = new Date(item.expiryDate);
+          const today = new Date();
+          const diffTime = Math.abs(expiryDate - today);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+          return diffDays <= 30;
+        }).length;
+        
+        setInventoryMetrics({
+          belowLimit,
+          almostFinished,
+          nearExpiry
+        });
+      } catch (error) {
+        console.error("Error fetching inventory data:", error);
+      }
+    };
+    
+    fetchInventoryData();
+  }, []);
+
   const handleCloneMenu = async () => {
     try {
       const token = sessionStorage.getItem("token");
@@ -203,8 +235,8 @@ const Dashboard = () => {
       const merchantcode = merchantDataObj ? merchantDataObj.merchantCode : "";
       // console.log("Merchant code for cloning:", merchantcode);
       const cloneData = {
-        sourceFranchiseId: merchantcode,
-        targetFranchiseId: ""
+        sourceUserId: userId,
+        targetUserId: branchId
       };
       
       const response = await axios.post(
@@ -219,13 +251,13 @@ const Dashboard = () => {
       );
       
       if (response.status === 200) {
-        alert("Menu cloned successfully!");
+        toast.success("Menu cloned successfully!");
       } else {
-        alert("Failed to clone menu. Please try again.");
+        toast.error("Failed to clone menu. Please try again.");
       }
     } catch (error) {
       console.error("Error cloning menu:", error);
-      alert("An error occurred while cloning the menu.");
+       toast.error("Failed to clone menu. Please try again.");
     }
   };
 
@@ -241,19 +273,23 @@ const Dashboard = () => {
     <div className="main_dash">
       <div className="welcome-container">
         <h4 className="welcome-heading">Welcome!</h4>
-        {userData && userData.role.toUpperCase() === "FRANCHISE-ADMIN" && (
+        {userData && userData.role.toUpperCase() == "FRANCHISE-ADMIN" && !branchId && (
           <button className="member-btn" onClick={() => navigate('/members')}>
-            + add member
+            + Add New Branch
           </button>
         )}
+        {userData && userData.role.toUpperCase() == "FRANCHISE-ADMIN" && branchId  && (
+           <button className="member-btn" onClick={handleCloneMenu}>
+            Clone Master Copy
+          </button>
+        )}
+
       </div>
       
-     {userData && userData.role.toUpperCase() === "FRANCHISE-ADMIN" && <div className="item_list branch-info-container">
+     {userData && userData.role.toUpperCase() === "FRANCHISE-ADMIN" && !branchId && <div className="item_list branch-info-container">
         <div className="branch-info-header">
           <h3>FRANCHISE SUMMARY </h3>
-          <button className="member-btn" onClick={handleCloneMenu}>
-            Clone Menu
-          </button>
+         
         </div>
         <div
           className="branch-info-wrapper"
@@ -441,7 +477,85 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+      <div className="item_list branch-info-container">
+        <div className="branch-info-header">
+          <h3>Inventory Data</h3>
+        </div>
+        <div
+          className="branch-info-wrapper"
+          style={{
+            display: "flex",
+            gap: "2%",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "5px",
+          }}
+        >
+          <Card className="list branch-metric-card" sx={{ minWidth: "20%" }}>
+            <CardContent>
+              <Typography
+                sx={{ fontSize: 16 }}
+                color="text.secondary"
+                gutterBottom
+                className="branch-metric-label"
+              >
+                Below expected limit
+              </Typography>
+              <Typography 
+                variant="h5" 
+                component="div" 
+                sx={{ fontSize: 36 }}
+                className="branch-metric-value"
+              >
+                {inventoryMetrics.belowLimit}
+              </Typography>
+            </CardContent>
+          </Card>
 
+          <Card className="list branch-metric-card" sx={{ minWidth: "20%" }}>
+            <CardContent>
+              <Typography
+                sx={{ fontSize: 16 }}
+                color="text.secondary"
+                gutterBottom
+                className="branch-metric-label"
+              >
+                Almost finished 
+              </Typography>
+              <Typography 
+                variant="h5" 
+                component="div" 
+                sx={{ fontSize: 36 }}
+                className="branch-metric-value"
+              >
+                {inventoryMetrics.almostFinished}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card className="list branch-metric-card" sx={{ minWidth: "20%" }}>
+            <CardContent>
+              <Typography
+                sx={{ fontSize: 16 }}
+                color="text.secondary"
+                gutterBottom
+                className="branch-metric-label"
+              >
+                Near Expired Dates
+              </Typography>
+              <Typography 
+                variant="h5" 
+                component="div" 
+                sx={{ fontSize: 36 }}
+                className="branch-metric-value"
+              >
+                {inventoryMetrics.nearExpiry}
+              </Typography>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
       <div className="item_list">
         <h3>MOST POPULAR ITEMS</h3>
 
@@ -530,6 +644,7 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };

@@ -15,6 +15,7 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Autocomplete from "@mui/material/Autocomplete";
 import axios from "axios";
 import configs from "../../Constants";
+import { useMediaQuery } from "@mui/material";
 
 export default function EditableField({
   label,
@@ -33,6 +34,9 @@ export default function EditableField({
   const [mediaOpen, setMediaOpen] = useState(false);
   const [mediaList, setMediaList] = useState([]);
   const [mediaLoading, setMediaLoading] = useState(false);
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
+  const isMobile = useMediaQuery("(max-width:768px)");
 
   const baseURL = configs.baseURL;
   const cmsUrl = configs.cmsUrl;
@@ -48,17 +52,44 @@ export default function EditableField({
     setLoading(true);
 
     try {
-      setUserInfo((prev) => ({
-        ...prev,
-        [fieldKey]: fieldValue,
-      }));
+      if (fieldKey === "latitude" || fieldKey === "longitude") {
+        const updatedCoordinates = [...userInfo.location.coordinates];
 
-      await axios.put(`${baseURL}/api/settings/${userInfo.id}`, {
-        ...userInfo,
-        [fieldKey]: fieldValue,
-      });
+        if (fieldKey === "latitude") {
+          updatedCoordinates[1] = Number(fieldValue);
+        } else {
+          updatedCoordinates[0] = Number(fieldValue);
+        }
 
-      console.log("Field updated successfully!");
+        const updatedUserInfo = {
+          ...userInfo,
+          location: {
+            ...userInfo.location,
+            coordinates: updatedCoordinates,
+          },
+        };
+
+        setUserInfo(updatedUserInfo);
+
+        await axios.put(
+          `${baseURL}/api/settings/${userInfo.id}`,
+          updatedUserInfo
+        );
+      } else {
+        const updatedUserInfo = {
+          ...userInfo,
+          [fieldKey]: fieldValue,
+        };
+
+        setUserInfo(updatedUserInfo);
+
+        await axios.put(
+          `${baseURL}/api/settings/${userInfo.id}`,
+          updatedUserInfo
+        );
+      }
+
+      console.log(`${label} updated successfully!`);
       setEditMode(false);
     } catch (error) {
       console.error("Error updating field:", error);
@@ -136,30 +167,31 @@ export default function EditableField({
     const fullUrl = `${staticURL}/uploads/${img}`;
     setFieldValue(fullUrl);
     setMediaOpen(false);
-    handleSaveForImg(fullUrl); 
+    handleSaveForImg(fullUrl);
   };
-   const handleChange = (val, key) => {
+
+  const handleChange = (val, key) => {
     console.log(key);
     console.log(val);
-    if(key == 'locale'){
-      localStorage.setItem('locale',Object.keys(val)[0]);
+    if (key == "locale") {
+      localStorage.setItem("locale", Object.keys(val)[0]);
     }
-  }
+  };
 
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        
-        <label style={{ width: "40%",color:"#726e6e" }}>{label}:</label>
-        {(editMode && fieldKey !== "logo") && 
+        <label style={{ width: "40%", color: "#726e6e" }}>{label}:</label>
+        {editMode && fieldKey !== "logo" && (
           <TextField
             size="small"
             type={type}
             value={fieldValue}
             onChange={(e) => setFieldValue(e.target.value)}
             disabled={loading}
-            style={{ width }}
-          />}
+            style={{ width : isMobile ? "50%" : ""}}
+          />
+        )}
 
         {!editMode && type === "color" && 
           <div
@@ -172,7 +204,7 @@ export default function EditableField({
               cursor: "pointer",
             }}
           ></div>
-          } 
+        }
 
         {fieldKey === "logoImg" && 
           <img
@@ -186,13 +218,15 @@ export default function EditableField({
             }}
           />
         }
-        {type == 'select' &&
+
+        {type == "select" && (
           <Autocomplete
             size="small"
             options={options}
             getOptionLabel={(option) => option[Object.keys(option)[0]] || ""}
-            value={options.find(o => Object.keys(o)[0] == value )}
-            onChange={(event, newValue) => handleChange(newValue,fieldKey)}
+            value={options.find((o) => Object.keys(o)[0] == value)}
+            onChange={(event, newValue) => handleChange(newValue, fieldKey)}
+            disableClearable
             renderInput={(params) => (
               <TextField 
                 {...params} 
@@ -207,20 +241,19 @@ export default function EditableField({
               />
             )}
           />
-        } 
+        )}
 
-
-        {(fieldKey !== "logoImg" &&
-        type != "color" && 
-        !editMode &&
-        type != 'select') &&
-        <span style={{ width: "20%", height: "25px", overflow: "hidden" }}>
-            {fieldValue || "N/A"}
-        </span>}
-      
+        {fieldKey !== "logoImg" &&
+          type != "color" &&
+          !editMode &&
+          type != "select" && (
+            <span style={{ width: isMobile ? "50%" : "20%", height: "25px", overflow: "hidden" }}>
+              {fieldValue || "N/A"}
+            </span>
+          )}
 
         <div>
-          {isEditable && type != 'select' ? (
+          {isEditable && type != "select" ? (
             editMode && fieldKey !== "logoImg" ? (
               <>
                 <IconButton onClick={handleSave} disabled={loading}>

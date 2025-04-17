@@ -30,7 +30,10 @@ function Variety(props) {
   const [addOn, setAddOn] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
-
+  const [deleteitemName, setDeleteItemName] = useState("");
+ let userToken = sessionStorage.getItem("token")
+    ? sessionStorage.getItem("token")
+    : "";
   let baseURL = configs.baseURL;
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
@@ -56,7 +59,11 @@ function Variety(props) {
   };
 
   useEffect(() => {
-    axios.get(baseURL + "/api/settings/" + userId).then((res) => {
+    axios.get(baseURL + "/api/settings/" + userId,{
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }).then((res) => {
       console.log(res.data);
       setUserInfo(res.data);
     });
@@ -77,7 +84,11 @@ function Variety(props) {
             name: groupName,
             items: tags.length ? tags.join(",") : "",
             userId: userId,
-          }
+          },{
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
         )
         .then((response) => {
           console.log(response.data);
@@ -97,6 +108,10 @@ function Variety(props) {
           name: groupName,
           items: tags.length ? tags.join(",") : "",
           userId: userId,
+        },{
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
         })
         .then((response) => {
           console.log(response.data);
@@ -113,7 +128,7 @@ function Variety(props) {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (id, name) => {
     // console.log(id);
     // axios.delete(baseURL + "/api/varieties/" + id).then((response) => {
     //   console.log(response.data);
@@ -124,6 +139,7 @@ function Variety(props) {
     //   });
     // });
     setDeleteItemId(id);
+    setDeleteItemName(name);
     setOpenDeleteDialog(true);
   };
 
@@ -138,7 +154,11 @@ function Variety(props) {
     }
     console.log(deleteItemId);
     axios
-      .delete(baseURL + "/api/varieties/" + deleteItemId)
+      .delete(baseURL + "/api/varieties/" + deleteItemId,{
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        })
       .then((response) => {
         console.log(response.data);
 
@@ -309,6 +329,8 @@ function Variety(props) {
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
+          itemName={deleteitemName}
+          msg="delete"
         />
       ) : (
         <div />
@@ -374,7 +396,7 @@ function Variety(props) {
                           aria-label="delete"
                           size="large"
                           color="error"
-                          onClick={() => handleDelete(category.id)}
+                          onClick={() => handleDelete(category.id, category.name)}
                         >
                           <DeleteIcon />
                         </IconButton>

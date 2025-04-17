@@ -37,6 +37,7 @@ const KitchenAssign = () => {
   const [editId, setEditId] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItem, setDeleteItem] = useState(null);
+  const [deleteItemName, setDeleteItemName] = useState("");
 
   useEffect(() => {
     fetchKitchens();
@@ -107,6 +108,7 @@ const KitchenAssign = () => {
     //     console.error("Error deleting kitchen:", err);
     //   }
     setDeleteItem(kitchen);
+    setDeleteItemName(kitchen?.name || "this kitchen");
     setOpenDeleteDialog(true);
   };
 
@@ -232,6 +234,7 @@ const KitchenAssign = () => {
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
+          itemName={deleteItemName}
         />
       ) : (
         <div />

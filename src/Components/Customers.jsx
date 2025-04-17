@@ -26,6 +26,7 @@ const Customers = () => {
   const [isSearch, setIsSearch] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
+  const [deleteItemName, setDeleteItemName] = useState("");
 
   let domain =
     window.location.href.indexOf("localhost") > 0
@@ -90,6 +91,8 @@ const Customers = () => {
     // axios.delete(`https://authapi.digitallive24.com/customer/${deleteItemId}`).then((response) => {
     //     getCustomerList();
     // });
+    const customer = customerData.find((cust) => cust.id === id);
+    setDeleteItemName(customer?.firstName || "this customer");
     setDeleteItemId(id);
     setOpenDeleteDialog(true);
   };

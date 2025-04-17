@@ -87,6 +87,7 @@ function FoodDescription() {
   
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
+  const [deleteItemName, setDeleteItemName] = useState("");
 
   const [showInventory, setShowInventory] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
@@ -448,6 +449,8 @@ function FoodDescription() {
     setImage(true);
   };
   const handleDelete = (id) => {
+    const product = products.find((prod) => prod.id === id);
+    setDeleteItemName(product?.name || "this item");
     setDeleteItemId(id);
     setOpenDeleteDialog(true);
   };
@@ -589,6 +592,7 @@ function FoodDescription() {
   };
 
   const handleShowProductForm = () => {
+    setSelectProductId("");
     setHideProductList(true);
   };
 
@@ -1167,6 +1171,7 @@ function FoodDescription() {
             open={openDeleteDialog}
             onClose={handleDeleteClose}
             onConfirm={handleConfirmDelete}
+            itemName={deleteItemName}
           />
         ) : (
           <div />
@@ -1350,7 +1355,7 @@ function FoodDescription() {
                           </Td>
                           <Td>
                             {selectedCurrency}{" "}
-                            {p.isPriceVariety
+                            {p.isPriceVariety && p.varietyPrices
                               ? Object.values(JSON.parse(p.varietyPrices)).join(
                                   '/'
                                 )
@@ -1424,7 +1429,7 @@ function FoodDescription() {
           Duplicate
         </MenuItem>
         <Divider sx={{ my: 0.5 }} />
-        <MenuItem onClick={()=>(setDeleteItemId(p.id),handleActionsClose(),setOpenDeleteDialog(true))} >
+        <MenuItem onClick={()=>(setDeleteItemId(p.id), setDeleteItemName(p.name),handleActionsClose(),setOpenDeleteDialog(true))} >
           <DeleteIcon />
           Delete
         </MenuItem>

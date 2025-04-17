@@ -50,9 +50,8 @@ function Nav(props) {
   const [open1, setOpen1] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [franchiseAnchorEl, setFranchiseAnchorEl] = React.useState(null);
-  const [selectedFranchise, setSelectedFranchise] = React.useState("");
-  const [selectedFranchiseId, setSelectedFranchiseId] = React.useState("");
-  const [members, setMembers] = React.useState([]);
+
+  const [branches, setBranches] = React.useState([]);
   
   let userData = sessionStorage.getItem("userData")
     ? JSON.parse(sessionStorage.getItem("userData"))
@@ -65,6 +64,8 @@ function Nav(props) {
   const [tableNumber, setTableNumber] = useState(0);
 
   const userId = userData ? userData.sub : " ";
+  const [selectedBranchId, setSelectedBranchId] = useState(sessionStorage.getItem("selectedBranchId"));
+
   // merchantData
   let merchantData = sessionStorage.getItem("merchantData")
     ? JSON.parse(sessionStorage.getItem("merchantData"))
@@ -94,14 +95,7 @@ function Nav(props) {
       })
         .then(response => {
           const filteredMembers = response.data.filter(member => !member.isIAM);
-          setMembers(filteredMembers);
-          
-          // const mainBranch = filteredMembers.find(member => member.role === "FRANCHISE-ADMIN");
-          if (filteredMembers.length > 0) {
-            setSelectedFranchise(filteredMembers[0].firstName || "Branch");
-            setSelectedFranchiseId(filteredMembers[0].id);
-          }
-          
+          setBranches(filteredMembers);
         })
         .catch(error => {
           console.error("Error fetching members:", error);
@@ -147,6 +141,7 @@ function Nav(props) {
   const handleLogout = () => {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("userData");
+    sessionStorage.removeItem("selectedBranchId");
     //  window.location.reload();
     // http://localhost:8080/
     let isMember=sessionStorage.getItem('isMember')
@@ -183,20 +178,15 @@ function Nav(props) {
     setFranchiseAnchorEl(null);
   };
 
-  const handleFranchiseSelect = (member) => {
-    setSelectedFranchise(member.firstName || member.branchName || member.name);
-    setSelectedFranchiseId(member.id);
-      
-    // Store branch information in sessionStorage for Dashboard component
-    sessionStorage.setItem("selectedBranch", member.firstName || member.branchName || member.name);
-    sessionStorage.setItem("selectedBranchId", member.id);
-    
-    // You can add code here to switch to the selected franchise/branch
+  const handleBranchSelect= (member) => {
+    setSelectedBranchId((member&&member.id)||"");
+    sessionStorage.setItem("selectedBranchId", ((member&&member.id)||""));
     handleFranchiseClose();
+    window.location.reload();
   };
 
   let cmsUrl = `${configs.cmsUrl}?token=${sessionStorage.getItem("token")}`;
-  console.log('cms',cmsUrl);
+  //console.log('cms',cmsUrl);
 
   const canBeOpen = open1 && Boolean(anchorEl);
   const id = canBeOpen ? "transition-popper" : undefined;
@@ -207,6 +197,11 @@ function Nav(props) {
 const handleDashboard = () => {
   navigate("/dashboard");
 }
+
+  const getSelectedBranchName =() => {
+    let selBrch= branches.filter(branch => branch.id== selectedBranchId);
+    return selBrch[0].firstName +" "+ selBrch[0].lastName;
+  }
   useEffect(() => {
     const tab = tableData && tableData.length? tableData.filter((table) => table.isServiceCall === true):"";
     console.log(tab);
@@ -506,7 +501,7 @@ const handleDashboard = () => {
       </div>
           {/*  */}
       <span className="nav-links">
-        {userData && userData.role === "FRANCHISE-ADMIN" && members.length > 0 && (
+        {userData && userData.role === "FRANCHISE-ADMIN" && branches.length > 0 && (
           <div className="franchise-dropdown">
             <Button 
               className="franchise-selector"
@@ -516,7 +511,9 @@ const handleDashboard = () => {
               aria-expanded={franchiseMenuOpen ? "true" : undefined}
               endIcon={<KeyboardArrowDownIcon />}
             >
-              {selectedFranchise || "Select Branch"}
+              {!selectedBranchId?(userData.firstName +" " +userData.lastName): getSelectedBranchName()
+
+                }
             </Button>
             <Menu
               id="franchise-menu"
@@ -528,37 +525,28 @@ const handleDashboard = () => {
               }}
             >
               <MenuItem 
-                onClick={() => {
-                  setSelectedFranchise("Main Branch");
-                  setSelectedFranchiseId("main");
-                  
-                  // Store main branch information in sessionStorage for Dashboard component
-                  sessionStorage.setItem("selectedBranch", "Main Branch");
-                  sessionStorage.setItem("selectedBranchId", "main");
-                  
-                  handleFranchiseClose();
-                }}
-                selected={selectedFranchiseId === "main"}
+                onClick={handleBranchSelect}
+                selected={!selectedBranchId}
               >
-                Main Branch
+              {(userData.firstName +" " +userData.lastName)}
               </MenuItem>
-              {members.length > 0 && (
+              {branches.length > 0 && (
                 <Divider sx={{ my: 1 }} />
               )}
-              {members.length > 0 && (
+              {branches.length > 0 && (
                 <MenuItem disabled sx={{ opacity: 1, fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>
                   
                 </MenuItem>
               )}
               
-              {members.map((member) => (
+              {branches.map((branch) => (
                 <MenuItem 
-                  key={member.id} 
-                  onClick={() => handleFranchiseSelect(member)}
-                  selected={selectedFranchiseId === member.id}
+                  key={branch.id} 
+                  onClick={() => handleBranchSelect(branch)}
+                  selected={selectedBranchId === branch.id}
                   sx={{ pl: 2 }}
                 >
-                  {member.firstName || "Branch"}
+                  {(branch.firstName + ' '+branch.lastName) || "Branch"}
                 </MenuItem>
               ))}
             </Menu>
