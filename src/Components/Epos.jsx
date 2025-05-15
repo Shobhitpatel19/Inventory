@@ -1,5 +1,6 @@
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useParams } from 'react-router';
 import EditIcon from "@mui/icons-material/Edit";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SearchIcon from "@mui/icons-material/Search";
@@ -37,6 +38,8 @@ import {
   CardActionArea,
   CardContent,
   CardMedia,
+  DialogActions,
+  DialogContent
 } from "@mui/material";
 import BillPrint from "./BillPrint";
 import PaymentOptions from "./sub_comp/PaymentOptions";
@@ -46,7 +49,8 @@ import { CoPresentOutlined } from "@mui/icons-material";
 const Epos = (props) => {
   const [showSelectedData, setShowSelectedData] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
-
+  const { oid } = useParams();
+  console.log('-------------------------',oid);
   const [searchResults, setSearchResults] = useState([]);
 
   const [order, setOrder] = useState();
@@ -127,11 +131,8 @@ const Epos = (props) => {
 
   const { formatMessage: t, locale, setLocale } = useIntl();
   let authApi = configs.authapi;
-  // test server
-  // authApi = "https://inventory-service-gthb.onrender.com";
   let staticSer = configs.staticSer;
-
-  // state for controlling address dialog
+ 
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const handleTableChange = (tabNum) => {
     setSelectedTable(tabNum);
@@ -142,8 +143,6 @@ const Epos = (props) => {
 
   const handleDiscountMethodSelect = (event) => {
     setSelectedDiscountMethod(event.target.value);
-    // console.log(event.target.value);
-    // setIsDropdownOpen(false)
   };
   const randomNumber = Math.floor(Math.random() * 1000000000);
   const customerID = custId;
@@ -190,8 +189,8 @@ const Epos = (props) => {
     setSelAdons(newAdOns);
   };
 
-  let baseURL = configs.baseURL;
-  // let baseURL = "https://inventory-service-gthb.onrender.com";
+  // let baseURL = configs.baseURL;
+  let baseURL = "https://inventory-service-gthb.onrender.com";
   const removeAddons = (itemId) => {
     // console.log(itemId);
   };
@@ -337,45 +336,54 @@ const Epos = (props) => {
   };
 
   const addPrductToOrder = (p) => {
-    // console.log("Incoming product:", p);
-    // console.log("Existing order:", orderItem);
-
-    let orders = Array.isArray(orderItem) ? [...orderItem] : [];
-    let matchFound = false;
-
-    const normalizeAddons = (addons) => {
-      if (!addons || !Array.isArray(addons) || addons.length === 0) return null;
-      return JSON.stringify(addons);
-    };
-
-    const pId = p?.id;
-    const pAddons = normalizeAddons(p?.sub_pro?.addons);
-
-    for (let i = 0; i < orders.length; i++) {
-      const item = orders[i];
-
-      const itemId = item?.id;
-      const itemAddons = normalizeAddons(item?.sub_pro?.addons);
-
-      if (itemId === pId && itemAddons === pAddons) {
-        orders[i].quantity += 1;
-        matchFound = true;
-        break;
+    const orders = Array.isArray(orderItem) ? [...orderItem] : [];
+    let matchedIndex = -1;
+  
+    // If p.sub_pro is defined, do deep comparison
+    if (p.sub_pro) {
+      const isEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  
+      for (let i = 0; i < orders.length; i++) {
+        const item = orders[i];
+  
+        if (item.id !== p.id) continue;
+  
+        // Case 1: Both have sub_pro
+        if (item.sub_pro) {
+          const sameVariety = isEqual(p.sub_pro.variety || {}, item.sub_pro.variety || {});
+          const sameAddons = isEqual(p.sub_pro.addons || [], item.sub_pro.addons || []);
+          if (sameVariety && sameAddons) {
+            matchedIndex = i;
+            break;
+          }
+        }
+      }
+    } else {
+      // If p.sub_pro is undefined, match only by id
+      for (let i = 0; i < orders.length; i++) {
+        console.log(orders[i]);
+        if (orders[i].id === p.id) {
+          matchedIndex = i;
+          break;
+        }
       }
     }
-
-    if (!matchFound) {
-      const newItem = { ...p, quantity: 1 };
-      orders.push(newItem);
+  
+    if (matchedIndex !== -1) {
+      orders[matchedIndex].quantity = (orders[matchedIndex].quantity || 1) + 1;
+    } else {
+      orders.push({ ...p, quantity: 1 });
     }
-
-    // console.log("Updated order:", orders);
+  
     setOrderItem(orders);
     updateOrderDetails(orders);
   };
 
+  
+  
+
   const handleProduct = (p) => {
-    // console.log(p);
+    console.log(p);
     setBillPrint(false);
     if (p.isPriceVariety || p.add_ons || p.cookInstructions) {
       // console.log("if running");
@@ -430,6 +438,7 @@ const Epos = (props) => {
       </ToggleButtonGroup>
     );
   };
+
   const showinstructionBtn = () => {
     return (
       <div>
@@ -467,7 +476,25 @@ const Epos = (props) => {
     );
   };
 
-  // console.log(merchantData);
+   useEffect(() => {
+      if(oid){
+      axios
+      .get(`${baseURL}/api/orders/${oid}?merchantCode=${merchCode}`)
+      .then((res) => {
+        console.log(res.data);
+        let odr = res.data;
+        if (odr.orderItems) {
+         setOrder(odr);
+         setOrderItem(odr.orderItems);
+         let containdInx = getContainIndx(odr.orderType);
+         setContainedIndex(containdInx);
+         containdInx==1 && setSelectedTable(odr.number);
+         updateOrderDetails();
+        } 
+      });
+      }
+      
+  }, [oid]);
 
   useEffect(() => {
     if (orderItem && orderItem.length) {
@@ -530,8 +557,6 @@ const Epos = (props) => {
   };
 
   const updateOrderDetails = (newOrderItem) => {
-    // console.log(newOrderItem);
-    // console.log(orderItem);
     let orderItems = (newOrderItem || orderItem).map((x) => {
       if (!x.sub_pro) {
         x.sub_pro = { addons: [], variety: {}, cookInstructions: [] };
@@ -552,12 +577,7 @@ const Epos = (props) => {
     // console.log(merchantData);
     let txPerc = merchantData.taxPerc || merchantData.takeAwayTax;
     let orderType = "Eat In";
-    // if (containedIndex == 1) {
-    //   // txPerc = merchantData.dineinTax;
-    //   txPerc = merchantData.taxPerc
-    //   orderType = "Take Away";
-    // }
-    // console.log("----------", txPerc);
+    
     const taxPrice = txPerc
       ? parseFloat((((txPerc / 100) * itemsPrice * 100) / 100).toFixed(2))
       : 0.0;
@@ -599,6 +619,22 @@ const Epos = (props) => {
     setOrder(order);
   };
 
+  const getCustomerById = async(custId) => {
+    if(custId){
+      const res = await axios.get(
+        `${authApi}/customer/${custId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      if(res.data.id){
+      handleCustomerSelect(res.data);
+      }
+    }
+  }
+
   const handleSearchCustomer = async () => {
     if (!phnumber) {
       // console.log("📭 No phone number provided.");
@@ -633,15 +669,11 @@ const Epos = (props) => {
 
       if (customers.length > 0) {
         const firstCustomer = customers[0];
-        // console.log("First matched customer:", firstCustomer);
-
         setName(firstCustomer.firstName || "");
         setEmail(firstCustomer.email || "");
         setAddress(firstCustomer.address || "");
         setCustId(firstCustomer.id || firstCustomer._id);
-      } else {
-        // console.log("No customers matched.");
-      }
+      } 
     } catch (err) {
       // console.log("Search error:", err?.response?.data || err.message);
       setSearchResults([]);
@@ -739,18 +771,6 @@ const Epos = (props) => {
     }
   };
 
-  const handleCancle = () => {
-    setOrderItem([]);
-    setOrder();
-    setPrice();
-    setPercent();
-    setIsPayment(false);
-    setPlaceOrder(true);
-    setDialogStep(1);
-    setIsDropdownOpen(false);
-    setSelectedDiscountMethod("");
-  };
-
   const imageOnErrorHandler = (event) => {
     event.currentTarget.src = "./images/blank.jpg";
   };
@@ -761,6 +781,7 @@ const Epos = (props) => {
   const tabPath = `/table`;
   const reportsPath = `/reports`;
   const settingPath = "/setting";
+
   const handleCancel = () => {
     setOpenPhone(false);
     setBillPrint(false);
@@ -830,7 +851,7 @@ const Epos = (props) => {
             .then((res) => {
               setInvoiceNo(res.data.invoiceData.invoicePath);
               setInvoiceId(res.data.invoiceData._id);
-              console.log('got')
+              // console.log('got')
               resolve(res.data.invoiceData); 
             });
          
@@ -842,7 +863,8 @@ const Epos = (props) => {
 
   const createOrder = async (e, isOrder, isSaveOrder) => {
     if (!order) return;
-    const currentOrdId = ordId || localStorage.getItem("ordId");
+    
+    const currentOrdId = oid || order.id || ordId || localStorage.getItem("ordId");
     if (containedIndex === 1) {//table specific
       let tabId = localStorage.getItem("tableId");
       order.number = selectedTable;
@@ -858,8 +880,9 @@ const Epos = (props) => {
     order.orderType=getOrderType();
     order.customerId = custId;
     order.orderItems = order.orderItems.map((it) => ({
-      _id: it._id,
+      _id: it._id||it.id,
       quantity: it.quantity,
+      kitchenId : it.kitchenId,
       price:
         it.price +
         (it.sub_pro?.addons?.reduce((acc, val) => acc + val.price, 0) || 0),
@@ -925,7 +948,7 @@ const Epos = (props) => {
   };
 
   const updateTblStatus = (tblNumber, isAvailable) => {
-      const tabupdate = tableData.find((tab) => tab.number === selectedTable);
+      const tabupdate = tableData.find((tab) => tab.number == selectedTable);
       if(isAvailable== tabupdate.isAvailable){
         return;
       }
@@ -969,6 +992,20 @@ const Epos = (props) => {
       } else {
         localStorage.setItem("ordersOnHold", JSON.stringify([order]));
       }
+      resetStates();
+  }
+
+  const getContainIndx = (oType) =>{
+
+    let containedIndex = 3;
+       if(oType =="Take Away") {
+        containedIndex = 0;
+      } else if (oType == "Table Order") {
+        containedIndex = 1;
+      }else if (oType == "Delivery") {
+        containedIndex =2;
+      } 
+      return containedIndex;
   }
 
   const getOrderType = () =>{
@@ -989,6 +1026,9 @@ const Epos = (props) => {
       order.discountType = selectedDiscountMethod;
       order.discountAmount = parseFloat(discValue);
       order.customerId= custId;
+      order.customerName= name;
+      order.customerAddress = address;
+      order.customerPhone = mobileNo;
       const timestamp = new Date().toLocaleString();
       order.timestamp = timestamp;
       order.orderType=getOrderType();
@@ -997,8 +1037,8 @@ const Epos = (props) => {
         updateTblStatus(selectedTable,false);
         let isOrderwithPrint = true;
       }
-      resetStates();
     }
+    resetStates();
   };
 
   const resetStates = () => {
@@ -1015,17 +1055,22 @@ const Epos = (props) => {
       setSelectedVar({});
       setSelectedTable("");
       setContainedIndex(3);
+      setName("");
+      setPhnumber(null);
+      setEmail("");
+      setAddress("");
+      setCustId("");
+      setSearchResults([]);
   }
 
   useEffect(() => {
-    if (containedIndex === 1) {
       axios
         .get(`${baseURL}/api/tables?merchantCode=${merchCode}`)
         .then((res) => {
           setTableData(res.data);
         });
-    }
-  }, [containedIndex === 1]);
+    
+  }, []);
 
  
 
@@ -1035,13 +1080,34 @@ const Epos = (props) => {
     const resumeOrd = HOs.filter(
       (ho) => ((customerId && ho.customerId == customerId) || (tblNumber && ho.number == tblNumber))
     );
-      setOrder(resumeOrd.length?resumeOrd[0]:{});
-      setOrderItem(resumeOrd.length?resumeOrd[0].orderItems:[]);
-      setOrdId(resumeOrd.length?resumeOrd[0].id:"");
+    if(resumeOrd && resumeOrd.length){
+       if(resumeOrd[0].customerId && resumeOrd[0].customerName){
+      let customer = {
+        id : resumeOrd[0].customerId,
+        firstName :resumeOrd[0].customerName,
+        email: resumeOrd[0].email,
+        address: resumeOrd[0].customerAddress,
+        phone:resumeOrd[0].customerPhone
+      };
+      handleCustomerSelect(customer);
+    }
+      if(resumeOrd[0].customerId){
+        getCustomerById(resumeOrd[0].customerId);
+      }
+      setOrder(resumeOrd[0]);
+      setOrderItem(resumeOrd[0].orderItems);
+      setOrdId(resumeOrd[0].id);
+      if(resumeOrd[0].orderType == 'Table Order'){
       setSelectedTable(tblNumber);
+      }
+      setContainedIndex(getContainIndx);
       setHoldOpen(false);
+
+
+      }
     };
 
+   
   const handleCancelOrd = (customerId) => {
     const orderResume = JSON.parse(localStorage.getItem("ordersOnHold"));
 
@@ -1411,9 +1477,23 @@ const Epos = (props) => {
                 maxWidth="xs"
                 // className='Orderp'
               >
-                <DialogTitle id="titorder" style={{ textAlign: "center" }}>
-                  <b>Enter Customer Details</b>
+                <DialogTitle id="titorder">
+                 Enter Customer Details
                 </DialogTitle>
+                <IconButton
+                  aria-label="close"
+                  onClick={()=>setOpenPhone(false)}
+                  sx={{
+                    position: "absolute",
+                    right: 8,
+                    top: 8,
+                    color: (theme) => theme.palette.grey[500],
+                  }}
+                  >
+                <CloseIcon />
+                </IconButton>
+
+                <DialogContent dividers>
                 <h4 style={{ margin: "10px" }}>Enter Mobile Number:</h4>
                 <div
                   style={{
@@ -1422,6 +1502,7 @@ const Epos = (props) => {
                     margin: "5px",
                   }}
                 >
+
                   <input
                     type="text"
                     placeholder="Enter Mobile"
@@ -1434,6 +1515,7 @@ const Epos = (props) => {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={10}
+                    onKeyPress={(e)=> e.key =='Enter' && handleSearchCustomer(e)}
                     style={{
                       padding: "5px",
                       marginLeft: "10px",
@@ -1444,11 +1526,15 @@ const Epos = (props) => {
 
                   <button
                     onClick={handleSearchCustomer}
+                    onSubmit={handleSearchCustomer}
+                    type="submit"
                     style={{
-                      margin: "10px",
+                      marginLeft: "10px",
                       borderRadius: "10px",
                       background: "#000",
                       color: "#fff",
+                      width:"130px",
+                      cursor:"pointer"
                     }}
                   >
                     <SearchIcon />
@@ -1472,6 +1558,7 @@ const Epos = (props) => {
                           key={customer.id || customer._id}
                           style={{ display: "flex", alignItems: "center" }}
                           onClick={() => handleCustomerSelect(customer)}
+
                         >
                           <input
                             type="radio"
@@ -1499,17 +1586,26 @@ const Epos = (props) => {
                       style={{
                         color: "#f44336",
                         padding: "8px 16px",
-                        marginTop: "8px",
+                        marginTop: "1px",
                         borderRadius: "4px",
-                        marginLeft: "10px",
                         marginRight: "10px",
                       }}
                     >
-                      Customer not found
+                      Customer not found, Add New
                     </div>
 
                     <div style={{ padding: "20px" }}>
-                      <h3>Add Delivery Address:</h3>
+                      <TextField 
+                    type="text"
+                    label="Customer Name"
+                    placeholder="Enter Name"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                    }}
+                    className="number_input"
+                    
+                  />
                       <TextField
                         fullWidth
                         multiline
@@ -1518,12 +1614,13 @@ const Epos = (props) => {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         variant="outlined"
-                        style={{ marginBottom: "20px" }}
+                        style={{ marginBottom: "20px",marginTop:"10px" }}
                       />
                     </div>
                   </>
                 )}
-
+</DialogContent>
+<DialogActions>
                 <div
                   style={{
                     display: "flex",
@@ -1531,18 +1628,13 @@ const Epos = (props) => {
                     justifyContent: "space-between",
                   }}
                 >
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={handleCancel}
-                  >
-                    Close
-                  </Button>
+                 
 
                   {searchAttempted && searchResults.length === 0 && (
                     <Button
-                      variant="contained"
-                      color="primary"
+                       className="save-btn btnDialog-Fill"
+                    variant="contained"
+                    color="success"
                       onClick={handleAddCustomer}
                     >
                       ADD NEW
@@ -1564,6 +1656,7 @@ const Epos = (props) => {
                     </Button>
                   )}
                 </div>
+                </DialogActions>
               </Dialog>
 
             </div>
@@ -1679,6 +1772,7 @@ const Epos = (props) => {
                                   <button
                                     className="add_btn"
                                     onClick={() => handleRemove(indx)}
+                                    style={{display:item.status== 'ready' || item.status=='delivered'?'none':"inline-block"}}
                                   >
                                     <RemoveIcon />
                                   </button>
@@ -1688,6 +1782,7 @@ const Epos = (props) => {
                                   <button
                                     className="add_btn"
                                     onClick={() => handleAdd(indx)}
+                                    style={{display:item.status== 'ready' || item.status=='delivered'?'none':"inline-block"}}
                                   >
                                     <AddIcon />
                                   </button>
@@ -1855,7 +1950,7 @@ const Epos = (props) => {
                   </Button>
                 </div>
               )}
-              {custId&&<div>{`Customer: ${name||email||mobileNo}`}</div>}
+              {custId&&<div style={{color:"#ccc",fontSize:"0.8em"}}>{`Customer: ${name||email||mobileNo}`}</div>}
             </div>
           </div>
 
@@ -1897,7 +1992,7 @@ const Epos = (props) => {
                 bottom: "30%",
               }}
             >
-              <CancelIcon onClick={handleCancle} color="error" />
+              <CancelIcon onClick={resetStates} color="error" />
 
               {/* Conditionally render Resume or Save button */}
               {order && Object.keys(order).length >= 1 ? (
@@ -1924,7 +2019,7 @@ const Epos = (props) => {
               containedIndex === 2 ? (
                 <Button
                   variant="contained"
-                  disabled={!order}
+                  disabled={!order || !order.orderItems.length}
                   id="btn"
                   onClick={createOrder}
                 >
@@ -2113,7 +2208,7 @@ const Epos = (props) => {
         </IconButton>
         {tableData.length ? (
           <ul id="ul-list">
-            {tableData.map((tab) => (
+            {tableData.filter(tb => tb.isAvailable).map((tab) => (
               <li
                 key={tab.number}
                 onClick={() => handleTableChange(tab.number)}

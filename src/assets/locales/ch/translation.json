@@ -80,5 +80,6 @@
                "paid_by_cash":"Mit Bargeld bezahlt",
                "bill_amount":"Gesamtbetrag",
                "cash_change": "Bargeldwechsel",
-                "kitchen":"Kitchen"
+                "kitchen":"Kitchen",
+                "update_order":"Update Order"
 }

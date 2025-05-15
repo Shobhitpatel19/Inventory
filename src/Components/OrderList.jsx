@@ -7,9 +7,11 @@ import DialogContent from "@mui/material/DialogContent";
 import FormGroup from "@mui/material/FormGroup";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Checkbox from "@mui/material/Checkbox";
 import Switch from "@mui/material/Switch";
 import moment from "moment";
+import Paper from "@mui/material/Paper";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import configs, { getParameterByName } from "../Constants";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
@@ -19,6 +21,8 @@ import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
+import MenuList from "@mui/material/MenuList";
+import MenuItem from "@mui/material/MenuItem";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import Chip from "@mui/material/Chip";
@@ -40,9 +44,13 @@ import PaymentOptions from "./sub_comp/PaymentOptions";
 import DatePicker from "react-datepicker"; // Make sure to install react-datepicker
 import "react-datepicker/dist/react-datepicker.css"; // Import the styles for the date picker
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import BillPopup from "./sub_comp/BillPopup";
 import TempOrder from "./sub_comp/TempOrder";
+import AssignDriverPopup from "./sub_comp/AssignDriverPopup"; // adjust path if needed
 import DeleteDiaologue from "./sub_comp/Delete";
+import { useNavigate } from "react-router-dom";
+import DiscountIcon from "@mui/icons-material/Discount";
 
 const OrderList = (props) => {
   const orderListPath = `/orderList`;
@@ -96,7 +104,11 @@ const OrderList = (props) => {
   const [orderCancel, setOrderCancel] = useState(true);
   const [tableId, setTableId] = useState(null);
   const [OrderId, setOrderId] = useState(null);
+  const [openActions, setOpenActions] = useState(false);
+  const [assignPopupOpen, setAssignPopupOpen] = useState(false);
+  const [selectedOrderForDriver, setSelectedOrderForDriver] = useState(null);
 
+  const navigate = useNavigate();
   let baseURL = configs.baseURL;
   // let baseURL = "https://inventory-service-gthb.onrender.com";
   let authApi = configs.authapi;
@@ -148,27 +160,29 @@ const OrderList = (props) => {
     }
   }, []);
 
-   const fetchTempOrders = async () => {
-      try {
-        const res = await axios.get(
-          `${baseURL}/api/temporders/?merchantCode=${merchCode}`,
-          {
-            headers: {
-              Authorization: `Bearer ${userToken}`,
-            },
-          }
-        );
-        setTempOrders(res.data);
-      } catch (err) {
-        console.log("Failed to fetch orders");
-      }
-    };
+  const handleActionsClose = () => {
+    setOpenActions(false);
+  };
+
+  const fetchTempOrders = async () => {
+    try {
+      const res = await axios.get(
+        `${baseURL}/api/temporders/?merchantCode=${merchCode}`,
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      setTempOrders(res.data);
+    } catch (err) {
+      console.log("Failed to fetch orders");
+    }
+  };
 
   useEffect(() => {
     fetchTempOrders();
   }, [baseURL, userToken]);
-
-  console.log("Temp Orders:", tempOrders);
 
   const handleOpenPopup = (order) => {
     setBillDetails(order);
@@ -186,6 +200,15 @@ const OrderList = (props) => {
   const handleClosePopup = () => {
     setBillPopupOpen(false);
     setBillDetails(null);
+  };
+
+  const handleUpdateOrder = () => {
+    const merchantInParam = getParameterByName("merchantCode");
+    if (merchantInParam) {
+      navigate(`/epos/${selectedOrder.id}?merchantCode=${merchCode}`);
+    } else {
+      navigate(`/epos/${selectedOrder.id}`);
+    }
   };
 
   const orderListHandler = (orderId, customerId, order) => {
@@ -251,8 +274,6 @@ const OrderList = (props) => {
     setCustomerData([]);
     setCustomerOrderPop(false);
   };
-
-  
 
   const handleOrderStatus = (order_Status, order_id, order_payment, order) => {
     console.log(order_id, order_payment);
@@ -335,7 +356,6 @@ const OrderList = (props) => {
     if (!deleteItemId) {
       return;
     }
-
     axios
       .delete(
         `${baseURL}/api/orders/${deleteItemId}?merchantCode=${merchCode}`,
@@ -348,7 +368,6 @@ const OrderList = (props) => {
         let today = new Date();
         console.log(moment(today).format("DD/MMM/YYYY"));
         axios.get(getOrderList).then((response) => {
-          //setTotalOrders(response.data);
           setOrderList(response.data);
         });
       });
@@ -374,22 +393,22 @@ const OrderList = (props) => {
   };
 
   const handleConfirmCancel = async () => {
-      try {
-        await axios.put(
-          `${baseURL}/api/orders/${OrderId}?merchantCode=${merchCode}`,
-          {
-            action: "cancel",
-          }
-        );
-        if(tableId){
+    try {
+      await axios.put(
+        `${baseURL}/api/orders/${OrderId}?merchantCode=${merchCode}`,
+        {
+          action: "cancel",
+        }
+      );
+      if (tableId) {
         await axios.patch(
           `${baseURL}/api/tables/${tableId}/availability?merchantCode=${merchCode}`
         );
-        }
-        fetchOrdersAndNoti();
-      } catch (error) {
-        console.error("Error while cancelling order or updating table:", error);
       }
+      fetchOrdersAndNoti();
+    } catch (error) {
+      console.error("Error while cancelling order or updating table:", error);
+    }
     setOrderId(null);
     setOrderCancel(true);
     setTableId(null);
@@ -397,8 +416,6 @@ const OrderList = (props) => {
   };
 
   const handlePayment = (mode, order) => {
-    console.log("mode", mode);
-    console.log("order", order.id);
     if (order && order.id) {
       axios
         .put(`${baseURL}/api/orders/${order.id}?merchantCode=${merchCode}`, {
@@ -409,29 +426,27 @@ const OrderList = (props) => {
         .then((response) => {
           console.log(response);
           let today = new Date();
-          console.log(moment(today).format("DD/MMM/YYYY"));
           axios.get(getOrderList).then((response) => {
-            //setTotalOrders(response.data);
-            console.log(response.data);
             setOrderList(response.data);
           });
         });
     }
 
-    const tabData = tableData.filter((tab) => tab.number == order.number);
-
-    if (tabData.length > 0) {
-      tabData[0].isAvailable = "true";
-      axios
-        .put(
-          `${baseURL}/api/tables/${tabData[0].id}?merchantCode=${
-            merchantData ? merchantData.merchantCode : " "
-          }`,
-          tabData[0]
-        )
-        .then((res) => {
-          console.log(res.data);
-        });
+    if (order.orderType.toUpperCase() == "TABLE ORDER") {
+      const tabData = tableData.filter((tab) => tab.number == order.number);
+      if (tabData.length > 0) {
+        axios
+          .patch(
+            `${baseURL}/api/tables/${
+              tabData[0].id
+            }/availability/?merchantCode=${
+              merchantData ? merchantData.merchantCode : " "
+            }`
+          )
+          .then((res) => {
+            console.log(res.data);
+          });
+      }
     }
   };
 
@@ -513,7 +528,6 @@ const OrderList = (props) => {
     if (order) {
       let updatedOrderItems = order[0].orderItems.map((ord) => {
         if (ord._id === itemId || !itemId) {
-          console.log("Updated to Ready");
           ord.status = "ready";
         }
         return ord;
@@ -527,9 +541,9 @@ const OrderList = (props) => {
 
   const handleDelete = (name, price, quantity, itemId) => {
     console.log(itemId);
-    setDeleteItemName(name); 
-    setDeleteItemId(itemId); 
-    setOpenDeleteDialog(true); 
+    setDeleteItemName(name);
+    setDeleteItemId(itemId);
+    setOpenDeleteDialog(true);
   };
 
   const fetchOrdersAndNoti = () => {
@@ -590,7 +604,7 @@ const OrderList = (props) => {
   const handleTypeOrder = (e) => {
     let val = e.target.value;
     console.log(val);
-    let fltOrder = orderList.filter((ord) => ord.orderSource === val);
+    let fltOrder = orderList.filter((ord) => ord.orderType == val);
     console.log(fltOrder);
     setOrderFilter(fltOrder);
     setIsSearch(val ? true : false);
@@ -600,7 +614,9 @@ const OrderList = (props) => {
     console.log("orderr", order);
     try {
       const response = await axios.get(
-        order.invoiceId?`${configs.payUrl}/api/invoices/${order.invoiceId}`:`${configs.payUrl}/api/proforma-invoices/${order.id}`
+        order.invoiceId
+          ? `${configs.payUrl}/api/invoices/${order.invoiceId}`
+          : `${configs.payUrl}/api/proforma-invoices/${order.id}`
       );
       //console.log("API Response:", response.data);
       setPrintOrder(order); // Set the order too
@@ -633,7 +649,7 @@ const OrderList = (props) => {
           : "",
       cgst: merchantData.taxPerc,
       taxPerc: merchantData.taxPerc,
-      invoice_no: invoiceNo?invoiceNo:"-",
+      invoice_no: invoiceNo ? invoiceNo : "-",
     });
     if (!window.PrintInterface) {
       console.log(window.PrintInterface);
@@ -726,7 +742,6 @@ const OrderList = (props) => {
     return moment(dateToCompare).isSame(moment(selectedDate), "day");
   });
 
-
   const acceptOrder = async (orderId) => {
     console.log("id for temp", orderId);
     try {
@@ -765,6 +780,22 @@ const OrderList = (props) => {
     } catch (err) {
       console.error("Failed to reject order", err);
     }
+  };
+
+  const handleAssignDriverClick = (order) => {
+    setSelectedOrderForDriver(order);
+    setAssignPopupOpen(true);
+  };
+
+  const handleDriverAssign = (driver) => {
+    console.log(
+      "Assigned Driver:",
+      driver,
+      "to Order:",
+      selectedOrderForDriver
+    );
+    // You can call your order update API here
+    setAssignPopupOpen(false);
   };
 
   return (
@@ -897,7 +928,7 @@ const OrderList = (props) => {
 
       {openDeleteDialog === true ? (
         <DeleteDiaologue
-          msg="cancel"
+          msg="Cancel Order"
           open={openDeleteDialog}
           onClose={handleCancelClose}
           onConfirm={handleConfirmCancel}
@@ -997,7 +1028,7 @@ const OrderList = (props) => {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            paddingInline: "50px"
+            paddingInline: "50px",
           }}
         >
           <div className="search">
@@ -1036,7 +1067,7 @@ const OrderList = (props) => {
                 alignItems: "start",
               }}
             >
-              <label>Source</label>
+              <label>Order Type</label>
               <select
                 onChange={handleTypeOrder}
                 style={{
@@ -1046,64 +1077,73 @@ const OrderList = (props) => {
                 }}
               >
                 <option value="">ALL</option>
-                <option value="Self Order">Self Orders</option>
-                <option value="EPOS">EPOS Orders</option>
-                <option value="Online Order">Online Orders</option>
-                <option value="TTO">Table Orders</option>
+                <option value="Eat In">Eat In Orders</option>
+                <option value="Take Away">Take Away Orders</option>
+                <option value="Table Order">Table Orders</option>
+                <option value="Delivery">Delivery Orders</option>
               </select>
             </span>
           </div>
         </div>
 
         <div>
-          {tempOrders.length > 0 && tempOrders.filter((order) => order.orderStatus === "PENDING" || order.orderStatus === "NEW").length > 0 &&
-          (
-            <div className="tempOrder">
-              <Table className="custom-table">
-                <Thead>
-                  <Tr className="table-header">
-                    <Th>Source</Th>
-                    <Th>Amount(Inc tax)</Th>
-                    <Th>Order Items</Th>
-                    <Th>Actions</Th>
-                    {/* <Th>TimeLimit</Th> */}
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {tempOrders.filter((order) => order.orderStatus === "PENDING" || order.orderStatus === "NEW").map((order) => (
-                    <Tr key={order.id} className="table-body-row">
-                      <Td>
-                        <Chip
-                          label={order.orderSource || "Self Order"}
-                          color={
-                            (order.orderSource || "Self Order") === "EPOS"
-                              ? "info"
-                              : (order.orderSource || "Self Order") ===
-                                "Self Order"
-                              ? "warning"
-                              : (order.orderSource || "Self Order") ===
-                                "Table Order"
-                              ? "secondary"
-                              : (order.orderSource || "Self Order") ===
-                                "Online Order"
-                              ? "error"
-                              : "default"
-                          }
-                          style={{
-                            marginLeft: "10px",
-                            fontSize: "x-small",
-                            fontWeight: "bold",
-                          }}
-                        />
-                        <div style={{ fontSize: "12px" }}>
-                          {moment(order.scheduleDate || order.createdAt).format(
-                            "DD-MMM h:mm a"
-                          )}
-                        </div>
-                      </Td>
-                      <Td>
-                        {selectedCurrency}
-                        {/* {(
+          {tempOrders.length > 0 &&
+            tempOrders.filter(
+              (order) =>
+                order.orderStatus === "PENDING" || order.orderStatus === "NEW"
+            ).length > 0 && (
+              <div className="tempOrder">
+                <Table className="custom-table">
+                  <Thead>
+                    <Tr className="table-header">
+                      <Th>Source</Th>
+                      <Th>Amount(Inc tax)</Th>
+                      <Th>Order Items</Th>
+                      <Th>Actions</Th>
+                      {/* <Th>TimeLimit</Th> */}
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {tempOrders
+                      .filter(
+                        (order) =>
+                          order.orderStatus === "PENDING" ||
+                          order.orderStatus === "NEW"
+                      )
+                      .map((order) => (
+                        <Tr key={order.id} className="table-body-row">
+                          <Td>
+                            <Chip
+                              label={order.orderSource || "Self Order"}
+                              color={
+                                (order.orderSource || "Self Order") === "EPOS"
+                                  ? "info"
+                                  : (order.orderSource || "Self Order") ===
+                                    "Self Order"
+                                  ? "warning"
+                                  : (order.orderSource || "Self Order") ===
+                                    "Table Order"
+                                  ? "secondary"
+                                  : (order.orderSource || "Self Order") ===
+                                    "Online Order"
+                                  ? "error"
+                                  : "default"
+                              }
+                              style={{
+                                marginLeft: "10px",
+                                fontSize: "x-small",
+                                fontWeight: "bold",
+                              }}
+                            />
+                            <div style={{ fontSize: "12px" }}>
+                              {moment(
+                                order.scheduleDate || order.createdAt
+                              ).format("DD-MMM h:mm a")}
+                            </div>
+                          </Td>
+                          <Td>
+                            {selectedCurrency}
+                            {/* {(
                           (order.discountType
                             ? order.discountType === "discount" ||
                               order.discountType === "price"
@@ -1112,59 +1152,60 @@ const OrderList = (props) => {
                                 (order.totalPrice * order.discountAmount) / 100
                             : order.totalPrice) + (order.taxPrice || 0)
                         ).toFixed(2)} */}
-                        {(order.discountType
-                          ? order.discountType === "discount" ||
-                            order.discountType === "price"
-                            ? order.totalPrice - (order.discountAmount || 0)
-                            : order.totalPrice -
-                              (order.totalPrice * order.discountAmount) / 100
-                          : order.totalPrice
-                        ).toFixed(2)}
-                      </Td>
-                      <Td style={{ fontSize: "12px" }}>
-                        <button
-                          className="btn-icon"
-                          onClick={() =>
-                            tempOrderListHandler(
-                              order.id,
-                              order.customerId,
-                              order
-                            )
-                          }
-                        >
-                          <ReceiptLongOutlinedIcon />
-                        </button>
-                      </Td>
-                      <Td>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            gap: "20px",
-                          }}
-                        >
-                          <Button
-                            variant="contained"
-                            color="success"
-                            onClick={() => acceptOrder(order.id)}
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            color="error"
-                            onClick={() => rejectOrder(order.id)}
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </div>
-          )}
+                            {(order.discountType
+                              ? order.discountType === "discount" ||
+                                order.discountType === "price"
+                                ? order.totalPrice - (order.discountAmount || 0)
+                                : order.totalPrice -
+                                  (order.totalPrice * order.discountAmount) /
+                                    100
+                              : order.totalPrice
+                            ).toFixed(2)}
+                          </Td>
+                          <Td style={{ fontSize: "12px" }}>
+                            <button
+                              className="btn-icon"
+                              onClick={() =>
+                                tempOrderListHandler(
+                                  order.id,
+                                  order.customerId,
+                                  order
+                                )
+                              }
+                            >
+                              <ReceiptLongOutlinedIcon />
+                            </button>
+                          </Td>
+                          <Td>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "center",
+                                gap: "20px",
+                              }}
+                            >
+                              <Button
+                                variant="contained"
+                                color="success"
+                                onClick={() => acceptOrder(order.id)}
+                              >
+                                Accept
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={() => rejectOrder(order.id)}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          </Td>
+                        </Tr>
+                      ))}
+                  </Tbody>
+                </Table>
+              </div>
+            )}
           <br />
           {!tabView ? (
             <Table breakPoint={700} style={{ width: "100%" }}>
@@ -1174,6 +1215,7 @@ const OrderList = (props) => {
                   <Th>{t({ id: "source" })}</Th>
                   <Th>{t({ id: "ammount" })} (Inc Tax)</Th>
                   <Th>{t({ id: "order_items" })}</Th>
+                  <Th></Th>
                   <Th></Th>
                 </Tr>
               </Thead>
@@ -1352,6 +1394,7 @@ const OrderList = (props) => {
                                   100
                             : orderLists.totalPrice
                           ).toFixed(2)}
+
                           {!orderLists.isPaid ? (
                             <Chip
                               label="PENDING"
@@ -1388,121 +1431,147 @@ const OrderList = (props) => {
                             <ReceiptLongOutlinedIcon />
                           </button>
                         </Td>
-
+                        <Td>
+                          {!orderLists.isPaid && !orderLists.isCanceled && (
+                            <Button
+                              variant="contained"
+                              color="error"
+                              onClick={(e) => {
+                                setPayModeSelectDialog(true);
+                                setSelectedOrder(orderLists);
+                              }}
+                              style={{
+                                display: orderLists.isPaid ? "none" : "block",
+                                cursor: "pointer",
+                                marginRight: "10px",
+                              }}
+                            >
+                              {t({ id: "pay_now" })}
+                            </Button>
+                          )}
+                        </Td>
                         <Td>
                           <div className="actions-container">
-                            {orderLists.isCanceled ? null : orderLists.isPaid ||
-                              orderLists.orderType === "Table Order" ? (
-                              orderLists.isDelivered ? (
-                                <Chip
-                                  label="✔ DELIVERED"
-                                  color="success"
-                                  style={{
-                                    marginLeft: "10px",
-                                    fontSize: "x-small",
-                                    fontWeight: "bold",
-                                    cursor: "pointer",
-                                  }}
-                                />
-                              ) : orderLists.isReady ? (
-                                <Button
-                                  variant="contained"
-                                  color="success"
-                                  onClick={() =>
-                                    handleOrderStatus(
-                                      "deliver",
-                                      orderLists.id,
-                                      orderLists.isPaid,
-                                      orderLists
-                                    )
-                                  }
-                                >
-                                  {t({ id: "deliver" })}
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="contained"
-                                  color="info"
-                                  onClick={() =>
-                                    handleOrderStatus(
-                                      "ready",
-                                      orderLists.id,
-                                      orderLists.isPaid,
-                                      orderLists
-                                    )
-                                  }
-                                >
-                                  {t({ id: "ready" })}
-                                </Button>
-                              )
-                            ) : (
-                              <Button
-                                variant="contained"
-                                color="error"
-                                onClick={(e) => {
-                                  setPayModeSelectDialog(true);
-                                  setSelectedOrder(orderLists);
-                                }}
-                                style={{
-                                  display: orderLists.isPaid ? "none" : "block",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {t({ id: "pay_now" })}
-                              </Button>
-                            )}
-
-                            {orderLists.orderType === "Table Order" ? (
-                              orderLists.discountType === "coupon" ||
-                              orderLists.discountType === "discount" ? (
-                                <Button
-                                  variant="contained"
-                                  color="error"
-                                  onClick={(e) => {
-                                    setPayModeSelectDialog(true);
-                                    setSelectedOrder(orderLists);
-                                  }}
-                                  style={{
-                                    display: orderLists.isPaid
-                                      ? "none"
-                                      : "block",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  Pay
-                                </Button>
-                              ) : orderLists.isDelivered === true ? (
-                                <Button
-                                  color="info"
-                                  variant="contained"
-                                  onClick={() => handleOpenPopup(orderLists)}
-                                >
-                                  Bill
-                                </Button>
-                              ) : (
-                                " "
-                              )
-                            ) : (!orderLists.isCanceled ?
-                              <PrintIcon
+                            {orderLists.orderItems?.every(
+                              (item) => item.status === "delivered"
+                            ) && (
+                              <Chip
+                                label="✔ DELIVERED"
                                 color="success"
-                                onClick={() => handlecheckprint(orderLists)}
                                 style={{
-                                  marginLeft: "45px",
-                                  cursor: "pointer",
-                                }}
-                              />:"")
-                            }
-
-                            {!orderLists.isCanceled && orderLists.orderType === "Table Order" && (
-                              <PrintIcon
-                                color="success"
-                                onClick={() => handlecheckprint(orderLists)}
-                                style={{
-                                  marginLeft: "45px",
+                                  marginLeft: "10px",
+                                  fontSize: "x-small",
+                                  fontWeight: "bold",
                                   cursor: "pointer",
                                 }}
                               />
                             )}
+
+                            {!orderLists.isCanceled && (
+                              <Button
+                                style={{ marginRight: "10px" }}
+                                aria-controls={
+                                  openActions
+                                    ? "demo-customized-menu"
+                                    : undefined
+                                }
+                                aria-haspopup="true"
+                                aria-expanded={openActions ? "true" : undefined}
+                                variant="outlined"
+                                onClick={() => (
+                                  setOpenActions(!openActions),
+                                  setSelectedOrder(orderLists)
+                                )}
+                                endIcon={<KeyboardArrowDownIcon />}
+                              >
+                                Actions
+                              </Button>
+                            )}
+
+                            {openActions &&
+                              orderLists.id === selectedOrder.id && (
+                                <ClickAwayListener
+                                  onClickAway={() => setOpenActions(false)}
+                                >
+                                  <Paper
+                                    style={{
+                                      position: "absolute",
+                                      zIndex: "99",
+                                    }}
+                                    id="action_orders"
+                                  >
+                                    <MenuList>
+                                      {!orderLists.isPaid &&
+                                        !orderLists.isCanceled && (
+                                          <MenuItem
+                                            onClick={() => (
+                                              setOpenActions(false),
+                                              handleOpenPopup(orderLists)
+                                            )}
+                                          >
+                                            <DiscountIcon />
+                                            Add Discount
+                                          </MenuItem>
+                                        )}
+                                      {!orderLists.isPaid && (
+                                        <MenuItem
+                                          onClick={() => (
+                                            setOpenActions(false),
+                                            handleUpdateOrder(orderLists.id)
+                                          )}
+                                        >
+                                          <EditIcon />
+                                          {t({ id: "update_order" })}
+                                        </MenuItem>
+                                      )}
+                                      <MenuItem
+                                        onClick={() => (
+                                          handlecheckprint(orderLists),
+                                          setOpenActions(false)
+                                        )}
+                                      >
+                                        <PrintIcon color="success" />
+                                        Print Order
+                                      </MenuItem>
+                                      {!orderLists.isDelivered &&
+                                        !orderLists.isCanceled && (
+                                          <MenuItem
+                                            onClick={() => (
+                                              setOpenActions(false),
+                                              handleCancel(
+                                                orderLists.id,
+                                                orderLists.isCanceled,
+                                                orderLists.tableId,
+                                                orderLists.number
+                                              )
+                                            )}
+                                          >
+                                            <CancelIcon color="error" />
+                                            {orderLists.isPaid
+                                              ? "Refund"
+                                              : "Cancel"}
+                                          </MenuItem>
+                                        )}
+                                      {orderLists.orderType === "Delivery" &&
+                                        orderLists.isPaid &&
+                                        orderLists.orderItems.every(
+                                          (item) => item.status === "ready"
+                                        ) && (
+                                          <MenuItem
+                                            onClick={() =>
+                                              handleAssignDriverClick(
+                                                orderLists
+                                              )
+                                            }
+                                          >
+                                            <DeliveryDiningIcon color="success" />
+                                            Assign Driver
+                                          </MenuItem>
+                                        )}
+                                    </MenuList>
+                                  </Paper>
+                                </ClickAwayListener>
+                              )}
 
                             {orderLists.isCanceled && (
                               <Chip
@@ -1516,24 +1585,6 @@ const OrderList = (props) => {
                                 }}
                               />
                             )}
-                            {!orderLists.isDelivered &&
-                              !orderLists.isCanceled && (
-                                <Button
-                                  variant="text"
-                                  style={{ marginLeft: "15px" }}
-                                  color="error"
-                                  onClick={() =>
-                                    handleCancel(
-                                      orderLists.id,
-                                      orderLists.isCanceled,
-                                      orderLists.tableId,
-                                      orderLists.number
-                                    )
-                                  }
-                                >
-                                  <CancelIcon />
-                                </Button>
-                              )}
                           </div>
                         </Td>
                       </Tr>
@@ -1586,17 +1637,25 @@ const OrderList = (props) => {
         billDetails={billDetails}
       />
 
+      <AssignDriverPopup
+        open={assignPopupOpen}
+        onClose={() => setAssignPopupOpen(false)}
+        onAssign={handleDriverAssign}
+        authApi={authApi}
+        userToken={userToken}
+      />
+
       <Dialog
         className="dialog-box"
         maxWidth="md"
         fullWidth={true}
         open={isOpen}
       >
-       <DialogTitle style={{ fontWeight: "bold" }}>
-            {t({ id: "order_summary_token" })}: #
-            <span style={{ fontSize: "35px" }}>{token}</span>
-            </DialogTitle>
-          <IconButton
+        <DialogTitle style={{ fontWeight: "bold" }}>
+          {t({ id: "order_summary_token" })}: #
+          <span style={{ fontSize: "35px" }}>{token}</span>
+        </DialogTitle>
+        <IconButton
           aria-label="close"
           onClick={() => handleClose()}
           sx={{
@@ -1608,8 +1667,8 @@ const OrderList = (props) => {
         >
           <CloseIcon />
         </IconButton>
-       
-         <DialogContent dividers>
+
+        <DialogContent dividers>
           <div
             style={
               customerorderpop
@@ -1748,19 +1807,18 @@ const OrderList = (props) => {
                 : ""}
             </tbody>
           </Table>
-          </DialogContent>
-          <DialogActions>
+        </DialogContent>
+        <DialogActions>
           <Button
             variant="outlined"
             color="error"
             style={{ float: "right", marginTop: "8px" }}
             className="btn btn-danger m-2 btn-small"
-            onClick={ handleClose}
+            onClick={handleClose}
           >
             {t({ id: "close" })}
           </Button>
-          </DialogActions>
-       
+        </DialogActions>
       </Dialog>
 
       <Dialog open={edit} maxWidth="xs" className="pd-2" fullWidth={true}>

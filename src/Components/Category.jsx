@@ -21,6 +21,8 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem"; 
 import Typography from "@mui/material/Typography"; 
 import DeleteDiaologue from "./sub_comp/Delete";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 //Added by Mojahid
 import DragHandleIcon from "@mui/icons-material/DragHandle";
@@ -59,6 +61,7 @@ function Category(props) {
   const [deleteItemId, setDeleteItemId] = useState(null);
  const token = getParameterByName("token") || sessionStorage.getItem("token");
  const [deleteItemName, setDeleteItemName] = useState("");
+ const [isSaving, setIsSaving] = useState(false);
   Array.prototype.move = function (from, to) {
     this.splice(to, 0, this.splice(from, 1)[0]);
   };
@@ -107,19 +110,35 @@ function Category(props) {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    setIsSaving(true);
     if (!foodName) {
       setHasError("Category Name is required");
+      setIsSaving(false);
       return;
     } else if (noAddOn < minNoAddOn) {
       setHasError("Max limit can't be more than min. limit");
+      setIsSaving(false);
       return;
-    } else if (catId) {
+    }
+
+    // Check for duplicate category name
+    const isDuplicate = categories.some(
+      (cat) => cat.name.toLowerCase() === foodName.toLowerCase() && cat.id !== catId
+    );
+
+    if (isDuplicate) {
+      setHasError("A category with this name already exists");
+      setIsSaving(false);
+      toast.error("A category with this name already exists");
+      return;
+    }
+
+    if (catId) {
       axios
         .put(
           baseURL + "/api/categories/" + catId + `?merchantCode=${merchCode}`,
           {
             name: foodName,
-            // image: imageURL ? imageURL : selectedImage.image,
             image: selectedImage ? selectedImage.image : imageURL || "",
             tags: tags.length ? tags.join("~") : "",
             isAddOn: addOn,
@@ -131,19 +150,20 @@ function Category(props) {
             onlyAtPos: onlyAtPos,
           },
           {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
         )
         .then((response) => {
           fetchCatData();
+          setIsSaving(false);
+          setDialogOpen(false);
         });
     } else {
       axios
         .post(`${baseURL}/api/categories?merchantCode=${merchCode}`, {
           name: foodName,
-          // image: imageURL ? imageURL : selectedImage.image,
           image: selectedImage ? selectedImage.image : imageURL || "",
           tags: tags.length ? tags.join("~") : "",
           isAddOn: addOn,
@@ -154,13 +174,15 @@ function Category(props) {
           userId: userData.sub,
           onlyAtPos: onlyAtPos,
         },{
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
         .then((response) => {
           fetchCatData();
-        });
+          setIsSaving(false);
+          setDialogOpen(false);
+        });      
     }
     setHasError("");
   };
@@ -179,6 +201,7 @@ function Category(props) {
   const handleDeleteClose = () => {
     setOpenDeleteDialog(false);
     setDeleteItemId(null);
+    setDeleteItemName("");
   };
 
   const handleConfirmDelete = () => {
@@ -193,6 +216,7 @@ function Category(props) {
     }
     setOpenDeleteDialog(false);
     setDeleteItemId(null);
+    setDeleteItemName("");
   };
 
   const fetchCatData = () => {
@@ -536,16 +560,7 @@ function Category(props) {
                 onChange={(e) => setNoAddOn(e.target.value)}
               />
             )}
-
-            {openDeleteDialog === true ? (
-              <DeleteDiaologue
-                open={openDeleteDialog}
-                onClose={handleDeleteClose}
-                onConfirm={handleConfirmDelete}
-              />
-            ) : (
-              <div />
-            )}
+            
           </div>
           <br />
           <div className={"dialog-row"}>
@@ -621,21 +636,23 @@ function Category(props) {
             className="btnDialog-Fill"
             style={{ margin: "10px" }}
             onClick={(e) => handleSubmit(e)}
+            disabled={isSaving}
           >
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </Button>
         </DialogActions>
       </Dialog>
 
       {openDeleteDialog === true ? (
-              <DeleteDiaologue
-                open={openDeleteDialog}
-                onClose={handleDeleteClose}
-                onConfirm={handleConfirmDelete}
-              />
-            ) : (
-              <div />
-            )}
+        <DeleteDiaologue
+          open={openDeleteDialog}
+          onClose={handleDeleteClose}
+          onConfirm={handleConfirmDelete}
+          itemName={deleteItemName}
+        />
+      ) : (
+        <div />
+      )}
 
       <Dialog
         onClose={() => setShowGallery(false)}
@@ -948,6 +965,7 @@ function Category(props) {
           </Button>
         </DialogActions>
       </Dialog>
+      <ToastContainer />
     </div>
   );
 }

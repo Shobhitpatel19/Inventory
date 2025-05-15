@@ -134,7 +134,7 @@ function App() {
           });
       })
       .catch((err) => {
-        console.error(err);
+        //console.error(err);
         setOpenSetting(true);
       });
   }, []);
@@ -242,9 +242,15 @@ function App() {
             <Route exact path="/setting" element={<SettingNew />}/>
             <Route
               exact
+              path="/epos/:oid"
+              element={<Epos setIsEpos={setIsEpos}  />}
+            />
+            <Route
+              exact
               path="/epos"
               element={<Epos setIsEpos={setIsEpos} />}
             />
+           
             <Route exact path="/customers" element={<Customers />} />
             <Route exact path="/members" element={<Members />} />
             <Route exact path="/qrcodes" element={<QRCodes />} />
@@ -274,10 +280,16 @@ function App() {
               <Route exact path="/members" element={<Members />} />
               <Route exact path="/orderList" element={<OrderList />} />
               <Route
+              exact
+              path="/epos/:oid"
+              element={<Epos setIsEpos={setIsEpos} />}
+            />
+              <Route
                 exact
                 path="/epos"
                 element={<Epos setIsEpos={setIsEpos} />}
               />
+             
               <Route exact path="/qrcodes" element={<QRCodes />} />
             </Routes>
           )}
@@ -310,18 +322,23 @@ function App() {
               <Route exact path="/reports" element={<Reports />} />
               <Route exact path="/table" element={<TableView />} />
               <Route exact path="/setting" element={<SettingNew />}/>
-
+              <Route
+              exact
+              path="/epos/:oid"
+              element={<Epos setIsEpos={setIsEpos}/>}
+            />
               <Route
                 exact
                 path="/epos"
                 element={<Epos setIsEpos={setIsEpos} />}
               />
+
               <Route exact path="/customers" element={<Customers />} />
               <Route exact path="/members" element={<Members />} />
               <Route exact path="/qrcodes" element={<QRCodes />} />
               <Route exact path="/help" element={<Help />} />
               <Route exact path="/promotion" element={<Promotion/>}/>
-              <Route exact path="/kitchen" element={<KitchenAssign/>}/>
+              <Route exact path="/kitchen" element={<KitchenAssign/>}/>>
               <Route exact path='/inventories' element={<Inventories/>}/>
               <Route exact path="/app" element={<AppPage/>}/>
             </Routes>

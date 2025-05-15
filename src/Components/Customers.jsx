@@ -10,7 +10,14 @@ import IconButton from "@mui/material/IconButton";
 import moment from "moment";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
-import { Box, TextField, Button } from "@mui/material";
+import {
+  Box,
+  TextField,
+  Button,
+  DialogActions,
+  DialogContent,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import DeleteDiaologue from "./sub_comp/Delete";
 const Customers = () => {
   const [customerData, setCustomerData] = useState([]);
@@ -103,11 +110,9 @@ const Customers = () => {
 
   const handleConfirmDelete = () => {
     if (deleteItemId) {
-      axios
-        .delete(`${authApi}/customer/${deleteItemId}`)
-        .then((response) => {
-          getCustomerList();
-        });
+      axios.delete(`${authApi}/customer/${deleteItemId}`).then((response) => {
+        getCustomerList();
+      });
     }
     setOpenDeleteDialog(false);
     setDeleteItemId(null);
@@ -125,18 +130,16 @@ const Customers = () => {
     console.log(id);
     try{
       if (id) {
-        await axios
-          .get(`${authApi}/customer/${id}`)
-          .then((res) => {
-            console.log(res.data);
-            const data = res.data;
-            setEditedData(data);
-  
-            setName(data.firstName || "");
-            setMoblileNo(data.phone || "");
-            setAddress(data.address || "");
-            setEmail(data.email || "");
-          });
+        await axios.get(`${authApi}/customer/${id}`).then((res) => {
+          console.log(res.data);
+          const data = res.data;
+          setEditedData(data);
+
+          setName(data.firstName || "");
+          setMoblileNo(data.phone || "");
+          setAddress(data.address || "");
+          setEmail(data.email || "");
+        });
       }
     }catch (e){
       console.log(e);
@@ -274,139 +277,128 @@ const Customers = () => {
           open={openDeleteDialog}
           onClose={handleDeleteClose}
           onConfirm={handleConfirmDelete}
+          itemName={deleteItemName}
         />
       ) : (
         <div />
       )}
-      <Dialog open={edit} maxWidth="md">
-        <div className="dialogTitle">
-          <DialogTitle style={{ textAlign: "center", fontWeight: "bold" }}>
-            {"Edit Customer Data"}
-          </DialogTitle>
-        </div>
+      <Dialog open={edit} onClose={handleClose} maxWidth="md">
+        <DialogTitle style={{ textAlign: "center", fontWeight: "bold" }}>
+          Edit Customer Data
+        </DialogTitle>
 
-        <div>
-          <>
-            <form
-              style={{
-                padding: "18px",
-                paddingLeft: "18px",
-                paddingTop: "50px",
-              }}
-            >
-              <div className="row">
-                <div>
-                  <Box
-                    sx={{
-                      width: 500,
-                      maxWidth: "100%",
-                    }}
-                    noValidate
-                    autoComplete="off"
-                  >
-                    <label>Name</label>
-                    <TextField
-                      fullWidth
-                      id="fullWidth"
-                      onChange={handleName}
-                      // value={name ? name : editedData.firstName || ""}
-                      value={name}
-                    />
-                  </Box>
-                </div>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
 
-                <div>
-                  <Box
-                    sx={{
-                      width: 300,
-                      maxWidth: "100%",
-                    }}
-                    noValidate
-                    autoComplete="off"
-                  >
-                    <div>
-                      <label>Mobile Number</label>
-                      <TextField
-                        fullWidth
-                        id="fullWidth"
-                        type="number"
-                        onChange={handleMobileNo}
-                        name="Mobile Number"
-                        // value={mobileNo ? mobileNo : editedData.phone || 0}
-                        value={mobileNo}
-                      />
-                    </div>
-                  </Box>
-                </div>
-              </div>{" "}
-              <div className="row">
-                <div>
-                  <Box
-                    sx={{
-                      width: 500,
-                      maxWidth: "100%",
-                    }}
-                    noValidate
-                    autoComplete="off"
-                  >
-                    <label>Address</label>
-                    <TextField
-                      fullWidth
-                      id="fullWidth"
-                      onChange={handleAddress}
-                      // value={address ? address : editedData.address || ""}
-                      value={address}
-                    />
-                  </Box>
-                </div>
-
-                <div>
-                  <Box
-                    sx={{
-                      width: 500,
-                      maxWidth: "100%",
-                    }}
-                    noValidate
-                    autoComplete="off"
-                  >
-                    <div>
-                      <label>Email Id</label>
-                      <TextField
-                        fullWidth
-                        id="fullWidth"
-                        onChange={handleEmail}
-                        name="description"
-                        // value={email ? email : editedData.email || ""}
-                        value={email}
-                      />
-                    </div>
-                  </Box>
-                </div>
+        <DialogContent dividers>
+          <form
+            style={{
+              padding: "18px",
+              paddingLeft: "18px",
+              paddingTop: "5px",
+            }}
+          >
+            <div className="row">
+              <div>
+                <Box
+                  sx={{ width: 500, maxWidth: "100%" }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <label>Name</label>
+                  <TextField
+                    fullWidth
+                    id="fullWidth"
+                    onChange={handleName}
+                    value={name}
+                  />
+                </Box>
               </div>
-            </form>
 
-            <div className="fixed-buttons">
-              <Button
-                className="save-btn"
-                variant="contained"
-                color="success"
-                style={{ margin: "20px", background: "#f7c919" }}
-                onClick={handleSubmit}
-              >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                style={{ margin: "20px" }}
-                className="close-btn"
-                onClick={handleClose}
-              >
-                Close
-              </Button>
+              <div>
+                <Box
+                  sx={{ width: 300, maxWidth: "100%" }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <label>Mobile Number</label>
+                  <TextField
+                    fullWidth
+                    id="fullWidth"
+                    type="number"
+                    onChange={handleMobileNo}
+                    name="Mobile Number"
+                    value={mobileNo}
+                  />
+                </Box>
+              </div>
             </div>
-          </>
-        </div>
+
+            <div className="row">
+              <div>
+                <Box
+                  sx={{ width: 500, maxWidth: "100%" }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <label>Address</label>
+                  <TextField
+                    fullWidth
+                    id="fullWidth"
+                    onChange={handleAddress}
+                    value={address}
+                  />
+                </Box>
+              </div>
+
+              <div>
+                <Box
+                  sx={{ width: 500, maxWidth: "100%" }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <label>Email Id</label>
+                  <TextField
+                    fullWidth
+                    id="fullWidth"
+                    onChange={handleEmail}
+                    name="description"
+                    value={email}
+                  />
+                </Box>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            variant="outlined"
+            color="error"
+            style={{ margin: "8px" }}
+            onClick={handleClose}
+          >
+            Close
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            style={{ margin: "8px", background: "#f7c919" }}
+            onClick={handleSubmit}
+          >
+            Save
+          </Button>
+        </DialogActions>
       </Dialog>
     </div>
   );

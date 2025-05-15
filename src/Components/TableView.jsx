@@ -25,6 +25,8 @@ import { DialogContent, DialogActions } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useIntl } from "react-intl";
 import DeleteDiaologue from "./sub_comp/Delete";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 //import { db } from "./../root/util";
 //import { onValue, ref } from "firebase/database";
 //import Switch from "@mui/material/Switch";
@@ -44,6 +46,7 @@ function TableView(props) {
     ? JSON.parse(sessionStorage.getItem("userData"))
     : "";
   console.log(userData);
+  const userToken = sessionStorage.getItem("token") || "";
 
   let baseURL = configs.baseURL;
   const userId = userData ? userData.sub : " ";
@@ -167,13 +170,21 @@ function TableView(props) {
           isAvailable: isAvailable,
           userId: merchCode,
           notes: notes,
-        })
+        },
+        { headers: { Authorization: `Bearer ${userToken}` } })
         .then((response) => {
           fetchTableData();
           setDialogOpen(false);
           setTableId("");
         });
     } else {
+      // Check if table number already exists
+      const tableExists = tableData.some(table => table.number === tabNum);
+      if (tableExists) {
+        toast.error("A table with this number already exists. Please use a different table number.");
+        return;
+      }
+
       axios
         .post(`${baseURL}/api/tables?merchantCode=${merchCode}`, {
           number: tabNum,
@@ -181,7 +192,8 @@ function TableView(props) {
           isAvailable: true,
           userId: merchCode,
           notes: notes,
-        })
+        },
+        { headers: { Authorization: `Bearer ${userToken}` } })
         .then((response) => {
           fetchTableData();
           setDialogOpen(false);
@@ -214,7 +226,8 @@ function TableView(props) {
       .delete(
         `${baseURL}/api/tables/${deleteItemId}?merchantCode=${
           merchantData.length ? merchantData[0].merchantCode : " "
-        }`
+        }`,
+        { headers: { Authorization: `Bearer ${userToken}` } }
       )
       .then((response) => {
         console.log(response.data);
@@ -556,6 +569,7 @@ function TableView(props) {
           ))}
         </div>
       )}
+      <ToastContainer />
     </div>
   );
 }

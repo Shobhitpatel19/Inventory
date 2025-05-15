@@ -80,6 +80,7 @@
     "paid_by_cash": "नकद से भुगतान किया गया",
     "bill_amount": "कुल राशि",
     "cash_change": "नकद परिवर्तन",
-    "kitchen": "रसोई"
+    "kitchen": "रसोई",
+    "update_order":"Update Order"
   }
   

@@ -264,7 +264,7 @@ const Reports = () => {
   };
 
   let fullReports = isSearch ? fliterData : report;
-  console.log(fullReports);
+  console.log("fullreports",fullReports);
 
   const handleMostOrdered = () => {
     setShowMostOrdered(true);
@@ -346,8 +346,11 @@ const Reports = () => {
   const cancelOrders = fullReports
     ? fullReports.filter((item) => item.isCanceled === true)
     : 0;
-  const cgst = totalAmount * 0.025;
-  const sgst = totalAmount * 0.025;
+  const totalTax = fullReports
+  ? fullReports.reduce((sum , item)=> sum + item.taxPrice,0)
+  : 0;
+  const cgst = (totalTax/2).toFixed(2);
+  const sgst = (totalTax/2).toFixed(2);
   const eposOrders = fullReports
     ? fullReports.filter((item) => item.orderSource === "EPOS")
     : 0;
@@ -595,7 +598,7 @@ const Reports = () => {
               Excel
             </Button>
             <Button
-              variant="contained"
+              variant="outlined"
               color="warning"
               style={{ margin: "8px" }}
               onClick={downloadAsPDF}
@@ -605,7 +608,7 @@ const Reports = () => {
           </span>
         </div>
 
-        <div
+        {false && <div
           className="button-container"
           style={{ disflex: "flex", justifyContent: "space-between" }}
         >
@@ -621,7 +624,7 @@ const Reports = () => {
           >
             Back
           </Button>
-        </div>
+        </div>}
         {value === 0 ? (
           <>
             {!showMostOrdered ? (
@@ -844,7 +847,8 @@ const Reports = () => {
                 }}
               >
                 <span>{t({ id: "total_ammount" })}:</span>
-                <span>{totalAmount}</span>
+                <span>{parseFloat(totalAmount).toFixed(2)}</span>
+
               </span>
               {/* <span style={{ display: "flex", justifyContent: "space-between", width: "200px" }}>
     <span>Cancel Orders:</span> 
@@ -858,7 +862,7 @@ const Reports = () => {
                 }}
               >
                 <span>CGST:</span>
-                <span>{cgst.toFixed(2)}</span>
+                <span>{cgst}</span>
               </span>
               <span
                 style={{
@@ -868,7 +872,7 @@ const Reports = () => {
                 }}
               >
                 <span>SGST :</span>
-                <span>{sgst.toFixed(2)}</span>
+                <span>{sgst}</span>
               </span>
               <span
                 style={{
@@ -888,7 +892,8 @@ const Reports = () => {
                 }}
               >
                 <span>POS {t({ id: "ammount" })}:</span>
-                <span>{eposAmount}</span>
+                <span>{parseFloat(eposAmount).toFixed(2)}</span>
+
               </span>
               <span
                 style={{

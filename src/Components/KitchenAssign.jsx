@@ -13,9 +13,12 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
 import { Table, Thead, Tbody, Tr, Th, Td } from "react-responsive-list";
 import configs from "../Constants";
 import DeleteDiaologue from "./sub_comp/Delete";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const KitchenAssign = () => {
   let baseURL = configs.baseURL;
@@ -75,8 +78,24 @@ const KitchenAssign = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleClose = () => {
+    setOpenPopup(false);
+  };
+
   const handleSave = async () => {
     try {
+      // Check for duplicate kitchen name
+      const isDuplicate = kitchens.some(
+        (kitchen) => 
+          kitchen.name.toLowerCase() === formData.name.toLowerCase() && 
+          (!editMode || kitchen.id !== editId)
+      );
+
+      if (isDuplicate) {
+        toast.error("A kitchen with this name already exists!");
+        return;
+      }
+
       if (editMode) {
         await axios.put(`${baseURL}/api/kitchens/${editId}`, formData, {
           headers: { Authorization: `Bearer ${userToken}` },
@@ -197,11 +216,23 @@ const KitchenAssign = () => {
       </div>
 
       {/* Popup Dialog */}
-      <Dialog open={openPopup} onClose={() => setOpenPopup(false)}>
+      <Dialog open={openPopup} onClose={handleClose}>
         <DialogTitle>
           {editMode ? "Edit Kitchen" : "Add New Kitchen"}
         </DialogTitle>
-        <DialogContent>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+        <DialogContent dividers>
           <TextField
             fullWidth
             label="Name"
@@ -222,8 +253,20 @@ const KitchenAssign = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPopup(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleSave}>
+          <Button
+            variant="outlined"
+            color="error"
+            style={{ margin: "8px" }}
+            onClick={handleClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            style={{ margin: "8px", background: "#f7c919" }}
+            onClick={handleSave}
+          >
             {editMode ? "Update" : "Save"}
           </Button>
         </DialogActions>
@@ -239,6 +282,7 @@ const KitchenAssign = () => {
       ) : (
         <div />
       )}
+      <ToastContainer />
     </div>
   );
 };

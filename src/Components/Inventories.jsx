@@ -6,7 +6,6 @@ import TablePagination from "@mui/material/TablePagination";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import CloseIcon from "@mui/icons-material/Close";
 import { Table, Thead, Tbody, Tr, Th, Td } from "react-responsive-list";
 import {
   Dialog,
@@ -19,6 +18,9 @@ import {
   FormControlLabel,
   MenuItem,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import configs from "../Constants";
 import DeleteDiaologue from "./sub_comp/Delete";
@@ -32,6 +34,7 @@ const Inventories = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState(null);
   const [deleteItemName, setDeleteItemName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
     id: "",
@@ -172,7 +175,20 @@ const Inventories = () => {
 
   // 7. Save a new product
   const handleSave = async () => {
+    setIsSaving(true);
     newProduct.userId = userId;
+
+    // Check if item with same name already exists
+    const existingItem = products.find(
+      (p) => p.name.toLowerCase() === newProduct.name.toLowerCase()
+    );
+
+    if (existingItem) {
+      toast.error("An item with this name already exists!");
+      setIsSaving(false);
+      return;
+    }
+
     try {
       await axios.post(`${baseURL}/api/inventories`, newProduct, {
         headers: { Authorization: `Bearer ${userToken}` },
@@ -182,11 +198,14 @@ const Inventories = () => {
       handleClose();
     } catch (error) {
       console.error("Error saving product", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   // 8. Update an existing product
   const handleUpdate = async () => {
+    setIsSaving(true);
     try {
       await axios.put(
         `${baseURL}/api/inventories/${newProduct.id}`,
@@ -201,6 +220,8 @@ const Inventories = () => {
       handleClose();
     } catch (error) {
       console.error("Error updating product", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -228,7 +249,7 @@ const Inventories = () => {
 
       {/* Dialog for Add / Edit */}
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>
+        <DialogTitle style={{ fontWeight: "bold" }}>
           {isEditing ? "Edit Inventory" : "Add New Inventory"}
         </DialogTitle>
         <IconButton
@@ -331,8 +352,9 @@ const Inventories = () => {
             className={"btnDialog-Fill"}
             variant="contained"
             color="success"
+            disabled={isSaving}
           >
-            {isEditing ? "Update" : "Save"}
+            {isSaving ? "Saving..." : isEditing ? "Update" : "Save"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -369,7 +391,14 @@ const Inventories = () => {
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((p) => (
                   <Tr key={p.id} style={{ borderBottom: "1px solid #f0eeee" }}>
-                    <Td>{p.name}</Td>
+                    <Td>
+                      <span style={{
+                        color: Number(p.availableQnty) < Number(p.minLimit) ? 'red' : 'inherit',
+                        fontWeight: Number(p.availableQnty) < Number(p.minLimit) ? 'bold' : 'normal'
+                      }}>
+                        {p.name}
+                      </span>
+                    </Td>
                     <Td>{p.unitType}</Td>
                     <Td>{p.availableQnty}</Td>
                     <Td>{p.minLimit}</Td>
@@ -415,6 +444,7 @@ const Inventories = () => {
           />
         )}
       </div>
+      <ToastContainer />
     </div>
   );
 };

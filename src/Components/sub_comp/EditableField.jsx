@@ -16,6 +16,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import axios from "axios";
 import configs from "../../Constants";
 import { useMediaQuery } from "@mui/material";
+import { toast } from "react-toastify";
 
 export default function EditableField({
   label,
@@ -75,6 +76,7 @@ export default function EditableField({
           `${baseURL}/api/settings/${userInfo.id}`,
           updatedUserInfo
         );
+
       } else {
         const updatedUserInfo = {
           ...userInfo,
@@ -86,10 +88,11 @@ export default function EditableField({
         await axios.put(
           `${baseURL}/api/settings/${userInfo.id}`,
           updatedUserInfo
-        );
+        )
       }
 
-      console.log(`${label} updated successfully!`);
+      
+      toast.success(`Settings updated successfully`);
       setEditMode(false);
     } catch (error) {
       console.error("Error updating field:", error);
@@ -97,6 +100,7 @@ export default function EditableField({
       setLoading(false);
     }
   };
+
   const handleSaveForImg = async (newValue = fieldValue) => {
     if (!userInfo) {
       console.error("User info is undefined");
@@ -189,7 +193,7 @@ export default function EditableField({
             value={fieldValue}
             onChange={(e) => setFieldValue(e.target.value)}
             disabled={loading}
-            style={{ width : isMobile ? "50%" : ""}}
+            style={{ width : isMobile ? "40%" : "20%"}}
           />
         )}
 

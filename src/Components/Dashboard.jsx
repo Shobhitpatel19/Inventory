@@ -27,7 +27,7 @@ const Dashboard = () => {
   const [branchId, setBranchId] = useState(sessionStorage.getItem("selectedBranchId"));
   const [inventoryData, setInventoryData] = useState([]);
   const [inventoryMetrics, setInventoryMetrics] = useState({
-    belowLimit: 0,
+    belowLimit: [],
     almostFinished: 0,
     nearExpiry: 0
   });
@@ -192,7 +192,9 @@ const Dashboard = () => {
         setInventoryData(inventory);
         
         // Calculate inventory metrics based on the actual data structure
-        const belowLimit = inventory.filter(item => item.availableQnty < item.minLimit).length;
+        const belowLimit = inventory
+          .filter(item => item.availableQnty < item.minLimit)
+          .map(item => item.name);
         
         // Items that are almost finished (less than 20% of minimum limit)
         const almostFinished = inventory.filter(item => {
@@ -502,14 +504,34 @@ const Dashboard = () => {
               >
                 Below expected limit
               </Typography>
-              <Typography 
-                variant="h5" 
-                component="div" 
-                sx={{ fontSize: 36 }}
-                className="branch-metric-value"
-              >
-                {inventoryMetrics.belowLimit}
-              </Typography>
+              <div style={{ 
+                maxHeight: '150px', 
+                overflowY: 'auto',
+                padding: '8px',
+                backgroundColor: '#f5f5f5',
+                borderRadius: '4px'
+              }}>
+                {inventoryMetrics.belowLimit.length > 0 ? (
+                  inventoryMetrics.belowLimit.map((item, index) => (
+                    <Typography 
+                      key={index}
+                      sx={{ 
+                        fontSize: 14,
+                        color: '#d32f2f',
+                        marginBottom: '4px',
+                        padding: '4px',
+                        borderBottom: '1px solid #e0e0e0'
+                      }}
+                    >
+                      {item}
+                    </Typography>
+                  ))
+                ) : (
+                  <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
+                    No items below limit
+                  </Typography>
+                )}
+              </div>
             </CardContent>
           </Card>
 

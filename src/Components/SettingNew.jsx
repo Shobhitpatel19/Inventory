@@ -35,6 +35,9 @@ export default function App() {
   const [isTest, setIsTest] = useState("");
   const [region, setRegion] = useState("");
   const [open, setOpen] = useState(false);
+  const [enableDelivery, setEnableDelivery] = useState(false);
+  const [enablePickup, setEnablePickup] = useState(false);
+  const [enableScheduleDelivery, setEnableScheduleDelivery] = useState(false);
 
   const baseURL = configs.baseURL;
 
@@ -48,92 +51,157 @@ export default function App() {
     if (!userId) return; // Prevent API call if userId is missing
 
     axios
-      .get(`${baseURL}/api/settings/${userId}`,{
-          headers: { Authorization: `Bearer ${userToken}` },
-        })
+      .get(`${baseURL}/api/settings/${userId}`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      })
       .then((res) => {
-        console.log("Fetched user info:", res.data[0]);
-        setLongitude(res.data[0].location.coordinates[0]);
-        setLatitude(res.data[0].location.coordinates[1]);
-        setUserInfo(res.data[0]);
+        if (res.data?.length) {
+          console.log(JSON.stringify(res));
+          console.log("Fetched user info:", res.data[0]);
+          setLatitude(res.data[0].location.coordinates[0]);
+          setLongitude(res.data[0].location.coordinates[1]);
+          setUserInfo(res.data[0]);
+        } else {
+          let newMerchCode = randomString(
+            10,
+            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+          );
+          handleSaveSettings(newMerchCode);
+        }
       })
       .catch((error) => {
-        
-         let newMerchCode = randomString(10, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-         handleSaveSettings(newMerchCode);
-         console.log("User settings not found", error);
-
+        let newMerchCode = randomString(
+          10,
+          "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        );
+        handleSaveSettings(newMerchCode);
+        console.log("User settings not found", error);
       });
   }, []);
 
+  useEffect(() => {
+    console.log("This is userInfo: " + JSON.stringify(userInfo));
+  }, [userInfo]);
 
   useEffect(() => {
-    axios.get(baseURL + "/api/thp-source?userId=" + userId,{
-          headers: { Authorization: `Bearer ${userToken}` },
-        }).then((res) => {
-      setProviderDetail(res.data);
-    });
+    axios
+      .get(baseURL + "/api/thp-source?userId=" + userId, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      })
+      .then((res) => {
+        setProviderDetail(res.data);
+      });
   }, []);
 
   // Handle field update
   const handleFieldUpdate = (key, newValue) => {
+  if (key === "closing_end_date" && userInfo.closing_start_date) {
+    if (new Date(newValue) < new Date(userInfo.closing_start_date)) {
+      toast.error("Closing end date cannot be before start date.");
+      return;
+    }
+  }
+
+  if (key === "closing_start_date" && userInfo.closing_end_date) {
+    if (new Date(userInfo.closing_end_date) < new Date(newValue)) {
+      toast.error("Closing start date cannot be after end date.");
+      return;
+    }
+  }
+
+  setUserInfo((prev) => ({
+    ...prev,
+    [key]: newValue,
+  }));
+
+  axios
+    .patch(
+      `${baseURL}/api/settings/${userId}`,
+      { [key]: newValue },
+      { headers: { Authorization: `Bearer ${userToken}` } }
+    )
+    .then((res) => {
+      console.log("Updated response: " + res);
+      toast.success("Settings updated successfully");
+    })
+    .catch((err) => {
+      toast.error("Failed to update settings");
+      console.error(err);
+    });
+};
+
+
+  const handleCheckboxChange = async (key) => {
+    const updatedValue = !userInfo[key];
     setUserInfo((prev) => ({
       ...prev,
-      [key]: newValue,
+      [key]: updatedValue,
     }));
+
+    try {
+      await axios.patch(
+        `${baseURL}/api/settings/${userId}`,
+        {
+          [key]: updatedValue,
+        },
+        {
+          headers: { Authorization: `Bearer ${userToken}` },
+        }
+      );
+
+      toast.success(`Settings updated successfully`);
+    } catch (error) {
+      toast.error(`Failed to update ${key}`);
+      console.error("Error updating field:", error);
+    }
   };
 
-  const handleCheckboxChange = (key) => {
-    const updatedUserInfo = {
-      ...userInfo,
-      [key]: !userInfo[key],
-    };
-    setUserInfo(updatedUserInfo);
-    handleSaveSettings(updatedUserInfo); // pass updated object
-  };
-
-   const randomString = (length, chars)=> {
+  const randomString = (length, chars) => {
     var result = "";
     for (var i = length; i > 0; --i)
       result += chars[Math.floor(Math.random() * chars.length)];
     return result;
-  }
+  };
 
   const handleSaveSettings = async (newMerchCode) => {
     if (!userId) return;
 
     try {
-      await axios.post(`${baseURL}/api/settings/${userId}`, {
-        userId: userId,
-        merchantCode: newMerchCode,
-        activeProviderId: "",
-        sokBGImg: "",
-        activePaymentGateway: "",
-        activeDeliveryPartner: "",
-        currency: "INR",
-        logoImg: "",
-        onlyTakeAway: "",
-        isLeftAlign: true,
-        filterVegNonVeg: true,
-        themeColor: "#f71919",
-        themeTxtColor: "#f71919",
-        customizeInWizard: true,
-        dineinTax: 0,
-        takeAwayTax: 5,
-        notes: "",
-        location: {
-          type: "Point",
-          coordinates: [12.2, 77.7],
+      await axios.post(
+        `${baseURL}/api/settings`,
+        {
+          userId: userId,
+          merchantCode: newMerchCode,
+          activeProviderId: "",
+          sokBGImg: "",
+          activePaymentGateway: "",
+          activeDeliveryPartner: "",
+          currency: "INR",
+          logoImg: "",
+          onlyTakeAway: false,
+          isLeftAlign: true,
+          filterVegNonVeg: true,
+          themeColor: "#f71919",
+          themeTxtColor: "#f71919",
+          customizeInWizard: true,
+          dineinTax: 0,
+          takeAwayTax: 5,
+          notes: "",
+          location: {
+            type: "Point",
+            coordinates: [parseFloat(latitude), parseFloat(longitude)],
+          },
+          openTime: 10,
+          closeTime: 23,
         },
-        openTime: "10:10",
-        closeTime: "23:00"
-       
-      },{
+        {
           headers: { Authorization: `Bearer ${userToken}` },
-        });
+        }
+      );
 
       console.log("Settings updated successfully!");
       toast.success(" New settings added successfully!");
+      window.location.reload();
     } catch (error) {
       console.error("Error updating settings:", error);
     }
@@ -153,13 +221,17 @@ export default function App() {
       console.log(data);
 
       axios
-        .put(baseURL + "/api/thp-source/" + clovId, {
-          userId: userId,
-          provider: provider,
-          merchantDetails: JSON.stringify(merchantDetails),
-        },{
-          headers: { Authorization: `Bearer ${userToken}` },
-        })
+        .put(
+          baseURL + "/api/thp-source/" + clovId,
+          {
+            userId: userId,
+            provider: provider,
+            merchantDetails: JSON.stringify(merchantDetails),
+          },
+          {
+            headers: { Authorization: `Bearer ${userToken}` },
+          }
+        )
         .then((res) => {
           console.log(res);
           setApiKey("");
@@ -172,9 +244,9 @@ export default function App() {
           setRegion("");
 
           axios
-            .get(baseURL + "/api/thp-source?userId=" + userId,{
-          headers: { Authorization: `Bearer ${userToken}` },
-        })
+            .get(baseURL + "/api/thp-source?userId=" + userId, {
+              headers: { Authorization: `Bearer ${userToken}` },
+            })
             .then((res) => {
               console.log(res.data);
               setProviderDetail(res.data);
@@ -185,13 +257,17 @@ export default function App() {
       setDialogOPen(false);
     } else if (providerCode && providerTitle) {
       axios
-        .post(baseURL + "/api/thp-source", {
-          userId: userId,
-          provider: provider,
-          merchantDetails: JSON.stringify(merchantDetails),
-        },{
-          headers: { Authorization: `Bearer ${userToken}` },
-        })
+        .post(
+          baseURL + "/api/thp-source",
+          {
+            userId: userId,
+            provider: provider,
+            merchantDetails: JSON.stringify(merchantDetails),
+          },
+          {
+            headers: { Authorization: `Bearer ${userToken}` },
+          }
+        )
         .then((res) => {
           console.log(res);
           setApiKey("");
@@ -202,9 +278,9 @@ export default function App() {
           setRegion("");
 
           axios
-            .get(baseURL + "/api/thp-source?userId=" + userId,{
-          headers: { Authorization: `Bearer ${userToken}` },
-        })
+            .get(baseURL + "/api/thp-source?userId=" + userId, {
+              headers: { Authorization: `Bearer ${userToken}` },
+            })
             .then((res) => {
               console.log(res.data);
               setProviderDetail(res.data);
@@ -236,17 +312,21 @@ export default function App() {
   };
 
   const handleDelete = (cloverId) => {
-    axios.delete(baseURL + "/api/thp-source/" + cloverId,{
-          headers: { Authorization: `Bearer ${userToken}` },
-        }).then((res) => {
-      console.log(res);
-      axios.get(baseURL + "/api/thp-source?userId=" + userId,{
-          headers: { Authorization: `Bearer ${userToken}` },
-        }).then((res) => {
-        console.log(res.data);
-        setProviderDetail(res.data);
+    axios
+      .delete(baseURL + "/api/thp-source/" + cloverId, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      })
+      .then((res) => {
+        console.log(res);
+        axios
+          .get(baseURL + "/api/thp-source?userId=" + userId, {
+            headers: { Authorization: `Bearer ${userToken}` },
+          })
+          .then((res) => {
+            console.log(res.data);
+            setProviderDetail(res.data);
+          });
       });
-    });
   };
 
   if (!userInfo) {
@@ -262,7 +342,7 @@ export default function App() {
             width: "60%",
             display: "flex",
             alignItems: "center",
-            justifyContent: "start"
+            justifyContent: "start",
           }}
         >
           <ButtonGroup aria-label="Basic button group">
@@ -299,7 +379,7 @@ export default function App() {
             display: "flex",
             flexDirection: "column",
             overflowY: "scroll",
-            height:"calc(100vh - 144px)"
+            height: "calc(100vh - 144px)",
           }}
         >
           {/* Merchant Info */}
@@ -310,7 +390,7 @@ export default function App() {
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
-              marginBottom:"20px"
+              marginBottom: "20px",
             }}
           >
             <h2
@@ -327,7 +407,7 @@ export default function App() {
                 display: "grid",
                 gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "16px",
-                padding: "10px 20px"
+                padding: "10px 20px",
               }}
             >
               <div
@@ -343,11 +423,11 @@ export default function App() {
                     const selectedId = e.target.value;
                     setUserInfo((prev) => ({
                       ...prev,
-                      activeProviderId: selectedId,
+                      activeProviderId: selectedId || "",
                     }));
                     handleSaveSettings({
                       ...userInfo,
-                      activeProviderId: selectedId,
+                      activeProviderId: selectedId || "",
                     });
                   }}
                 >
@@ -413,7 +493,7 @@ export default function App() {
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
-              marginBottom:"20px"
+              marginBottom: "20px",
             }}
           >
             <h2
@@ -431,15 +511,13 @@ export default function App() {
                 display: "grid",
                 gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "16px",
-                padding: "10px 20px"
+                padding: "10px 20px",
               }}
             >
-              
-
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <label style={{ color:"#726e6e", width: "40%" }}>
+                <label style={{ color: "#726e6e", width: "40%" }}>
                   Veg/Non-Veg Filter:
                 </label>
                 <input
@@ -453,7 +531,7 @@ export default function App() {
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <label style={{ color:"#726e6e", width: "40%" }}>
+                <label style={{ color: "#726e6e", width: "40%" }}>
                   Only Take Away
                 </label>
                 <input
@@ -467,13 +545,13 @@ export default function App() {
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <label style={{ color:"#726e6e", width: "40%" }}>
+                <label style={{ color: "#726e6e", width: "40%" }}>
                   Customize In Wizard
                 </label>
                 <input
                   type="checkbox"
                   checked={!!userInfo.customizeInWizard}
-                  onChange={() => handleCheckboxChange("dineinTax")}
+                  onChange={() => handleCheckboxChange("customizeInWizard")}
                   style={{ width: "20px", height: "20px" }}
                 />
               </div>
@@ -504,7 +582,7 @@ export default function App() {
                 gap: "16px",
                 marginTop: "16px",
                 padding: "10px 20px",
-                marginBottom:"10px"
+                marginBottom: "10px",
               }}
             >
               <EditableField
@@ -525,10 +603,10 @@ export default function App() {
                 setUserInfo={setUserInfo}
                 onUpdate={handleFieldUpdate}
               />
-              
+
               <EditableField
                 label="Latitude"
-                value={userInfo.location.coordinates[1] ?? ""}
+                value={userInfo.location.coordinates[0] ?? ""}
                 type="number"
                 fieldKey="latitude"
                 userInfo={userInfo}
@@ -537,7 +615,7 @@ export default function App() {
 
               <EditableField
                 label="Longitude"
-                value={userInfo.location.coordinates[0] ?? ""}
+                value={userInfo.location.coordinates[1] ?? ""}
                 type="number"
                 fieldKey="longitude"
                 userInfo={userInfo}
@@ -562,6 +640,36 @@ export default function App() {
                 setUserInfo={setUserInfo}
                 onUpdate={handleFieldUpdate}
               />
+
+              <EditableField
+                label="Closing Start Date"
+                value={userInfo.closing_start_date || ""}
+                type="date"
+                fieldKey="closing_start_date"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
+
+              <EditableField
+                label="Closing End Date"
+                value={userInfo.closing_end_date || ""}
+                type="date"
+                fieldKey="closing_end_date"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
+
+              <EditableField
+                label="Closing Reason"
+                value={userInfo.closing_remark || ""}
+                type="text"
+                fieldKey="closing_remark"
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                onUpdate={handleFieldUpdate}
+              />
             </div>
           </div>
 
@@ -573,10 +681,9 @@ export default function App() {
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
-              marginBottom:"20px"
+              marginBottom: "20px",
             }}
           >
-
             <h2
               style={{
                 fontSize: "20px",
@@ -593,14 +700,14 @@ export default function App() {
                 gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "16px",
                 padding: "10px 20px",
-                marginBottom:"10px"
+                marginBottom: "10px",
               }}
             >
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <label style={{ color:"#726e6e", width: "40%" }}>
-                 Left Aligned Order Panel  
+                <label style={{ color: "#726e6e", width: "40%" }}>
+                  Left Aligned Order Panel
                 </label>
                 <input
                   type="checkbox"
@@ -609,7 +716,7 @@ export default function App() {
                   style={{ width: "20px", height: "20px" }}
                 />
               </div>
-              </div>
+            </div>
           </div>
 
           {/* SOK  Settings */}
@@ -623,7 +730,6 @@ export default function App() {
               marginBottom: "16px",
             }}
           >
-
             <h2
               style={{
                 fontSize: "20px",
@@ -644,10 +750,9 @@ export default function App() {
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
-              marginBottom: "16px"
+              marginBottom: "16px",
             }}
           >
-
             <h2
               style={{
                 fontSize: "20px",
@@ -668,10 +773,9 @@ export default function App() {
               borderRadius: "8px",
               boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
               background: "white",
-              marginBottom: "16px"
+              marginBottom: "16px",
             }}
           >
-
             <h2
               style={{
                 fontSize: "20px",
@@ -681,9 +785,174 @@ export default function App() {
             >
               Online Order Settings
             </h2>
-            coming soon...
-          </div>
 
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
+                gap: "16px",
+                padding: "10px 20px",
+              }}
+            >
+              {/* Delivery Toggle */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+              >
+                <label style={{ width: "50%", color: "#726e6e" }}>
+                  Delivery
+                </label>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "60px",
+                    height: "30px",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={enableDelivery}
+                    onChange={() => setEnableDelivery(!enableDelivery)}
+                    style={{
+                      opacity: 0,
+                      width: "100%",
+                      height: "100%",
+                      position: "absolute",
+                      cursor: "pointer",
+                      zIndex: 2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundColor: enableDelivery ? "#4caf50" : "#ccc",
+                      borderRadius: "30px",
+                      transition: "0.4s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "24px",
+                        width: "24px",
+                        backgroundColor: "white",
+                        borderRadius: "50%",
+                        position: "absolute",
+                        top: "3px",
+                        left: enableDelivery ? "32px" : "4px",
+                        transition: "0.4s",
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pickup Toggle */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+              >
+                <label style={{ width: "50%", color: "#726e6e" }}>Pickup</label>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "60px",
+                    height: "30px",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={enablePickup}
+                    onChange={() => setEnablePickup(!enablePickup)}
+                    style={{
+                      opacity: 0,
+                      width: "100%",
+                      height: "100%",
+                      position: "absolute",
+                      cursor: "pointer",
+                      zIndex: 2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundColor: enablePickup ? "#4caf50" : "#ccc",
+                      borderRadius: "30px",
+                      transition: "0.4s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "24px",
+                        width: "24px",
+                        backgroundColor: "white",
+                        borderRadius: "50%",
+                        position: "absolute",
+                        top: "3px",
+                        left: enablePickup ? "32px" : "4px",
+                        transition: "0.4s",
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule Delivery Toggle */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+              >
+                <label style={{ width: "50%", color: "#726e6e" }}>
+                  Schedule Delivery
+                </label>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "60px",
+                    height: "30px",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={enableScheduleDelivery}
+                    onChange={() =>
+                      setEnableScheduleDelivery(!enableScheduleDelivery)
+                    }
+                    style={{
+                      opacity: 0,
+                      width: "100%",
+                      height: "100%",
+                      position: "absolute",
+                      cursor: "pointer",
+                      zIndex: 2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundColor: enableScheduleDelivery
+                        ? "#4caf50"
+                        : "#ccc",
+                      borderRadius: "30px",
+                      transition: "0.4s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "24px",
+                        width: "24px",
+                        backgroundColor: "white",
+                        borderRadius: "50%",
+                        position: "absolute",
+                        top: "3px",
+                        left: enableScheduleDelivery ? "32px" : "4px",
+                        transition: "0.4s",
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

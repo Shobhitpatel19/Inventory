@@ -26,7 +26,7 @@ function BillPrint(props) {
 
   const cgst = getParameterByName("cgst");
   const nssi = getParameterByName("nssi");
-  console.log("props details",  props.orderDetails);
+  console.log("props details", props.orderDetails);
   const invoiceNo = props.orderDetails
     ? props.orderDetails.invoice_no
     : getParameterByName("invoice_no");
@@ -270,110 +270,142 @@ function BillPrint(props) {
               <hr style={{ border: "1px solid black", margin: "5px" }} />
               <table
                 style={{
-                  fontSize: "15px",
-                  lineHeight: "15px",
-                  fontSize: "8px",
+                  width: "100%",
+                  borderCollapse: "collapse",
                 }}
-                align="left"
-                height="auto"
-                width="100%"
               >
-                <thead align="left">
-                  <tr
-                    style={{
-                      borderBottom: "2px dotted #000",
-                      fontSize: "8px",
-                      fontWeight: "normal",
-                    }}
-                  >
-                    <th align="start">Items</th>
-                    <th>Qty</th>
-                    <th> {t({ id: "ammount" })}: </th>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #000" }}>
+                    <th align="left" style={{ padding: "4px",fontSize: "9px" }}>
+                      Items
+                    </th>
+                    <th align="center" style={{ padding: "4px",fontSize: "9px" }}>
+                      Qty
+                    </th>
+                    <th align="center" style={{ padding: "4px",fontSize: "9px" }}>
+                      Rate
+                    </th>
+                    <th align="center" style={{ padding: "4px",fontSize: "9px" }}>
+                      {t({ id: "ammount" })}
+                    </th>
                   </tr>
                 </thead>
-                <tbody align="left">
-                  {orderDetails
-                    ? orderDetails.orderItems.map((item, index) => {
-                        const subProArray =
-                          item.sub_pro && JSON.parse(item.sub_pro);
-                        return (
-                          <tr
-                            key={index}
-                            style={{ borderBottom: "1px dotted #000" }}
-                          >
-                            <td align="start" style={{ maxWidth: "130px" }}>
-                              {item.name}
-                            </td>
-                            <td>{item.quantity}</td>
-                            <td>
-                              {renderCurrencySymbol()} {item.price}
-                            </td>
-                            <td>
-                              {item &&
-                              item.status &&
-                              item.status.toUpperCase() === "READY" ? (
-                                <input
-                                  type="checkbox"
-                                  style={{
-                                    height: "20px",
-                                    width: "20px",
-                                    accentColor: "#08eb0875",
-                                  }}
-                                  checked
-                                  readOnly
-                                />
-                              ) : (
-                                ""
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    : ""}
+
+                <tbody>
+                  {orderDetails?.orderItems.map((item, index) => (
+                    <tr key={index}>
+                      <td style={{ padding: "4px", maxWidth: "200px", textAlign: "left", fontSize: "10px" }}>
+                        {item.name}
+                      </td>
+                      <td style={{  textAlign: "center" }}>
+                        {item.quantity}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        {renderCurrencySymbol()} {item.price}
+                      </td>
+                      <td style={{ padding: "4px", textAlign: "center", display: "flex" }}>
+                        {renderCurrencySymbol()}{" "}
+                        {(item.quantity * item.price).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Divider */}
                   <tr>
                     <td colSpan="4">
-                      <hr style={{ border: "1px solid black" }}></hr>
+                      <hr
+                        style={{ border: "1px solid #000", margin: "8px 0" }}
+                      />
                     </td>
                   </tr>
+
+                  {/* Amount */}
                   <tr>
-                    <td colSpan="2" align="middle">
-                      <b> {t({ id: "ammount" })}: :</b>
+                    <td colSpan="2"></td>
+                    <td style={{ padding: "4px", textAlign: "right" , fontSize: "12px"}}>
+                      <b>Amount:</b>
                     </td>
-                    <td align="start">
+                    <td style={{ padding: "4px", textAlign: "center" }}>
                       {renderCurrencySymbol()}{" "}
                       {(
                         orderDetails.totalPrice - orderDetails.taxPrice
                       ).toFixed(2)}
                     </td>
                   </tr>
+
+                  {/* Tax (Same Line % and Amount) */}
                   <tr>
-                    <td colSpan="2" align="middle">
-                      <b>
-                        {" "}
-                        {t({ id: "tax" })}: ({parseFloat(cgst).toFixed(2)}%):
-                      </b>
+                    <td colSpan="2"></td>
+                    <td style={{ padding: "4px", textAlign: "right",fontSize: "12px" }}>
+                      {/* <b>Tax ({parseFloat(cgst || 0).toFixed(2)}%):</b> */}
+                      <b>CGST</b>
                     </td>
-                    <td align="start">
+                    <td style={{ padding: "4px", textAlign: "center" }}>
                       {renderCurrencySymbol()}{" "}
-                      {orderDetails.taxPrice.toFixed(2)}
+                      {(orderDetails.taxPrice/2).toFixed(2)}
                     </td>
                   </tr>
                   <tr>
-                    <td colSpan="2" align="middle">
-                      <b> {t({ id: "discount" })}: :</b>
+                    <td colSpan="2"></td>
+                    <td style={{ padding: "4px", textAlign: "right",fontSize: "12px" }}>
+                      {/* <b>Tax ({parseFloat(cgst || 0).toFixed(2)}%):</b> */}
+                      <b>SGST</b>
                     </td>
-                    <td align="start">
-                      -
-                      {orderDetails.discountAmount !== null
-                        ? orderDetails.discountAmount
-                        : 0}
-                      {orderDetails.discountType === "discount"
-                        ? renderCurrencySymbol()
-                        : "%"}
+                    <td style={{ padding: "4px", textAlign: "center" }}>
+                      {renderCurrencySymbol()}{" "}
+                      {(orderDetails.taxPrice/2).toFixed(2)}
+                    </td>
+                  </tr>
+
+                  {/* Discount */}
+                  <tr>
+                    <td colSpan="2"></td>
+                    <td style={{ padding: "4px", textAlign: "right",fontSize: "12px" }}>
+                      <b>Discount:</b>
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "center" }}>
+                      {orderDetails.discountAmount
+                        ? `-${orderDetails.discountAmount}${
+                            orderDetails.discountType === "discount"
+                              ? renderCurrencySymbol()
+                              : "%"
+                          }`
+                        : "-0%"}
+                    </td>
+                  </tr>
+
+                  {/* Final Total */}
+                  <tr
+                    style={{
+                      borderTop: "1px solid #000",
+                      borderBottom: "1px solid #000",
+                    }}
+                  >
+                    <td colSpan="2"></td>
+                    <td
+                      style={{
+                        padding: "6px",
+                        textAlign: "right",
+                        fontSize: "13px",
+                      }}
+                    >
+                      <b>Total:</b>
+                    </td>
+                    <td
+                      style={{
+                        padding: "6px",
+                        textAlign: "center",
+                        fontWeight: "bold",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {renderCurrencySymbol()}{" "}
+                      {orderDetails.totalPrice.toFixed(2)}
                     </td>
                   </tr>
                 </tbody>
               </table>
+
               <h3
                 align="left"
                 style={{

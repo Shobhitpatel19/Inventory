@@ -84,16 +84,7 @@ table.r-responsive-table td
 #sel1 button {
   margin-left: 10px;
 }
-.actions-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-right: 20px;
-}
 
-.actions-container .btn-icon {
-  margin-right: 10px;
-}
 #bill{
       width: auto;
     display: inline-block;
@@ -2232,4 +2223,16 @@ flex-wrap: wrap;
 .small_row_inputs{
   width: 150px;
   margin-left: 10px!important;
+}
+
+#action_orders ul li {
+  padding: 10px;
+  font-size: 1.2em;
+  border-bottom: 1px solid #ccc;
+}
+
+.actions-container{
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }

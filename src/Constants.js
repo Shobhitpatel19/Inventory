@@ -24,6 +24,7 @@ const p = new Promise((response, rej) => {
         let data = res&&res.data.length?res.data[0]:null;
         data.baseURL= window.location.href.indexOf('localhost') > 0? 'https://inventory-service-gthb.onrender.com': data.baseURL;
         localStorage.setItem("configs",JSON.stringify(data));
+        sessionStorage.setItem("configs",JSON.stringify(data));
         config = data;
         response(config);
     });

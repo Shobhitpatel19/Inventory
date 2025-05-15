@@ -64,7 +64,7 @@
     "reports":"Reports",
     "daily_summary":"Daily Sales Summary",
            "total_orders":"Total Orders",
-            "total_ammount":"Total Ammount",
+            "total_ammount":"Total Amount",
              "todays_report":"Todays Report",
               "todays_summary":"Todays Summary",
                "pay_mode":"Select payment mode",
@@ -81,6 +81,8 @@
                "paid_by_cash":"Paid By Cash",
                "bill_amount":"Total Amount",
                "cash_change": "Cash Change",
-               "kitchen":"Kitchen"
+               "kitchen":"Kitchen",
+               "update_order":"Update Order",
+               "driver":"Driver"
 
 }

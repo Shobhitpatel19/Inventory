@@ -144,7 +144,7 @@ function Nav(props) {
     sessionStorage.removeItem("selectedBranchId");
     //  window.location.reload();
     // http://localhost:8080/
-    let isMember=sessionStorage.getItem('isMember')
+    let isMember=sessionStorage.getItem('isMember');
     if(isMember){
        sessionStorage.removeItem("merchantData");
        sessionStorage.removeItem('isMember')
@@ -376,6 +376,7 @@ const handleDashboard = () => {
           <MicrowaveIcon sx={{ fontSize: "50px", cursor: "pointer" }} />
           <label>{t({ id: "kitchen" })}</label>
         </NavLink>
+
 
         <NavLink
           to={"/qrcodes"}
