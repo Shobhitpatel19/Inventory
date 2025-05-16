@@ -35,9 +35,6 @@ export default function App() {
   const [isTest, setIsTest] = useState("");
   const [region, setRegion] = useState("");
   const [open, setOpen] = useState(false);
-  const [enableDelivery, setEnableDelivery] = useState(false);
-  const [enablePickup, setEnablePickup] = useState(false);
-  const [enableScheduleDelivery, setEnableScheduleDelivery] = useState(false);
 
   const baseURL = configs.baseURL;
 
@@ -58,9 +55,9 @@ export default function App() {
         if (res.data?.length) {
           console.log(JSON.stringify(res));
           console.log("Fetched user info:", res.data[0]);
+          setUserInfo(res.data[0]);
           setLatitude(res.data[0].location.coordinates[0]);
           setLongitude(res.data[0].location.coordinates[1]);
-          setUserInfo(res.data[0]);
         } else {
           let newMerchCode = randomString(
             10,
@@ -93,43 +90,42 @@ export default function App() {
       });
   }, []);
 
-  // Handle field update
+
   const handleFieldUpdate = (key, newValue) => {
-  if (key === "closing_end_date" && userInfo.closing_start_date) {
-    if (new Date(newValue) < new Date(userInfo.closing_start_date)) {
-      toast.error("Closing end date cannot be before start date.");
-      return;
+    if (key === "closing_end_date" && userInfo.closing_start_date) {
+      if (new Date(newValue) < new Date(userInfo.closing_start_date)) {
+        toast.error("Closing end date cannot be before start date.");
+        return;
+      }
     }
-  }
 
-  if (key === "closing_start_date" && userInfo.closing_end_date) {
-    if (new Date(userInfo.closing_end_date) < new Date(newValue)) {
-      toast.error("Closing start date cannot be after end date.");
-      return;
+    if (key === "closing_start_date" && userInfo.closing_end_date) {
+      if (new Date(userInfo.closing_end_date) < new Date(newValue)) {
+        toast.error("Closing start date cannot be after end date.");
+        return;
+      }
     }
-  }
 
-  setUserInfo((prev) => ({
-    ...prev,
-    [key]: newValue,
-  }));
+    setUserInfo((prev) => ({
+      ...prev,
+      [key]: newValue,
+    }));
 
-  axios
-    .patch(
-      `${baseURL}/api/settings/${userId}`,
-      { [key]: newValue },
-      { headers: { Authorization: `Bearer ${userToken}` } }
-    )
-    .then((res) => {
-      console.log("Updated response: " + res);
-      toast.success("Settings updated successfully");
-    })
-    .catch((err) => {
-      toast.error("Failed to update settings");
-      console.error(err);
-    });
-};
-
+    axios
+      .patch(
+        `${baseURL}/api/settings/${userId}`,
+        { [key]: newValue },
+        { headers: { Authorization: `Bearer ${userToken}` } }
+      )
+      .then((res) => {
+        console.log("Updated response: " + res);
+        toast.success("Settings updated successfully");
+      })
+      .catch((err) => {
+        toast.error("Failed to update settings");
+        console.error(err);
+      });
+  };
 
   const handleCheckboxChange = async (key) => {
     const updatedValue = !userInfo[key];
@@ -643,7 +639,7 @@ export default function App() {
 
               <EditableField
                 label="Closing Start Date"
-                value={userInfo.closing_start_date || ""}
+                value={userInfo.closing_start_date?.split("T")[0] || ""}
                 type="date"
                 fieldKey="closing_start_date"
                 userInfo={userInfo}
@@ -653,7 +649,7 @@ export default function App() {
 
               <EditableField
                 label="Closing End Date"
-                value={userInfo.closing_end_date || ""}
+                value={userInfo.closing_end_date?.split("T")[0] || ""}
                 type="date"
                 fieldKey="closing_end_date"
                 userInfo={userInfo}
@@ -810,8 +806,8 @@ export default function App() {
                 >
                   <input
                     type="checkbox"
-                    checked={enableDelivery}
-                    onChange={() => setEnableDelivery(!enableDelivery)}
+                    checked={!!userInfo.enable_delivery}
+                    onChange={() => handleCheckboxChange("enable_delivery")}
                     style={{
                       opacity: 0,
                       width: "100%",
@@ -825,7 +821,9 @@ export default function App() {
                     style={{
                       position: "absolute",
                       inset: 0,
-                      backgroundColor: enableDelivery ? "#4caf50" : "#ccc",
+                      backgroundColor: userInfo.enable_delivery
+                        ? "#4caf50"
+                        : "#ccc",
                       borderRadius: "30px",
                       transition: "0.4s",
                     }}
@@ -838,7 +836,7 @@ export default function App() {
                         borderRadius: "50%",
                         position: "absolute",
                         top: "3px",
-                        left: enableDelivery ? "32px" : "4px",
+                        left: userInfo.enable_delivery ? "32px" : "4px",
                         transition: "0.4s",
                       }}
                     ></div>
@@ -860,8 +858,8 @@ export default function App() {
                 >
                   <input
                     type="checkbox"
-                    checked={enablePickup}
-                    onChange={() => setEnablePickup(!enablePickup)}
+                    checked={!!userInfo.enable_pickup}
+                    onChange={() => handleCheckboxChange("enable_pickup")}
                     style={{
                       opacity: 0,
                       width: "100%",
@@ -875,7 +873,9 @@ export default function App() {
                     style={{
                       position: "absolute",
                       inset: 0,
-                      backgroundColor: enablePickup ? "#4caf50" : "#ccc",
+                      backgroundColor: userInfo.enable_pickup
+                        ? "#4caf50"
+                        : "#ccc",
                       borderRadius: "30px",
                       transition: "0.4s",
                     }}
@@ -888,7 +888,7 @@ export default function App() {
                         borderRadius: "50%",
                         position: "absolute",
                         top: "3px",
-                        left: enablePickup ? "32px" : "4px",
+                        left: userInfo.enable_pickup ? "32px" : "4px",
                         transition: "0.4s",
                       }}
                     ></div>
@@ -912,9 +912,9 @@ export default function App() {
                 >
                   <input
                     type="checkbox"
-                    checked={enableScheduleDelivery}
+                    checked={!!userInfo.enable_schedule_delivery}
                     onChange={() =>
-                      setEnableScheduleDelivery(!enableScheduleDelivery)
+                      handleCheckboxChange("enable_schedule_delivery")
                     }
                     style={{
                       opacity: 0,
@@ -929,7 +929,7 @@ export default function App() {
                     style={{
                       position: "absolute",
                       inset: 0,
-                      backgroundColor: enableScheduleDelivery
+                      backgroundColor: userInfo.enable_schedule_delivery
                         ? "#4caf50"
                         : "#ccc",
                       borderRadius: "30px",
@@ -944,7 +944,9 @@ export default function App() {
                         borderRadius: "50%",
                         position: "absolute",
                         top: "3px",
-                        left: enableScheduleDelivery ? "32px" : "4px",
+                        left: userInfo.enable_schedule_delivery
+                          ? "32px"
+                          : "4px",
                         transition: "0.4s",
                       }}
                     ></div>

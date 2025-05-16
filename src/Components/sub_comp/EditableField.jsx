@@ -85,8 +85,8 @@ export default function EditableField({
 
         setUserInfo(updatedUserInfo);
 
-        await axios.put(
-          `${baseURL}/api/settings/${userInfo.id}`,
+        await axios.patch(
+          `${baseURL}/api/settings/${userInfo.userId}`,
           updatedUserInfo
         )
       }
