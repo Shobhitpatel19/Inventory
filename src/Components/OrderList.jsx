@@ -107,6 +107,7 @@ const OrderList = (props) => {
   const [openActions, setOpenActions] = useState(false);
   const [assignPopupOpen, setAssignPopupOpen] = useState(false);
   const [selectedOrderForDriver, setSelectedOrderForDriver] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState("down"); // Can be 'up' or 'down'
 
   const navigate = useNavigate();
   let baseURL = configs.baseURL;
@@ -799,7 +800,7 @@ const OrderList = (props) => {
   };
 
   return (
-    <div className="container">
+    <div className="container" style={{ padding: "10px" }}>
       {false && (
         <div className="refresh">
           <IconButton
@@ -813,7 +814,13 @@ const OrderList = (props) => {
         </div>
       )}
 
-      <div className="header">
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "20px",
+        }}
+      >
         <h4>{t({ id: "orders" })}</h4>
         {/* <ThemeProvider theme={theme}>
           <Button onClick={handleSort} color="info" variant="outlined">
@@ -825,33 +832,52 @@ const OrderList = (props) => {
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             justifyContent: "space-between",
-            gap: "50px",
+            gap: "20px",
           }}
         >
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              border: "1px solid #ccc",
-              padding: "5px",
-              borderRadius: "5px",
-              cursor: "pointer",
+              justifyContent: "flex-end",
+              gap: "10px",
             }}
-            onClick={handleWaiterToken}
           >
-            <img
-              src="./images/waiter.png"
-              style={{ width: "25px", height: "25px", objectFit: "contain" }}
-              alt=""
-            />
-            <Button color="success">{t({ id: "ready_to_serve" })}</Button>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #ccc",
+                padding: "5px",
+                borderRadius: "5px",
+                cursor: "pointer",
+              }}
+              onClick={handleWaiterToken}
+            >
+              <img
+                src="./images/waiter.png"
+                style={{ width: "25px", height: "25px", objectFit: "contain" }}
+                alt=""
+              />
+              <Button color="success">{t({ id: "ready_to_serve" })}</Button>
+            </div>
+            <IconButton
+              variant="contained"
+              color="success"
+              className="refresh_btn"
+              onClick={handleRefresh}
+            >
+              <RefreshIcon />
+            </IconButton>
           </div>
           <div
             id="head"
             style={{
               display: "flex",
+              flexWrap: "wrap",
               justifyContent: "space-between",
               alignItems: "center",
               width: "auto",
@@ -880,14 +906,6 @@ const OrderList = (props) => {
                 />{" "}
               </span>
             )}
-            <IconButton
-              variant="contained"
-              color="success"
-              className="refresh_btn"
-              onClick={handleRefresh}
-            >
-              <RefreshIcon />
-            </IconButton>
           </div>
         </div>
       </div>
@@ -1027,8 +1045,10 @@ const OrderList = (props) => {
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             justifyContent: "space-between",
-            paddingInline: "50px",
+            paddingInline: "10px",
+            gap: "10px",
           }}
         >
           <div className="search">
@@ -1180,8 +1200,9 @@ const OrderList = (props) => {
                             <div
                               style={{
                                 display: "flex",
+                                flexDirection: "column",
                                 justifyContent: "center",
-                                gap: "20px",
+                                gap: "10px",
                               }}
                             >
                               <Button
@@ -1263,13 +1284,35 @@ const OrderList = (props) => {
                       >
                         <Td
                           style={{
-                            fontSize: "25px",
+                            fontSize: "20px",
                             display: "flex",
-                            justifyContent: "space-around",
+                            flexDirection: "column",
+                            justifyContent: "center",
                             alignItems: "center",
                             color: "#4d4a4a",
                           }}
                         >
+                          {orderLists.number}
+                          <br />
+                          {tableCall && (
+                            <span
+                              className={
+                                orderLists.isDelivered ? "" : "shaking-icon"
+                              }
+                              style={{
+                                display: "inline-block",
+                                fontSize: "9px",
+                                fontWeight: "bold",
+                                left: "35px",
+                              }}
+                            >
+                              <NotificationsActiveIcon
+                                sx={{ color: "red" }}
+                                fontSize="small"
+                              />
+                            </span>
+                          )}
+
                           {orderLists.orderType.toLowerCase() === "eat in" && (
                             <img
                               height="20px"
@@ -1308,27 +1351,6 @@ const OrderList = (props) => {
                               alt=""
                               src="./images/pickup.png"
                             />
-                          )}
-
-                          {orderLists.number}
-                          <br />
-                          {tableCall && (
-                            <span
-                              className={
-                                orderLists.isDelivered ? "" : "shaking-icon"
-                              }
-                              style={{
-                                display: "inline-block",
-                                fontSize: "9px",
-                                fontWeight: "bold",
-                                left: "35px",
-                              }}
-                            >
-                              <NotificationsActiveIcon
-                                sx={{ color: "red" }}
-                                fontSize="small"
-                              />
-                            </span>
                           )}
                         </Td>
                         <Td>
@@ -1451,7 +1473,10 @@ const OrderList = (props) => {
                           )}
                         </Td>
                         <Td>
-                          <div className="actions-container">
+                          <div
+                            className="actions-container"
+                            style={{ position: "relative" }}
+                          >
                             {orderLists.orderItems?.every(
                               (item) => item.status === "delivered"
                             ) && (
@@ -1471,17 +1496,43 @@ const OrderList = (props) => {
                               <Button
                                 style={{ marginRight: "10px" }}
                                 aria-controls={
-                                  openActions
-                                    ? "demo-customized-menu"
+                                  openActions &&
+                                  selectedOrder?.id === orderLists.id
+                                    ? `actions-menu-${orderLists.id}`
                                     : undefined
                                 }
                                 aria-haspopup="true"
-                                aria-expanded={openActions ? "true" : undefined}
+                                aria-expanded={
+                                  openActions &&
+                                  selectedOrder?.id === orderLists.id
+                                    ? "true"
+                                    : "false"
+                                }
                                 variant="outlined"
-                                onClick={() => (
-                                  setOpenActions(!openActions),
-                                  setSelectedOrder(orderLists)
-                                )}
+                                onClick={(event) => {
+                                  if (
+                                    openActions &&
+                                    selectedOrder?.id === orderLists.id
+                                  ) {
+                                    setOpenActions(false);
+                                  } else {
+                                    setSelectedOrder(orderLists);
+                                    const buttonElement = event.currentTarget;
+                                    const buttonRect =
+                                      buttonElement.getBoundingClientRect();
+                                    const spaceBelow =
+                                      window.innerHeight - buttonRect.bottom;
+                                    const dropdownHeight = 200;
+                                    const spaceAbove = buttonRect.top;
+
+                                    if (spaceBelow < dropdownHeight) {
+                                      setDropdownPosition("up");
+                                    } else {
+                                      setDropdownPosition("down");
+                                    }
+                                    setOpenActions(true);
+                                  }
+                                }}
                                 endIcon={<KeyboardArrowDownIcon />}
                               >
                                 Actions
@@ -1492,13 +1543,24 @@ const OrderList = (props) => {
                               orderLists.id === selectedOrder.id && (
                                 <ClickAwayListener
                                   onClickAway={() => setOpenActions(false)}
+                                  touchEvent="touchstart"
                                 >
                                   <Paper
+                                    id={`actions-menu-${orderLists.id}`}
                                     style={{
                                       position: "absolute",
+                                      left: 0,
                                       zIndex: "99",
+                                      maxHeight: "200px",
+                                      overflowY: "auto",
+                                      minWidth: "150px",
+                                      backgroundColor: "white",
+                                      border: "1px solid #ddd",
+                                      boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                                      ...(dropdownPosition === "down"
+                                        ? { top: "100%" }
+                                        : { bottom: "100%" }),
                                     }}
-                                    id="action_orders"
                                   >
                                     <MenuList>
                                       {!orderLists.isPaid &&
@@ -1674,8 +1736,10 @@ const OrderList = (props) => {
               customerorderpop
                 ? {
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "space-evenly",
+                    gap: "10px",
                   }
                 : { display: "none" }
             }
