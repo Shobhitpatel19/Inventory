@@ -55,7 +55,10 @@ export default function App() {
         if (res.data?.length) {
           console.log(JSON.stringify(res));
           console.log("Fetched user info:", res.data[0]);
-          setUserInfo(res.data[0]);
+          setUserInfo({
+            ...res.data[0],
+            show_category_images: res.data[0].show_category_images ?? false,
+          });
           setLatitude(res.data[0].location.coordinates[0]);
           setLongitude(res.data[0].location.coordinates[1]);
         } else {
@@ -89,7 +92,6 @@ export default function App() {
         setProviderDetail(res.data);
       });
   }, []);
-
 
   const handleFieldUpdate = (key, newValue) => {
     if (key === "closing_end_date" && userInfo.closing_start_date) {
@@ -189,6 +191,7 @@ export default function App() {
           },
           openTime: 10,
           closeTime: 23,
+          show_category_images: false,
         },
         {
           headers: { Authorization: `Bearer ${userToken}` },
@@ -690,7 +693,7 @@ export default function App() {
               POS Settings
             </h2>
 
-            <div
+            <div // This is the grid container div
               style={{
                 display: "grid",
                 gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
@@ -699,6 +702,7 @@ export default function App() {
                 marginBottom: "10px",
               }}
             >
+              {/* Left Aligned Order Panel Toggle */}
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
@@ -711,6 +715,62 @@ export default function App() {
                   onChange={() => handleCheckboxChange("isLeftAlign")}
                   style={{ width: "20px", height: "20px" }}
                 />
+              </div>
+
+              {/* Show Category Images Toggle */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+              >
+                <label style={{ width: "50%", color: "#726e6e" }}>
+                  Show Category Images
+                </label>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "60px",
+                    height: "30px",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!userInfo.show_category_images}
+                    onChange={() =>
+                      handleCheckboxChange("show_category_images")
+                    }
+                    style={{
+                      opacity: 0,
+                      width: "100%",
+                      height: "100%",
+                      position: "absolute",
+                      cursor: "pointer",
+                      zIndex: 2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundColor: userInfo.show_category_images
+                        ? "#4caf50"
+                        : "#ccc",
+                      borderRadius: "30px",
+                      transition: "0.4s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "24px",
+                        width: "24px",
+                        backgroundColor: "white",
+                        borderRadius: "50%",
+                        position: "absolute",
+                        top: "3px",
+                        left: userInfo.show_category_images ? "32px" : "4px",
+                        transition: "0.4s",
+                      }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
